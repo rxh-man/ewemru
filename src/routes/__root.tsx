@@ -82,6 +82,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Etihad MRU Automation" },
       { property: "og:description", content: "Field verification tool for e& MRU surveyors." },
       { property: "og:type", content: "website" },
+      { name: "twitter:title", content: "Etihad MRU Automation" },
+      { name: "twitter:description", content: "Field verification tool for e& MRU surveyors." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/44492f76-33aa-4410-b822-88c3c06c7866/id-preview-7c5d4459--1ef31288-1839-427f-82bb-ac9e0fc1b812.lovable.app-1781600470122.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/44492f76-33aa-4410-b822-88c3c06c7866/id-preview-7c5d4459--1ef31288-1839-427f-82bb-ac9e0fc1b812.lovable.app-1781600470122.png" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

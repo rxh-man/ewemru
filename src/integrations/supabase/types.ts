@@ -14,7 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      energy_sites: {
+        Row: {
+          acc_no: string | null
+          action_required: string | null
+          area: string | null
+          assigned_surveyor: string | null
+          building_id: string | null
+          building_name: string | null
+          created_at: string
+          date_survey_completed: string | null
+          id: string
+          linked_main_water_meter: string | null
+          location: string | null
+          mps_as_per_loc: string | null
+          mru: string | null
+          msn: string | null
+          new_data: string | null
+          premise: string | null
+          premise_desc: string | null
+          sub_water_meter: string | null
+          type: string | null
+          usn: string
+          week_of_submission: string | null
+        }
+        Insert: {
+          acc_no?: string | null
+          action_required?: string | null
+          area?: string | null
+          assigned_surveyor?: string | null
+          building_id?: string | null
+          building_name?: string | null
+          created_at?: string
+          date_survey_completed?: string | null
+          id?: string
+          linked_main_water_meter?: string | null
+          location?: string | null
+          mps_as_per_loc?: string | null
+          mru?: string | null
+          msn?: string | null
+          new_data?: string | null
+          premise?: string | null
+          premise_desc?: string | null
+          sub_water_meter?: string | null
+          type?: string | null
+          usn: string
+          week_of_submission?: string | null
+        }
+        Update: {
+          acc_no?: string | null
+          action_required?: string | null
+          area?: string | null
+          assigned_surveyor?: string | null
+          building_id?: string | null
+          building_name?: string | null
+          created_at?: string
+          date_survey_completed?: string | null
+          id?: string
+          linked_main_water_meter?: string | null
+          location?: string | null
+          mps_as_per_loc?: string | null
+          mru?: string | null
+          msn?: string | null
+          new_data?: string | null
+          premise?: string | null
+          premise_desc?: string | null
+          sub_water_meter?: string | null
+          type?: string | null
+          usn?: string
+          week_of_submission?: string | null
+        }
+        Relationships: []
+      }
+      verifications: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          site_type: string
+          status: string
+          surveyor_name: string | null
+          usn: string
+          visited_at: string
+          wrong_fields: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          site_type: string
+          status: string
+          surveyor_name?: string | null
+          usn: string
+          visited_at?: string
+          wrong_fields?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          site_type?: string
+          status?: string
+          surveyor_name?: string | null
+          usn?: string
+          visited_at?: string
+          wrong_fields?: string | null
+        }
+        Relationships: []
+      }
+      water_sites: {
+        Row: {
+          acc_no: string | null
+          action_required: string | null
+          area: string | null
+          assigned_surveyor: string | null
+          building_id: string | null
+          building_name: string | null
+          created_at: string
+          date_survey_completed: string | null
+          id: string
+          linked_main_water_meter: string | null
+          location: string | null
+          main_installation: string | null
+          mps_as_per_loc: string | null
+          mru: string | null
+          msn: string | null
+          new_data: string | null
+          premise: string | null
+          premise_desc: string | null
+          serial_number: string
+          size: string | null
+          week_of_submission: string | null
+        }
+        Insert: {
+          acc_no?: string | null
+          action_required?: string | null
+          area?: string | null
+          assigned_surveyor?: string | null
+          building_id?: string | null
+          building_name?: string | null
+          created_at?: string
+          date_survey_completed?: string | null
+          id?: string
+          linked_main_water_meter?: string | null
+          location?: string | null
+          main_installation?: string | null
+          mps_as_per_loc?: string | null
+          mru?: string | null
+          msn?: string | null
+          new_data?: string | null
+          premise?: string | null
+          premise_desc?: string | null
+          serial_number: string
+          size?: string | null
+          week_of_submission?: string | null
+        }
+        Update: {
+          acc_no?: string | null
+          action_required?: string | null
+          area?: string | null
+          assigned_surveyor?: string | null
+          building_id?: string | null
+          building_name?: string | null
+          created_at?: string
+          date_survey_completed?: string | null
+          id?: string
+          linked_main_water_meter?: string | null
+          location?: string | null
+          main_installation?: string | null
+          mps_as_per_loc?: string | null
+          mru?: string | null
+          msn?: string | null
+          new_data?: string | null
+          premise?: string | null
+          premise_desc?: string | null
+          serial_number?: string
+          size?: string | null
+          week_of_submission?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

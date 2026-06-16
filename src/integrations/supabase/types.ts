@@ -34,6 +34,7 @@ export type Database = {
           premise: string | null
           premise_desc: string | null
           sub_water_meter: string | null
+          surveyor_remarks: string | null
           type: string | null
           usn: string
           week_of_submission: string | null
@@ -57,6 +58,7 @@ export type Database = {
           premise?: string | null
           premise_desc?: string | null
           sub_water_meter?: string | null
+          surveyor_remarks?: string | null
           type?: string | null
           usn: string
           week_of_submission?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           premise?: string | null
           premise_desc?: string | null
           sub_water_meter?: string | null
+          surveyor_remarks?: string | null
           type?: string | null
           usn?: string
           week_of_submission?: string | null
@@ -88,9 +91,11 @@ export type Database = {
       }
       verifications: {
         Row: {
+          completed_date: string | null
           created_at: string
           id: string
           notes: string | null
+          remarks: string | null
           site_type: string
           status: string
           surveyor_name: string | null
@@ -99,9 +104,11 @@ export type Database = {
           wrong_fields: string | null
         }
         Insert: {
+          completed_date?: string | null
           created_at?: string
           id?: string
           notes?: string | null
+          remarks?: string | null
           site_type: string
           status: string
           surveyor_name?: string | null
@@ -110,9 +117,11 @@ export type Database = {
           wrong_fields?: string | null
         }
         Update: {
+          completed_date?: string | null
           created_at?: string
           id?: string
           notes?: string | null
+          remarks?: string | null
           site_type?: string
           status?: string
           surveyor_name?: string | null
@@ -144,6 +153,7 @@ export type Database = {
           premise_desc: string | null
           serial_number: string
           size: string | null
+          surveyor_remarks: string | null
           week_of_submission: string | null
         }
         Insert: {
@@ -167,6 +177,7 @@ export type Database = {
           premise_desc?: string | null
           serial_number: string
           size?: string | null
+          surveyor_remarks?: string | null
           week_of_submission?: string | null
         }
         Update: {
@@ -190,6 +201,7 @@ export type Database = {
           premise_desc?: string | null
           serial_number?: string
           size?: string | null
+          surveyor_remarks?: string | null
           week_of_submission?: string | null
         }
         Relationships: []

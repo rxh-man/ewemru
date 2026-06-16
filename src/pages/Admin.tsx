@@ -177,7 +177,11 @@ function VerificationsTab() {
   useEffect(() => { void load(); }, []);
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase.from("verifications" as never).select("*").order("visited_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("verifications" as never)
+      .select("*")
+      .order("visited_at", { ascending: false })
+      .limit(1000);
     if (error) toast.error(error.message);
     setRows((data as Verification[]) ?? []);
     setLoading(false);

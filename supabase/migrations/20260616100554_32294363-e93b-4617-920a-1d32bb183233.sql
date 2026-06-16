@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS verifications_visited_at_idx ON public.verifications (visited_at DESC); CREATE INDEX IF NOT EXISTS verifications_usn_idx ON public.verifications (usn);

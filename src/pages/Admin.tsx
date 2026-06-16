@@ -155,15 +155,24 @@ function PreviewTable({ rows, fields }: { rows: Record<string, string | null>[];
 interface Verification {
   id: string; usn: string; site_type: string; surveyor_name: string | null;
   visited_at: string; status: string; wrong_fields: string | null; notes: string | null;
+  completed_date: string | null; remarks: string | null;
+}
+
+function statusPill(s: string) {
+  if (s === "correct") return <span className="px-2 py-0.5 rounded-full bg-[color:var(--success)]/10 text-[color:var(--success)] text-[11px] font-medium">Correct</span>;
+  if (s === "wrong") return <span className="px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-[11px] font-medium">Wrong</span>;
+  if (s === "updated") return <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-medium">Updated</span>;
+  return <span className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[11px] font-medium">{s}</span>;
 }
 
 function VerificationsTab() {
   const [rows, setRows] = useState<Verification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<"all" | "correct" | "wrong">("all");
+  const [status, setStatus] = useState<"all" | "correct" | "wrong" | "updated">("all");
   const [siteType, setSiteType] = useState<"all" | "energy" | "water">("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => { void load(); }, []);
   async function load() {
@@ -179,63 +188,67 @@ function VerificationsTab() {
     if (siteType !== "all" && r.site_type !== siteType) return false;
     if (from && new Date(r.visited_at) < new Date(from)) return false;
     if (to && new Date(r.visited_at) > new Date(to + "T23:59:59")) return false;
+    if (search.trim() && !r.usn.toLowerCase().includes(search.trim().toLowerCase())) return false;
     return true;
-  }), [rows, status, siteType, from, to]);
+  }), [rows, status, siteType, from, to, search]);
 
-  function exportWrong() {
-    const wrong = filtered.filter((r) => r.status === "wrong");
-    const headers = ["USN", "Site Type", "Surveyor", "Visited At", "Wrong Fields", "Notes"];
+  function exportCsv(only: "all" | "wrong") {
+    const data = only === "wrong" ? filtered.filter((r) => r.status === "wrong") : filtered;
+    const headers = ["USN", "Site Type", "Surveyor", "Visited At", "Status", "Completed Date", "Wrong Fields", "Remarks", "Notes"];
     const csv = [headers.join(",")].concat(
-      wrong.map((r) => [r.usn, r.site_type, r.surveyor_name ?? "", r.visited_at, r.wrong_fields ?? "", r.notes ?? ""]
+      data.map((r) => [r.usn, r.site_type, r.surveyor_name ?? "", r.visited_at, r.status, r.completed_date ?? "", r.wrong_fields ?? "", r.remarks ?? "", r.notes ?? ""]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
     ).join("\n");
     const date = new Date().toISOString().slice(0, 10);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `wrong_info_report_${date}.csv`;
+    a.download = `${only === "wrong" ? "wrong_info" : "verifications"}_${date}.csv`;
     a.click();
   }
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+        <input placeholder="Search USN" value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 px-2 text-sm border border-input rounded-md bg-white" />
         <select value={siteType} onChange={(e) => setSiteType(e.target.value as never)} className="h-9 px-2 text-sm border border-input rounded-md bg-white">
           <option value="all">All types</option><option value="energy">Energy</option><option value="water">Water</option>
         </select>
         <select value={status} onChange={(e) => setStatus(e.target.value as never)} className="h-9 px-2 text-sm border border-input rounded-md bg-white">
-          <option value="all">All status</option><option value="correct">Correct</option><option value="wrong">Wrong</option>
+          <option value="all">All status</option>
+          <option value="correct">Correct</option>
+          <option value="wrong">Wrong</option>
+          <option value="updated">Updated</option>
         </select>
         <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9 px-2 text-sm border border-input rounded-md bg-white" />
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 px-2 text-sm border border-input rounded-md bg-white" />
-        <button onClick={exportWrong} className="h-9 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90">
-          Export Wrong CSV
-        </button>
+        <div className="flex gap-1">
+          <button onClick={() => exportCsv("all")} className="flex-1 h-9 px-2 text-xs font-medium rounded-md border border-input hover:bg-secondary">Export All</button>
+          <button onClick={() => exportCsv("wrong")} className="flex-1 h-9 px-2 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90">Wrong CSV</button>
+        </div>
       </div>
 
       <div className="border border-border rounded-lg overflow-x-auto">
         <table className="min-w-full text-xs">
           <thead className="bg-secondary text-secondary-foreground">
             <tr>
-              {["USN", "Type", "Surveyor", "Visited", "Status", "Wrong Fields", "Notes"].map((h) => (
+              {["USN", "Type", "Surveyor", "Visited", "Status", "Completed", "Remarks", "Wrong Fields", "Notes"].map((h) => (
                 <th key={h} className="text-left font-medium px-3 py-2 whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>}
-            {!loading && filtered.length === 0 && <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">No verifications yet.</td></tr>}
+            {loading && <tr><td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>}
+            {!loading && filtered.length === 0 && <tr><td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">No verifications yet.</td></tr>}
             {filtered.map((r) => (
               <tr key={r.id} className="border-t border-border">
                 <td className="px-3 py-2 font-medium">{r.usn}</td>
                 <td className="px-3 py-2 capitalize">{r.site_type}</td>
                 <td className="px-3 py-2">{r.surveyor_name ?? "—"}</td>
                 <td className="px-3 py-2 whitespace-nowrap">{new Date(r.visited_at).toLocaleString()}</td>
-                <td className="px-3 py-2">
-                  {r.status === "correct"
-                    ? <span className="px-2 py-0.5 rounded-full bg-[color:var(--success)]/10 text-[color:var(--success)] text-[11px] font-medium">Correct</span>
-                    : <span className="px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-[11px] font-medium">Wrong</span>}
-                </td>
+                <td className="px-3 py-2">{statusPill(r.status)}</td>
+                <td className="px-3 py-2 whitespace-nowrap">{r.completed_date ?? "—"}</td>
+                <td className="px-3 py-2 max-w-[200px] truncate" title={r.remarks ?? ""}>{r.remarks ?? "—"}</td>
                 <td className="px-3 py-2 max-w-[200px] truncate" title={r.wrong_fields ?? ""}>{r.wrong_fields ?? "—"}</td>
                 <td className="px-3 py-2 max-w-[200px] truncate" title={r.notes ?? ""}>{r.notes ?? "—"}</td>
               </tr>

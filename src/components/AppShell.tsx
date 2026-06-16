@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "react-router-dom";
 import { logout, type Session } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
 import { Toaster } from "sonner";
@@ -7,7 +7,7 @@ export function AppShell({ session, children }: { session: Session; children: Re
   const navigate = useNavigate();
   function handleLogout() {
     logout();
-    navigate({ to: "/" });
+    navigate("/");
   }
   return (
     <div className="min-h-screen bg-white">

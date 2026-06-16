@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { getSession, type Session } from "@/lib/auth";
@@ -7,19 +7,14 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { ENERGY_FIELDS, WATER_FIELDS, mapRow } from "@/lib/fields";
 
-export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Admin — Etihad MRU Automation" }] }),
-  component: AdminPage,
-});
-
-function AdminPage() {
+export default function Admin() {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [tab, setTab] = useState<"upload" | "verifications">("upload");
 
   useEffect(() => {
     const s = getSession();
-    if (!s || s.role !== "admin") { navigate({ to: "/" }); return; }
+    if (!s || s.role !== "admin") { navigate("/"); return; }
     setSession(s);
   }, [navigate]);
 

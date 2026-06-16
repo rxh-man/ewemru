@@ -1,19 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { login, getSession } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Sign in — Etihad MRU Automation" },
-      { name: "description", content: "Sign in to the e& MRU field verification tool." },
-    ],
-  }),
-  component: LoginPage,
-});
-
-function LoginPage() {
+export default function Login() {
   const navigate = useNavigate();
   const [u, setU] = useState("");
   const [p, setP] = useState("");
@@ -21,7 +11,7 @@ function LoginPage() {
 
   useEffect(() => {
     const s = getSession();
-    if (s) navigate({ to: s.role === "admin" ? "/admin" : "/surveyor" });
+    if (s) navigate(s.role === "admin" ? "/admin" : "/surveyor");
   }, [navigate]);
 
   function onSubmit(e: React.FormEvent) {
@@ -29,7 +19,7 @@ function LoginPage() {
     setErr(null);
     const s = login(u, p);
     if (!s) { setErr("Invalid username or password"); return; }
-    navigate({ to: s.role === "admin" ? "/admin" : "/surveyor" });
+    navigate(s.role === "admin" ? "/admin" : "/surveyor");
   }
 
   return (

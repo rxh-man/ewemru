@@ -1,20 +1,15 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { getSession, type Session } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { ENERGY_FIELDS, WATER_FIELDS } from "@/lib/fields";
 
-export const Route = createFileRoute("/surveyor")({
-  head: () => ({ meta: [{ title: "Surveyor — Etihad MRU Automation" }] }),
-  component: SurveyorPage,
-});
-
 type SiteType = "energy" | "water";
 type SiteRow = Record<string, string | null> & { id: string };
 
-function SurveyorPage() {
+export default function Surveyor() {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [siteType, setSiteType] = useState<SiteType>("energy");
@@ -27,7 +22,7 @@ function SurveyorPage() {
 
   useEffect(() => {
     const s = getSession();
-    if (!s || s.role !== "surveyor") { navigate({ to: "/" }); return; }
+    if (!s || s.role !== "surveyor") { navigate("/"); return; }
     setSession(s);
   }, [navigate]);
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login, getSession } from "@/lib/auth";
+import { login, getSession, homeFor } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
 
 export default function Login() {
@@ -11,7 +11,7 @@ export default function Login() {
 
   useEffect(() => {
     const s = getSession();
-    if (s) navigate(s.role === "admin" ? "/admin" : "/surveyor");
+    if (s) navigate(homeFor(s.role));
   }, [navigate]);
 
   function onSubmit(e: React.FormEvent) {
@@ -19,7 +19,7 @@ export default function Login() {
     setErr(null);
     const s = login(u, p);
     if (!s) { setErr("Invalid username or password"); return; }
-    navigate(s.role === "admin" ? "/admin" : "/surveyor");
+    navigate(homeFor(s.role));
   }
 
   return (

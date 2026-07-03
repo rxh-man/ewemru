@@ -1,4 +1,4 @@
-export type Role = "admin" | "surveyor";
+export type Role = "admin" | "surveyor" | "ft";
 export interface Session { role: Role; username: string }
 
 const KEY = "mru_session";
@@ -6,6 +6,7 @@ const KEY = "mru_session";
 const USERS: Record<string, { password: string; role: Role }> = {
   admin: { password: "123999", role: "admin" },
   surveyor: { password: "123111", role: "surveyor" },
+  engineer: { password: "demo123", role: "ft" },
 };
 
 export function login(username: string, password: string): Session | null {
@@ -26,4 +27,10 @@ export function getSession(): Session | null {
 
 export function logout() {
   if (typeof window !== "undefined") localStorage.removeItem(KEY);
+}
+
+export function homeFor(role: Role): string {
+  if (role === "admin") return "/admin";
+  if (role === "surveyor") return "/surveyor";
+  return "/ft";
 }

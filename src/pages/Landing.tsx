@@ -16,7 +16,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src={eandLogo} alt="e&" className="h-8 w-auto" />
-            <span className="text-sm font-semibold text-[#111]">Operations Portal</span>
+            <span className="text-sm font-semibold text-[#111]">PO Portal</span>
           </div>
           <Link to="/hr-login" className="text-xs font-medium text-primary hover:opacity-80">Sign in</Link>
         </div>

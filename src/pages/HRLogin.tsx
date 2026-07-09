@@ -27,7 +27,7 @@ export default function HRLogin() {
       <div className="hidden lg:flex flex-col justify-between bg-[#111] text-white p-12">
         <Link to="/" className="flex items-center gap-2">
           <img src={eandLogo} alt="e&" className="h-8 w-auto invert" />
-          <span className="text-sm font-semibold">Operations Portal</span>
+          <span className="text-sm font-semibold">PO Portal</span>
         </Link>
         <div>
           <h2 className="text-3xl font-semibold leading-tight max-w-md">MR Tracker, live from the master sheet.</h2>

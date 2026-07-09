@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { logout, type Session } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
-import marinaDp from "@/assets/marina.png.asset.json";
+import marinaDp from "@/assets/marina.png";
 import { Toaster } from "sonner";
 
 export function AppShell({ session, children }: { session: Session; children: React.ReactNode }) {

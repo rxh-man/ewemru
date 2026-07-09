@@ -31,10 +31,11 @@ export default function HRLogin() {
             <span className="text-sm font-semibold">PO Portal</span>
           </div>
           <div>
-            <h2 className="text-3xl font-semibold leading-tight max-w-md">MR Tracker, live from the master sheet.</h2>
-            <p className="mt-3 text-sm text-white/70 max-w-md">Blockers, pending items, action owners and vendor status — always in sync with the Google Sheet.</p>
+            <h2 className="text-3xl font-semibold leading-tight max-w-md">Contract & Procurement</h2>
+            <p className="mt-3 text-sm text-white/70 max-w-md">Blockers, pending items, action owners and vendor status, always in sync.</p>
           </div>
-          <p className="text-xs text-white/50">Restricted access · Etihad WE Internal</p>
+          <p className="text-xs text-white/50">Restricted access · D&O</p>
+
         </div>
 
         <div className="flex items-center justify-center p-6">
@@ -67,7 +68,7 @@ export default function HRLogin() {
 
       <footer className="border-t border-border">
         <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>© {new Date().getFullYear()} Etihad WE — Internal Use</span>
+          <span>© {new Date().getFullYear()} RAHMAN08 — Internal Use</span>
           <div className="flex items-center gap-4">
             <Link to="/ft" className="hover:text-[#111]">Field Tech</Link>
             <Link to="/mru-login" className="hover:text-[#111]">MRU Automation</Link>

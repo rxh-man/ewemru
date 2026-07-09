@@ -187,36 +187,49 @@ export default function HRDashboard() {
     const paySrc = pendingPay.filter((r) => matchDrill(r, target));
     const lines: string[] = [];
     const label = target.value;
-    lines.push(`Hi ${target.kind === "owner" ? label : "Team"},`, "");
-    lines.push(`Following up on the pending items ${target.kind === "owner" ? "assigned to you" : `for ${label}`} in the MR Tracker. Please action the below at your earliest:`);
+    const greeting = target.kind === "owner" ? label.split(/\s+/)[0] : "Team";
+    lines.push(`Dear ${greeting},`, "");
+    lines.push(
+      target.kind === "owner"
+        ? `I hope you are doing well. Kindly find below the pending items currently awaiting your action. Your support in closing these at the earliest is appreciated.`
+        : `I hope you are doing well. Kindly find below the pending items related to ${label} awaiting action.`
+    );
     lines.push("");
     if (poSrc.length) {
-      lines.push(`— PO & PR (${poSrc.length}) —`);
+      lines.push(`PO & PR — ${poSrc.length} item(s)`);
+      lines.push("");
       poSrc.forEach((r, i) => {
-        lines.push(`${i + 1}. Project: ${r["Project Name"] || "—"} | Vendor: ${r["Vendor Name"] || "—"} | PR: ${r["PR Number"] || "—"} | Amount: ${r["PR Amount"] || "—"}`);
-        if (r["Action Category"]) lines.push(`   Action: ${r["Action Category"]}`);
-        if (r.Status) lines.push(`   Status: ${r.Status}`);
-        if (r.Remarks) lines.push(`   Remarks: ${r.Remarks}`);
+        lines.push(`${i + 1}. ${r["Project Name"] || "—"} — ${r["Vendor Name"] || "—"}`);
+        if (r.Description) lines.push(`   • Description: ${r.Description.replace(/\s+/g, " ").trim()}`);
+        if (r["PR Number"]) lines.push(`   • PR Number: ${r["PR Number"]}`);
+        if (r["Action Category"]) lines.push(`   • Action Required: ${r["Action Category"].replace(/\s+/g, " ").trim()}`);
+        if (r.Status) lines.push(`   • Status: ${r.Status}`);
+        if (r.Remarks) lines.push(`   • Remarks: ${r.Remarks}`);
         lines.push("");
       });
     }
     if (paySrc.length) {
-      lines.push(`— Payment Release (${paySrc.length}) —`);
+      lines.push(`Payment Release — ${paySrc.length} item(s)`);
+      lines.push("");
       paySrc.forEach((r, i) => {
-        lines.push(`${i + 1}. Project: ${r["Project Name"] || "—"} | Vendor: ${r["Vendor Name"] || "—"}`);
-        if (r.Issue) lines.push(`   Issue: ${r.Issue}`);
-        if (r["Next Step"]) lines.push(`   Next Step: ${r["Next Step"]} (${r["Next Step Owner"] || "—"})`);
-        if (r.Status) lines.push(`   Status: ${r.Status}`);
-        if (r.Remarks) lines.push(`   Remarks: ${r.Remarks}`);
+        lines.push(`${i + 1}. ${r["Project Name"] || "—"} — ${r["Vendor Name"] || "—"}`);
+        if (r.Issue) lines.push(`   • Issue: ${r.Issue.replace(/\s+/g, " ").trim()}`);
+        if (r.Comment) lines.push(`   • Comment: ${r.Comment.replace(/\s+/g, " ").trim()}`);
+        if (r["Next Step"]) lines.push(`   • Next Step: ${r["Next Step"]}${r["Next Step Owner"] ? ` (Owner: ${r["Next Step Owner"].replace(/\s+/g, " ").trim()})` : ""}`);
+        if (r.Status) lines.push(`   • Status: ${r.Status}`);
+        if (r.Remarks) lines.push(`   • Remarks: ${r.Remarks}`);
         lines.push("");
       });
     }
-    if (!poSrc.length && !paySrc.length) lines.push("No pending items found.");
-    lines.push("Kindly confirm the status or expected closure date.", "", "Thanks,", "Marina");
-    setEmailSubject(`Pending items – ${label} (${poSrc.length + paySrc.length} open)`);
+    if (!poSrc.length && !paySrc.length) lines.push("No pending items found.", "");
+    lines.push("Kindly confirm the current status or the expected closure date at your earliest convenience.");
+    lines.push("");
+    lines.push("Regards,", "Marina Emad");
+    setEmailSubject(`Pending Items – ${label} (${poSrc.length + paySrc.length} open)`);
     setEmailBody(lines.join("\n"));
     setEmailOpen(true);
   }
+
 
   function matchDrill(r: Row, target: DrillFilter): boolean {
     const v = target.value.toLowerCase();

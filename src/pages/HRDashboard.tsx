@@ -119,6 +119,8 @@ export default function HRDashboard() {
       if (fVendor && !(r["Vendor Name"] || "").toLowerCase().includes(fVendor.toLowerCase())) return false;
       if (fOwner && !(r.Owner || "").toLowerCase().includes(fOwner.toLowerCase())) return false;
       if (fStatus && !(r.Status || "").toLowerCase().includes(fStatus.toLowerCase())) return false;
+      if (fExpiry === "expired" && !isExpired(r)) return false;
+      if (fExpiry === "active" && isExpired(r)) return false;
       if (q && !Object.values(r).some((v) => (v || "").toLowerCase().includes(q))) return false;
       return true;
     };
@@ -128,11 +130,14 @@ export default function HRDashboard() {
       vendors: data.vendors.filter((r) => {
         if (fProject && !(r["Project Name"] || "").toLowerCase().includes(fProject.toLowerCase())) return false;
         if (fVendor && !(r["Vendor Name"] || "").toLowerCase().includes(fVendor.toLowerCase())) return false;
+        if (fExpiry === "expired" && !isExpired(r)) return false;
+        if (fExpiry === "active" && isExpired(r)) return false;
         if (q && !Object.values(r).some((v) => (v || "").toLowerCase().includes(q))) return false;
         return true;
       }),
     };
-  }, [data, fProject, fVendor, fOwner, fStatus, search]);
+  }, [data, fProject, fVendor, fOwner, fStatus, fExpiry, search]);
+
 
   const pendingPoPr = useMemo(() => filtered.poPr.filter(isPending), [filtered.poPr]);
   const pendingPay = useMemo(() => filtered.payment.filter(isPending), [filtered.payment]);

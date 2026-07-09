@@ -270,7 +270,7 @@ export default function HRDashboard() {
         </div>
 
         <div className="border border-border rounded-lg p-3 bg-white">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
             <input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)}
               className="h-9 px-3 text-sm border border-input rounded-md bg-white col-span-2 md:col-span-1" />
             <select value={fProject} onChange={(e) => setFProject(e.target.value)} className="h-9 px-2 text-sm border border-input rounded-md bg-white">
@@ -287,12 +287,18 @@ export default function HRDashboard() {
               <option value="">All Status</option>
               {["Red", "Amber", "Yellow", "Green", "Blue"].map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
+            <select value={fExpiry} onChange={(e) => setFExpiry(e.target.value as "" | "expired" | "active")} className="h-9 px-2 text-sm border border-input rounded-md bg-white">
+              <option value="">All (Expiry)</option>
+              <option value="expired">Expired only</option>
+              <option value="active">Not expired</option>
+            </select>
           </div>
-          {(fProject || fOwner || fVendor || fStatus || search) && (
-            <button onClick={() => { setFProject(""); setFOwner(""); setFVendor(""); setFStatus(""); setSearch(""); }}
+          {(fProject || fOwner || fVendor || fStatus || fExpiry || search) && (
+            <button onClick={() => { setFProject(""); setFOwner(""); setFVendor(""); setFStatus(""); setFExpiry(""); setSearch(""); }}
               className="mt-2 text-xs text-primary hover:underline">Clear all filters</button>
           )}
         </div>
+
 
         <div className="flex gap-1 border-b border-border">
           {[

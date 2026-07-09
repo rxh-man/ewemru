@@ -83,7 +83,9 @@ export default function HRDashboard() {
   const [fOwner, setFOwner] = useState("");
   const [fVendor, setFVendor] = useState("");
   const [fStatus, setFStatus] = useState("");
+  const [fExpiry, setFExpiry] = useState<"" | "expired" | "active">("");
   const [search, setSearch] = useState("");
+
 
   const [drill, setDrill] = useState<DrillFilter | null>(null);
   const [emailOpen, setEmailOpen] = useState(false);

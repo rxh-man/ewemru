@@ -46,6 +46,28 @@ function isPending(r: Row): boolean {
   if (blocker.includes("block")) return true;
   return ["red", "amber", "yellow", "pending", "open", "in progress"].some((k) => status.includes(k));
 }
+function parseDate(s: string): Date | null {
+  if (!s) return null;
+  const t = s.trim();
+  // Try common formats: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd, Month yyyy
+  const iso = new Date(t);
+  if (!isNaN(iso.getTime())) return iso;
+  const m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    const [, d, mo, y] = m;
+    const yr = y.length === 2 ? 2000 + Number(y) : Number(y);
+    return new Date(yr, Number(mo) - 1, Number(d));
+  }
+  return null;
+}
+function isExpired(r: Row): boolean {
+  const rem = `${r.Remarks || ""} ${r.Blockers || ""} ${r.Issue || ""} ${r["Action Category"] || ""}`.toLowerCase();
+  if (/\bexpired?\b/.test(rem)) return true;
+  const end = parseDate(r["End Date"] || "");
+  if (end && end.getTime() < Date.now()) return true;
+  return false;
+}
+
 
 type DrillFilter = { kind: "owner" | "project" | "vendor" | "status" | "category"; value: string; source?: "po_pr" | "payment" | "all" };
 
@@ -61,7 +83,9 @@ export default function HRDashboard() {
   const [fOwner, setFOwner] = useState("");
   const [fVendor, setFVendor] = useState("");
   const [fStatus, setFStatus] = useState("");
+  const [fExpiry, setFExpiry] = useState<"" | "expired" | "active">("");
   const [search, setSearch] = useState("");
+
 
   const [drill, setDrill] = useState<DrillFilter | null>(null);
   const [emailOpen, setEmailOpen] = useState(false);
@@ -95,6 +119,8 @@ export default function HRDashboard() {
       if (fVendor && !(r["Vendor Name"] || "").toLowerCase().includes(fVendor.toLowerCase())) return false;
       if (fOwner && !(r.Owner || "").toLowerCase().includes(fOwner.toLowerCase())) return false;
       if (fStatus && !(r.Status || "").toLowerCase().includes(fStatus.toLowerCase())) return false;
+      if (fExpiry === "expired" && !isExpired(r)) return false;
+      if (fExpiry === "active" && isExpired(r)) return false;
       if (q && !Object.values(r).some((v) => (v || "").toLowerCase().includes(q))) return false;
       return true;
     };
@@ -104,11 +130,14 @@ export default function HRDashboard() {
       vendors: data.vendors.filter((r) => {
         if (fProject && !(r["Project Name"] || "").toLowerCase().includes(fProject.toLowerCase())) return false;
         if (fVendor && !(r["Vendor Name"] || "").toLowerCase().includes(fVendor.toLowerCase())) return false;
+        if (fExpiry === "expired" && !isExpired(r)) return false;
+        if (fExpiry === "active" && isExpired(r)) return false;
         if (q && !Object.values(r).some((v) => (v || "").toLowerCase().includes(q))) return false;
         return true;
       }),
     };
-  }, [data, fProject, fVendor, fOwner, fStatus, search]);
+  }, [data, fProject, fVendor, fOwner, fStatus, fExpiry, search]);
+
 
   const pendingPoPr = useMemo(() => filtered.poPr.filter(isPending), [filtered.poPr]);
   const pendingPay = useMemo(() => filtered.payment.filter(isPending), [filtered.payment]);
@@ -158,36 +187,49 @@ export default function HRDashboard() {
     const paySrc = pendingPay.filter((r) => matchDrill(r, target));
     const lines: string[] = [];
     const label = target.value;
-    lines.push(`Hi ${target.kind === "owner" ? label : "Team"},`, "");
-    lines.push(`Following up on the pending items ${target.kind === "owner" ? "assigned to you" : `for ${label}`} in the MR Tracker. Please action the below at your earliest:`);
+    const greeting = target.kind === "owner" ? label.split(/\s+/)[0] : "Team";
+    lines.push(`Dear ${greeting},`, "");
+    lines.push(
+      target.kind === "owner"
+        ? `I hope you are doing well. Kindly find below the pending items currently awaiting your action. Your support in closing these at the earliest is appreciated.`
+        : `I hope you are doing well. Kindly find below the pending items related to ${label} awaiting action.`
+    );
     lines.push("");
     if (poSrc.length) {
-      lines.push(`— PO & PR (${poSrc.length}) —`);
+      lines.push(`PO & PR — ${poSrc.length} item(s)`);
+      lines.push("");
       poSrc.forEach((r, i) => {
-        lines.push(`${i + 1}. Project: ${r["Project Name"] || "—"} | Vendor: ${r["Vendor Name"] || "—"} | PR: ${r["PR Number"] || "—"} | Amount: ${r["PR Amount"] || "—"}`);
-        if (r["Action Category"]) lines.push(`   Action: ${r["Action Category"]}`);
-        if (r.Status) lines.push(`   Status: ${r.Status}`);
-        if (r.Remarks) lines.push(`   Remarks: ${r.Remarks}`);
+        lines.push(`${i + 1}. ${r["Project Name"] || "—"} — ${r["Vendor Name"] || "—"}`);
+        if (r.Description) lines.push(`   • Description: ${r.Description.replace(/\s+/g, " ").trim()}`);
+        if (r["PR Number"]) lines.push(`   • PR Number: ${r["PR Number"]}`);
+        if (r["Action Category"]) lines.push(`   • Action Required: ${r["Action Category"].replace(/\s+/g, " ").trim()}`);
+        if (r.Status) lines.push(`   • Status: ${r.Status}`);
+        if (r.Remarks) lines.push(`   • Remarks: ${r.Remarks}`);
         lines.push("");
       });
     }
     if (paySrc.length) {
-      lines.push(`— Payment Release (${paySrc.length}) —`);
+      lines.push(`Payment Release — ${paySrc.length} item(s)`);
+      lines.push("");
       paySrc.forEach((r, i) => {
-        lines.push(`${i + 1}. Project: ${r["Project Name"] || "—"} | Vendor: ${r["Vendor Name"] || "—"}`);
-        if (r.Issue) lines.push(`   Issue: ${r.Issue}`);
-        if (r["Next Step"]) lines.push(`   Next Step: ${r["Next Step"]} (${r["Next Step Owner"] || "—"})`);
-        if (r.Status) lines.push(`   Status: ${r.Status}`);
-        if (r.Remarks) lines.push(`   Remarks: ${r.Remarks}`);
+        lines.push(`${i + 1}. ${r["Project Name"] || "—"} — ${r["Vendor Name"] || "—"}`);
+        if (r.Issue) lines.push(`   • Issue: ${r.Issue.replace(/\s+/g, " ").trim()}`);
+        if (r.Comment) lines.push(`   • Comment: ${r.Comment.replace(/\s+/g, " ").trim()}`);
+        if (r["Next Step"]) lines.push(`   • Next Step: ${r["Next Step"]}${r["Next Step Owner"] ? ` (Owner: ${r["Next Step Owner"].replace(/\s+/g, " ").trim()})` : ""}`);
+        if (r.Status) lines.push(`   • Status: ${r.Status}`);
+        if (r.Remarks) lines.push(`   • Remarks: ${r.Remarks}`);
         lines.push("");
       });
     }
-    if (!poSrc.length && !paySrc.length) lines.push("No pending items found.");
-    lines.push("Kindly confirm the status or expected closure date.", "", "Thanks,", "Marina");
-    setEmailSubject(`Pending items – ${label} (${poSrc.length + paySrc.length} open)`);
+    if (!poSrc.length && !paySrc.length) lines.push("No pending items found.", "");
+    lines.push("Kindly confirm the current status or the expected closure date at your earliest convenience.");
+    lines.push("");
+    lines.push("Regards,", "Marina Emad");
+    setEmailSubject(`Pending Items – ${label} (${poSrc.length + paySrc.length} open)`);
     setEmailBody(lines.join("\n"));
     setEmailOpen(true);
   }
+
 
   function matchDrill(r: Row, target: DrillFilter): boolean {
     const v = target.value.toLowerCase();
@@ -228,7 +270,7 @@ export default function HRDashboard() {
         </div>
 
         <div className="border border-border rounded-lg p-3 bg-white">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
             <input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)}
               className="h-9 px-3 text-sm border border-input rounded-md bg-white col-span-2 md:col-span-1" />
             <select value={fProject} onChange={(e) => setFProject(e.target.value)} className="h-9 px-2 text-sm border border-input rounded-md bg-white">
@@ -245,12 +287,18 @@ export default function HRDashboard() {
               <option value="">All Status</option>
               {["Red", "Amber", "Yellow", "Green", "Blue"].map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
+            <select value={fExpiry} onChange={(e) => setFExpiry(e.target.value as "" | "expired" | "active")} className="h-9 px-2 text-sm border border-input rounded-md bg-white">
+              <option value="">All (Expiry)</option>
+              <option value="expired">Expired only</option>
+              <option value="active">Not expired</option>
+            </select>
           </div>
-          {(fProject || fOwner || fVendor || fStatus || search) && (
-            <button onClick={() => { setFProject(""); setFOwner(""); setFVendor(""); setFStatus(""); setSearch(""); }}
+          {(fProject || fOwner || fVendor || fStatus || fExpiry || search) && (
+            <button onClick={() => { setFProject(""); setFOwner(""); setFVendor(""); setFStatus(""); setFExpiry(""); setSearch(""); }}
               className="mt-2 text-xs text-primary hover:underline">Clear all filters</button>
           )}
         </div>
+
 
         <div className="flex gap-1 border-b border-border">
           {[
@@ -316,8 +364,9 @@ export default function HRDashboard() {
           </div>
         )}
 
-        {tab === "po_pr" && <SheetTable rows={filtered.poPr} columns={["#", "Project Name", "Vendor Name", "PR Number", "PR Amount", "Owner", "Status", "Action Category", "Remarks"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "po_pr" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "po_pr" })} />}
-        {tab === "payment" && <SheetTable rows={filtered.payment} columns={["#", "Project Name", "Vendor Name", "Issue", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} />}
+        {tab === "po_pr" && <SheetTable rows={filtered.poPr} columns={["#", "Initiator (HR)", "Project Name", "Vendor Name", "Description", "Old System", "New System", "PR In System", "PR Number", "Action Category", "Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "po_pr" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "po_pr" })} />}
+        {tab === "payment" && <SheetTable rows={filtered.payment} columns={["#", "System", "Project Name", "Vendor Name", "Issue", "Comment", "Action Category", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} />}
+
         {tab === "vendors" && <SheetTable rows={filtered.vendors} columns={["#", "Vendor Name", "Project Name", "Field / Support Type", "Contract Type", "Start Date", "End Date", "Contract Owner", "RAG Status"]} onProject={(v) => openDrill({ kind: "project", value: v })} />}
       </div>
 

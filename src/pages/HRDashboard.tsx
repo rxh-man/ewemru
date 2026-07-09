@@ -11,7 +11,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import marinaDp from "@/assets/marina.png.asset.json";
+
 
 
 type Row = Record<string, string>;
@@ -250,15 +250,13 @@ export default function HRDashboard() {
     <AppShell session={session}>
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <img src={marinaDp.url} alt="Marina Emad" className="h-11 w-11 rounded-full object-cover border border-border" />
-            <div>
-              <h1 className="text-xl font-semibold text-[#111]">MR Tracker</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Marina Emad · {data?.fetchedAt ? `Synced ${new Date(data.fetchedAt).toLocaleTimeString()} — live from Google Sheet` : "Loading live data…"}
-              </p>
-            </div>
+          <div>
+            <h1 className="text-xl font-semibold text-[#111]">Contract & Procurement</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {data?.fetchedAt ? `Synced ${new Date(data.fetchedAt).toLocaleTimeString()} — live from Google Sheet` : "Loading live data…"}
+            </p>
           </div>
+
 
           <button onClick={load} disabled={loading}
             className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 disabled:opacity-60">

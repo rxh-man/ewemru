@@ -5,9 +5,12 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
   PieChart, Pie, Legend,
 } from "recharts";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 
 type Row = Record<string, string>;
 interface SheetData {
@@ -18,17 +21,12 @@ interface SheetData {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  Red: "#dc2626",
-  Yellow: "#eab308",
-  Amber: "#f59e0b",
-  Green: "#16a34a",
-  Blue: "#2563eb",
+  Red: "#dc2626", Yellow: "#eab308", Amber: "#f59e0b", Green: "#16a34a", Blue: "#2563eb",
 };
-
 const CHART_PALETTE = ["#dc2626", "#111827", "#eab308", "#2563eb", "#16a34a", "#7c3aed", "#0891b2", "#db2777", "#ea580c", "#0d9488"];
 
 function splitOwners(raw: string): string[] {
-  return raw.split(/[\n,;/]+/).map((s) => s.trim()).filter(Boolean);
+  return (raw || "").split(/[\n,;/]+/).map((s) => s.trim()).filter(Boolean);
 }
 function groupCount<T>(items: T[], keyFn: (t: T) => string | string[]): { name: string; value: number }[] {
   const m = new Map<string, number>();
@@ -49,6 +47,8 @@ function isPending(r: Row): boolean {
   return ["red", "amber", "yellow", "pending", "open", "in progress"].some((k) => status.includes(k));
 }
 
+type DrillFilter = { kind: "owner" | "project" | "vendor" | "status" | "category"; value: string; source?: "po_pr" | "payment" | "all" };
+
 export default function HRDashboard() {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
@@ -57,12 +57,16 @@ export default function HRDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"overview" | "po_pr" | "payment" | "vendors">("overview");
 
-  // Filters
   const [fProject, setFProject] = useState("");
   const [fOwner, setFOwner] = useState("");
   const [fVendor, setFVendor] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [search, setSearch] = useState("");
+
+  const [drill, setDrill] = useState<DrillFilter | null>(null);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailBody, setEmailBody] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
 
   useEffect(() => {
     const s = getSession();
@@ -106,11 +110,14 @@ export default function HRDashboard() {
     };
   }, [data, fProject, fVendor, fOwner, fStatus, search]);
 
+  const pendingPoPr = useMemo(() => filtered.poPr.filter(isPending), [filtered.poPr]);
+  const pendingPay = useMemo(() => filtered.payment.filter(isPending), [filtered.payment]);
   const allActionable = useMemo(() => [...filtered.poPr, ...filtered.payment], [filtered]);
-  const pending = useMemo(() => allActionable.filter(isPending), [allActionable]);
+  const pending = useMemo(() => [...pendingPoPr, ...pendingPay], [pendingPoPr, pendingPay]);
 
   const byProject = useMemo(() => groupCount(pending, (r) => r["Project Name"] || "—"), [pending]);
-  const byOwner = useMemo(() => groupCount(pending, (r) => splitOwners(r.Owner || "—")), [pending]);
+  const byOwnerPoPr = useMemo(() => groupCount(pendingPoPr, (r) => splitOwners(r.Owner || "—")), [pendingPoPr]);
+  const byOwnerPay = useMemo(() => groupCount(pendingPay, (r) => splitOwners(r.Owner || "—")), [pendingPay]);
   const byVendor = useMemo(() => groupCount(pending, (r) => r["Vendor Name"] || "—"), [pending]);
   const byStatus = useMemo(() => groupCount(allActionable, (r) => r.Status || "—"), [allActionable]);
   const byCategory = useMemo(() => groupCount(pending, (r) => r["Action Category"] || "—"), [pending]);
@@ -121,6 +128,77 @@ export default function HRDashboard() {
     [...(data?.poPr || []), ...(data?.paymentRelease || [])].forEach((r) => splitOwners(r.Owner || "").forEach((o) => s.add(o)));
     return [...s].sort();
   }, [data]);
+
+  // Drill down rows
+  const drillRows = useMemo(() => {
+    if (!drill) return { poPr: [] as Row[], payment: [] as Row[] };
+    const sources = {
+      po_pr: [pendingPoPr, [] as Row[]],
+      payment: [[] as Row[], pendingPay],
+      all: [pendingPoPr, pendingPay],
+    } as const;
+    const [poSrc, paySrc] = sources[drill.source || "all"];
+    const test = (r: Row) => {
+      const v = drill.value.toLowerCase();
+      switch (drill.kind) {
+        case "owner": return splitOwners(r.Owner || "").some((o) => o.toLowerCase() === v);
+        case "project": return (r["Project Name"] || "").toLowerCase() === v;
+        case "vendor": return (r["Vendor Name"] || "").toLowerCase() === v;
+        case "status": return (r.Status || "").toLowerCase() === v;
+        case "category": return (r["Action Category"] || "").toLowerCase() === v;
+      }
+    };
+    return { poPr: poSrc.filter(test), payment: paySrc.filter(test) };
+  }, [drill, pendingPoPr, pendingPay]);
+
+  function openDrill(f: DrillFilter) { setDrill(f); }
+
+  function draftEmailFor(target: DrillFilter) {
+    const poSrc = pendingPoPr.filter((r) => matchDrill(r, target));
+    const paySrc = pendingPay.filter((r) => matchDrill(r, target));
+    const lines: string[] = [];
+    const label = target.value;
+    lines.push(`Hi ${target.kind === "owner" ? label : "Team"},`, "");
+    lines.push(`Following up on the pending items ${target.kind === "owner" ? "assigned to you" : `for ${label}`} in the MR Tracker. Please action the below at your earliest:`);
+    lines.push("");
+    if (poSrc.length) {
+      lines.push(`— PO & PR (${poSrc.length}) —`);
+      poSrc.forEach((r, i) => {
+        lines.push(`${i + 1}. Project: ${r["Project Name"] || "—"} | Vendor: ${r["Vendor Name"] || "—"} | PR: ${r["PR Number"] || "—"} | Amount: ${r["PR Amount"] || "—"}`);
+        if (r["Action Category"]) lines.push(`   Action: ${r["Action Category"]}`);
+        if (r.Status) lines.push(`   Status: ${r.Status}`);
+        if (r.Remarks) lines.push(`   Remarks: ${r.Remarks}`);
+        lines.push("");
+      });
+    }
+    if (paySrc.length) {
+      lines.push(`— Payment Release (${paySrc.length}) —`);
+      paySrc.forEach((r, i) => {
+        lines.push(`${i + 1}. Project: ${r["Project Name"] || "—"} | Vendor: ${r["Vendor Name"] || "—"}`);
+        if (r.Issue) lines.push(`   Issue: ${r.Issue}`);
+        if (r["Next Step"]) lines.push(`   Next Step: ${r["Next Step"]} (${r["Next Step Owner"] || "—"})`);
+        if (r.Status) lines.push(`   Status: ${r.Status}`);
+        if (r.Remarks) lines.push(`   Remarks: ${r.Remarks}`);
+        lines.push("");
+      });
+    }
+    if (!poSrc.length && !paySrc.length) lines.push("No pending items found.");
+    lines.push("Kindly confirm the status or expected closure date.", "", "Thanks,", "Marina");
+    setEmailSubject(`Pending items – ${label} (${poSrc.length + paySrc.length} open)`);
+    setEmailBody(lines.join("\n"));
+    setEmailOpen(true);
+  }
+
+  function matchDrill(r: Row, target: DrillFilter): boolean {
+    const v = target.value.toLowerCase();
+    switch (target.kind) {
+      case "owner": return splitOwners(r.Owner || "").some((o) => o.toLowerCase() === v);
+      case "project": return (r["Project Name"] || "").toLowerCase() === v;
+      case "vendor": return (r["Vendor Name"] || "").toLowerCase() === v;
+      case "status": return (r.Status || "").toLowerCase() === v;
+      case "category": return (r["Action Category"] || "").toLowerCase() === v;
+    }
+  }
 
   if (!session) return null;
 
@@ -142,7 +220,6 @@ export default function HRDashboard() {
 
         {error && <div className="border border-destructive/40 bg-destructive/5 text-destructive text-xs rounded-md p-3">{error}</div>}
 
-        {/* KPI cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPI label="Total Items" value={allActionable.length} tone="dark" />
           <KPI label="Pending / Blockers" value={pending.length} tone="red" />
@@ -150,7 +227,6 @@ export default function HRDashboard() {
           <KPI label="Action Owners" value={new Set(pending.flatMap((r) => splitOwners(r.Owner || ""))).size} tone="dark" />
         </div>
 
-        {/* Filters */}
         <div className="border border-border rounded-lg p-3 bg-white">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             <input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)}
@@ -176,7 +252,6 @@ export default function HRDashboard() {
           )}
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 border-b border-border">
           {[
             { k: "overview", l: "Overview" },
@@ -194,47 +269,18 @@ export default function HRDashboard() {
         {tab === "overview" && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <ChartCard title="Pending by Project">
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={byProject} layout="vertical" margin={{ left: 20 }}>
-                    <XAxis type="number" fontSize={11} />
-                    <YAxis type="category" dataKey="name" width={130} fontSize={11} />
-                    <Tooltip />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                      {byProject.map((_, i) => <Cell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-
-              <ChartCard title="Pending by Action Owner">
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={byOwner.slice(0, 10)} layout="vertical" margin={{ left: 20 }}>
-                    <XAxis type="number" fontSize={11} />
-                    <YAxis type="category" dataKey="name" width={140} fontSize={11} />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#dc2626" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-
-              <ChartCard title="Pending by Vendor (top 10)">
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={byVendor.slice(0, 10)} layout="vertical" margin={{ left: 20 }}>
-                    <XAxis type="number" fontSize={11} />
-                    <YAxis type="category" dataKey="name" width={140} fontSize={11} />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#111827" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <ChartCard title={`Pending by Project (${pending.length})`} hint="Click a bar to drill down">
+                <ClickableBar data={byProject} onClick={(name) => openDrill({ kind: "project", value: name })} color="#2563eb" />
               </ChartCard>
 
               <ChartCard title="Status Breakdown">
-                <ResponsiveContainer width="100%" height={260}>
+                <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
-                    <Pie data={byStatus} dataKey="value" nameKey="name" outerRadius={90} label>
+                    <Pie data={byStatus} dataKey="value" nameKey="name" outerRadius={90} label={(e) => `${e.name}: ${e.value}`}>
                       {byStatus.map((s, i) => (
-                        <Cell key={i} fill={STATUS_COLORS[s.name] || CHART_PALETTE[i % CHART_PALETTE.length]} />
+                        <Cell key={i} fill={STATUS_COLORS[s.name] || CHART_PALETTE[i % CHART_PALETTE.length]}
+                          className="cursor-pointer"
+                          onClick={() => openDrill({ kind: "status", value: s.name })} />
                       ))}
                     </Pie>
                     <Legend fontSize={11} />
@@ -242,34 +288,154 @@ export default function HRDashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </ChartCard>
-            </div>
 
-            <ChartCard title="Pending by Action Category">
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={byCategory}>
-                  <XAxis dataKey="name" fontSize={10} interval={0} angle={-15} textAnchor="end" height={60} />
-                  <YAxis fontSize={11} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#eab308" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
+              <ChartCard title={`Pending PO & PR by Owner (${pendingPoPr.length})`} hint="Click bar to see items">
+                <ClickableBar data={byOwnerPoPr} onClick={(name) => openDrill({ kind: "owner", value: name, source: "po_pr" })} color="#dc2626" />
+              </ChartCard>
+
+              <ChartCard title={`Pending Payment Release by Owner (${pendingPay.length})`} hint="Click bar to see items">
+                <ClickableBar data={byOwnerPay} onClick={(name) => openDrill({ kind: "owner", value: name, source: "payment" })} color="#111827" />
+              </ChartCard>
+
+              <ChartCard title="Pending by Vendor (top 10)">
+                <ClickableBar data={byVendor.slice(0, 10)} onClick={(name) => openDrill({ kind: "vendor", value: name })} color="#7c3aed" />
+              </ChartCard>
+
+              <ChartCard title="Pending by Action Category">
+                <ClickableBar data={byCategory} onClick={(name) => openDrill({ kind: "category", value: name })} color="#eab308" />
+              </ChartCard>
+            </div>
 
             <div className="border border-border rounded-lg overflow-hidden">
               <div className="px-4 py-2 border-b border-border bg-secondary/40 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[#111]">All Blockers & Pending Items</h3>
                 <span className="text-xs text-muted-foreground">{pending.length} items</span>
               </div>
-              <PendingTable rows={pending} />
+              <PendingTable rows={pending} onOwner={(v) => openDrill({ kind: "owner", value: v })} onProject={(v) => openDrill({ kind: "project", value: v })} />
             </div>
           </div>
         )}
 
-        {tab === "po_pr" && <SheetTable rows={filtered.poPr} columns={["#", "Project Name", "Vendor Name", "PR Number", "PR Amount", "Owner", "Status", "Action Category", "Remarks"]} />}
-        {tab === "payment" && <SheetTable rows={filtered.payment} columns={["#", "Project Name", "Vendor Name", "Issue", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks"]} />}
-        {tab === "vendors" && <SheetTable rows={filtered.vendors} columns={["#", "Vendor Name", "Project Name", "Field / Support Type", "Contract Type", "Start Date", "End Date", "Contract Owner", "RAG Status"]} />}
+        {tab === "po_pr" && <SheetTable rows={filtered.poPr} columns={["#", "Project Name", "Vendor Name", "PR Number", "PR Amount", "Owner", "Status", "Action Category", "Remarks"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "po_pr" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "po_pr" })} />}
+        {tab === "payment" && <SheetTable rows={filtered.payment} columns={["#", "Project Name", "Vendor Name", "Issue", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} />}
+        {tab === "vendors" && <SheetTable rows={filtered.vendors} columns={["#", "Vendor Name", "Project Name", "Field / Support Type", "Contract Type", "Start Date", "End Date", "Contract Owner", "RAG Status"]} onProject={(v) => openDrill({ kind: "project", value: v })} />}
       </div>
+
+      {/* Drill-down dialog */}
+      <Dialog open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="capitalize">{drill?.kind}: {drill?.value}</DialogTitle>
+            <DialogDescription>
+              {drillRows.poPr.length + drillRows.payment.length} pending item(s)
+              {drill?.source && drill.source !== "all" && ` — ${drill.source === "po_pr" ? "PO & PR" : "Payment Release"} only`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 space-y-4 pr-1">
+            {drillRows.poPr.length > 0 && (
+              <DrillSection title={`PO & PR (${drillRows.poPr.length})`} rows={drillRows.poPr}
+                cols={["Project Name", "Vendor Name", "PR Number", "Owner", "Status", "Action Category", "Remarks"]} />
+            )}
+            {drillRows.payment.length > 0 && (
+              <DrillSection title={`Payment Release (${drillRows.payment.length})`} rows={drillRows.payment}
+                cols={["Project Name", "Vendor Name", "Issue", "Owner", "Next Step", "Status", "Remarks"]} />
+            )}
+            {!drillRows.poPr.length && !drillRows.payment.length && (
+              <div className="text-center py-8 text-xs text-muted-foreground">No pending items.</div>
+            )}
+          </div>
+          <DialogFooter className="border-t border-border pt-3">
+            <button onClick={() => setDrill(null)} className="h-9 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">Close</button>
+            {drill && (drillRows.poPr.length + drillRows.payment.length > 0) && (
+              <button onClick={() => draftEmailFor(drill)}
+                className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">
+                ✉ Draft Email
+              </button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email drafter */}
+      <Dialog open={emailOpen} onOpenChange={setEmailOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Draft Email</DialogTitle>
+            <DialogDescription>Copy and paste into your mail client.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold uppercase text-muted-foreground">Subject</label>
+              <input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)}
+                className="mt-1 w-full h-9 px-3 text-sm border border-input rounded-md bg-white" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase text-muted-foreground">Body</label>
+              <textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)}
+                className="mt-1 w-full h-[380px] p-3 text-xs font-mono border border-input rounded-md bg-white resize-none" />
+            </div>
+          </div>
+          <DialogFooter>
+            <button onClick={() => setEmailOpen(false)} className="h-9 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">Close</button>
+            <button
+              onClick={async () => { await navigator.clipboard.writeText(`Subject: ${emailSubject}\n\n${emailBody}`); toast.success("Copied to clipboard"); }}
+              className="h-9 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">
+              Copy subject + body
+            </button>
+            <button
+              onClick={async () => { await navigator.clipboard.writeText(emailBody); toast.success("Body copied"); }}
+              className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">
+              Copy body
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
+  );
+}
+
+function ClickableBar({ data, color, onClick }: { data: { name: string; value: number }[]; color: string; onClick: (name: string) => void }) {
+  if (!data.length) return <div className="h-[280px] flex items-center justify-center text-xs text-muted-foreground">No pending items.</div>;
+  const height = Math.max(280, data.length * 28 + 40);
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data} layout="vertical" margin={{ left: 20, right: 40 }}>
+        <XAxis type="number" fontSize={11} allowDecimals={false} />
+        <YAxis type="category" dataKey="name" width={140} fontSize={11} />
+        <Tooltip cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+        <Bar dataKey="value" radius={[0, 4, 4, 0]} className="cursor-pointer"
+          onClick={(d: { name: string }) => onClick(d.name)}>
+          {data.map((_, i) => <Cell key={i} fill={color} />)}
+          <LabelList dataKey="value" position="right" fontSize={11} fill="#111" />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function DrillSection({ title, rows, cols }: { title: string; rows: Row[]; cols: string[] }) {
+  return (
+    <div className="border border-border rounded-md overflow-hidden">
+      <div className="px-3 py-2 bg-secondary/40 text-xs font-semibold text-[#111]">{title}</div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-secondary/20">
+            <tr>{cols.map((c) => <th key={c} className="text-left font-semibold px-3 py-2 whitespace-nowrap">{c}</th>)}</tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-t border-border align-top">
+                {cols.map((c) => (
+                  <td key={c} className="px-3 py-2 whitespace-pre-line max-w-[260px]">
+                    {c === "Status" ? <StatusPill value={r[c]} /> : (r[c] || "—")}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -283,10 +449,13 @@ function KPI({ label, value, tone }: { label: string; value: number; tone: "red"
   );
 }
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+function ChartCard({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="border border-border rounded-lg p-4 bg-white">
-      <h3 className="text-sm font-semibold text-[#111] mb-3">{title}</h3>
+      <div className="flex items-baseline justify-between mb-3">
+        <h3 className="text-sm font-semibold text-[#111]">{title}</h3>
+        {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
+      </div>
       {children}
     </div>
   );
@@ -303,7 +472,7 @@ function StatusPill({ value }: { value: string }) {
   );
 }
 
-function PendingTable({ rows }: { rows: Row[] }) {
+function PendingTable({ rows, onOwner, onProject }: { rows: Row[]; onOwner: (v: string) => void; onProject: (v: string) => void }) {
   if (!rows.length) return <div className="p-6 text-center text-xs text-muted-foreground">No pending items with current filters.</div>;
   return (
     <div className="overflow-x-auto">
@@ -318,9 +487,17 @@ function PendingTable({ rows }: { rows: Row[] }) {
         <tbody>
           {rows.map((r, i) => (
             <tr key={i} className="border-t border-border align-top hover:bg-secondary/30">
-              <td className="px-3 py-2 whitespace-nowrap">{r["Project Name"] || "—"}</td>
+              <td className="px-3 py-2 whitespace-nowrap">
+                {r["Project Name"] ? (
+                  <button onClick={() => onProject(r["Project Name"])} className="text-primary hover:underline text-left">{r["Project Name"]}</button>
+                ) : "—"}
+              </td>
               <td className="px-3 py-2">{r["Vendor Name"] || "—"}</td>
-              <td className="px-3 py-2 whitespace-pre-line">{r.Owner || "—"}</td>
+              <td className="px-3 py-2 whitespace-pre-line">
+                {splitOwners(r.Owner || "").length ? splitOwners(r.Owner).map((o, k) => (
+                  <button key={k} onClick={() => onOwner(o)} className="text-primary hover:underline block text-left">{o}</button>
+                )) : "—"}
+              </td>
               <td className="px-3 py-2 max-w-[340px] whitespace-pre-line">{r["Action Category"] || r.Issue || "—"}</td>
               <td className="px-3 py-2"><StatusPill value={r.Status} /></td>
               <td className="px-3 py-2 text-muted-foreground">{r.Remarks || r.Blockers || "—"}</td>
@@ -332,7 +509,7 @@ function PendingTable({ rows }: { rows: Row[] }) {
   );
 }
 
-function SheetTable({ rows, columns }: { rows: Row[]; columns: string[] }) {
+function SheetTable({ rows, columns, onOwner, onProject }: { rows: Row[]; columns: string[]; onOwner?: (v: string) => void; onProject?: (v: string) => void }) {
   if (!rows.length) return <div className="border border-border rounded-lg p-6 text-center text-xs text-muted-foreground">No rows.</div>;
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -346,11 +523,17 @@ function SheetTable({ rows, columns }: { rows: Row[]; columns: string[] }) {
           <tbody>
             {rows.map((r, i) => (
               <tr key={i} className="border-t border-border align-top hover:bg-secondary/30">
-                {columns.map((c) => (
-                  <td key={c} className="px-3 py-2 whitespace-pre-line max-w-[300px]">
-                    {c === "Status" || c === "RAG Status" ? <StatusPill value={r[c]} /> : (r[c] || "—")}
-                  </td>
-                ))}
+                {columns.map((c) => {
+                  const val = r[c] || "";
+                  if (c === "Status" || c === "RAG Status") return <td key={c} className="px-3 py-2"><StatusPill value={val} /></td>;
+                  if (c === "Project Name" && onProject && val) return <td key={c} className="px-3 py-2 whitespace-nowrap"><button onClick={() => onProject(val)} className="text-primary hover:underline text-left">{val}</button></td>;
+                  if ((c === "Owner" || c === "Next Step Owner" || c === "Contract Owner") && onOwner && val) {
+                    return <td key={c} className="px-3 py-2 whitespace-pre-line">{splitOwners(val).map((o, k) => (
+                      <button key={k} onClick={() => onOwner(o)} className="text-primary hover:underline block text-left">{o}</button>
+                    ))}</td>;
+                  }
+                  return <td key={c} className="px-3 py-2 whitespace-pre-line max-w-[300px]">{val || "—"}</td>;
+                })}
               </tr>
             ))}
           </tbody>

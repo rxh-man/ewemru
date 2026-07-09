@@ -1,5 +1,8 @@
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
+import HRLogin from "./pages/HRLogin";
+import HRDashboard from "./pages/HRDashboard";
 import Admin from "./pages/Admin";
 import Surveyor from "./pages/Surveyor";
 import FieldTech from "./pages/FieldTech";
@@ -8,7 +11,10 @@ export default function App() {
   return (
     <HashRouter>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/hr-login" element={<HRLogin />} />
+        <Route path="/hr" element={<HRDashboard />} />
+        <Route path="/mru-login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/surveyor" element={<Surveyor />} />
         <Route path="/ft" element={<FieldTech />} />

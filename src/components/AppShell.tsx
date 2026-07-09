@@ -15,7 +15,7 @@ export function AppShell({ session, children }: { session: Session; children: Re
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src={eandLogo} alt="e&" className="h-7 w-auto" />
-            <span className="text-sm font-semibold text-[#111]">Etihad MRU Automation</span>
+            <span className="text-sm font-semibold text-[#111]">{session.role === "hr" ? "PO Portal" : "Etihad MRU Automation"}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">

@@ -46,6 +46,28 @@ function isPending(r: Row): boolean {
   if (blocker.includes("block")) return true;
   return ["red", "amber", "yellow", "pending", "open", "in progress"].some((k) => status.includes(k));
 }
+function parseDate(s: string): Date | null {
+  if (!s) return null;
+  const t = s.trim();
+  // Try common formats: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd, Month yyyy
+  const iso = new Date(t);
+  if (!isNaN(iso.getTime())) return iso;
+  const m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    const [, d, mo, y] = m;
+    const yr = y.length === 2 ? 2000 + Number(y) : Number(y);
+    return new Date(yr, Number(mo) - 1, Number(d));
+  }
+  return null;
+}
+function isExpired(r: Row): boolean {
+  const rem = `${r.Remarks || ""} ${r.Blockers || ""} ${r.Issue || ""} ${r["Action Category"] || ""}`.toLowerCase();
+  if (/\bexpired?\b/.test(rem)) return true;
+  const end = parseDate(r["End Date"] || "");
+  if (end && end.getTime() < Date.now()) return true;
+  return false;
+}
+
 
 type DrillFilter = { kind: "owner" | "project" | "vendor" | "status" | "category"; value: string; source?: "po_pr" | "payment" | "all" };
 

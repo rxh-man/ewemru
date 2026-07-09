@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+    <script>
+      // SPA fallback for GitHub Pages: preserve the path/hash and bounce to index.html
+      (function () {
+        var base = location.pathname.replace(/\/[^\/]*$/, '/');
+        var target = base + '#' + (location.hash ? location.hash.slice(1) : '/');
+        location.replace(target);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

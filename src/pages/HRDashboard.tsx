@@ -364,8 +364,9 @@ export default function HRDashboard() {
           </div>
         )}
 
-        {tab === "po_pr" && <SheetTable rows={filtered.poPr} columns={["#", "Project Name", "Vendor Name", "PR Number", "PR Amount", "Owner", "Status", "Action Category", "Remarks"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "po_pr" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "po_pr" })} />}
-        {tab === "payment" && <SheetTable rows={filtered.payment} columns={["#", "Project Name", "Vendor Name", "Issue", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} />}
+        {tab === "po_pr" && <SheetTable rows={filtered.poPr} columns={["#", "Initiator (HR)", "Project Name", "Vendor Name", "Description", "Old System", "New System", "PR In System", "PR Number", "Action Category", "Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "po_pr" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "po_pr" })} />}
+        {tab === "payment" && <SheetTable rows={filtered.payment} columns={["#", "System", "Project Name", "Vendor Name", "Issue", "Comment", "Action Category", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} />}
+
         {tab === "vendors" && <SheetTable rows={filtered.vendors} columns={["#", "Vendor Name", "Project Name", "Field / Support Type", "Contract Type", "Start Date", "End Date", "Contract Owner", "RAG Status"]} onProject={(v) => openDrill({ kind: "project", value: v })} />}
       </div>
 

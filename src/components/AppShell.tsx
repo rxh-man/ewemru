@@ -21,7 +21,7 @@ export function AppShell({ session, children }: { session: Session; children: Re
           <div className="flex items-center gap-3">
             {session.role === "hr" && (
               <div className="flex items-center gap-2">
-                <img src={marinaDp.url} alt="Marina Emad" className="h-8 w-8 rounded-full object-cover border border-border" />
+                <img src={marinaDp} alt="Marina Emad" className="h-8 w-8 rounded-full object-cover border border-border" />
                 <span className="text-xs font-medium text-[#111] hidden sm:inline">Marina Emad</span>
               </div>
             )}

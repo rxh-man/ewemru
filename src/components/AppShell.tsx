@@ -1,8 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { logout, type Session } from "@/lib/auth";
+import { logout, type Session, HR_PROFILES } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
 import marinaDp from "@/assets/marina.png";
+import asaadDp from "@/assets/asaad.png";
 import { Toaster } from "sonner";
+
+const HR_PHOTOS: Record<string, string> = { marina: marinaDp, asaad: asaadDp };
 
 export function AppShell({ session, children }: { session: Session; children: React.ReactNode }) {
   const navigate = useNavigate();

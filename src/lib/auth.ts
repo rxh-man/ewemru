@@ -1,6 +1,11 @@
 export type Role = "admin" | "surveyor" | "ft" | "hr";
 export interface Session { role: Role; username: string }
 
+export const HR_PROFILES: Record<string, { name: string; title: string; photo: string }> = {
+  marina: { name: "Marina Emad", title: "Contracts & Procurement", photo: "marina" },
+  asaad: { name: "Asaad Tawfik", title: "Head of Delivery and Operations", photo: "asaad" },
+};
+
 const KEY = "mru_session";
 
 const USERS: Record<string, { password: string; role: Role }> = {
@@ -8,6 +13,7 @@ const USERS: Record<string, { password: string; role: Role }> = {
   surveyor: { password: "123111", role: "surveyor" },
   engineer: { password: "demo123", role: "ft" },
   marina: { password: "123999", role: "hr" },
+  asaad: { password: "786321", role: "hr" },
 };
 
 export function login(username: string, password: string): Session | null {

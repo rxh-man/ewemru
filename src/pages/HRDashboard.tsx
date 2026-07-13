@@ -93,6 +93,7 @@ export default function HRDashboard() {
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailBody, setEmailBody] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   useEffect(() => {
     const s = getSession();
@@ -258,10 +259,16 @@ export default function HRDashboard() {
           </div>
 
 
-          <button onClick={load} disabled={loading}
-            className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 disabled:opacity-60">
-            {loading ? "Refreshing…" : "↻ Refresh"}
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setSummaryOpen(true)}
+              className="h-9 px-4 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90">
+              📋 Blocker Summary
+            </button>
+            <button onClick={load} disabled={loading}
+              className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 disabled:opacity-60">
+              {loading ? "Refreshing…" : "↻ Refresh"}
+            </button>
+          </div>
         </div>
 
         {error && <div className="border border-destructive/40 bg-destructive/5 text-destructive text-xs rounded-md p-3">{error}</div>}
@@ -443,12 +450,132 @@ export default function HRDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Blocker Summary — one-page risk register */}
+      <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+        <DialogContent className="max-w-[1200px] max-h-[92vh] overflow-hidden flex flex-col p-0">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-border print:hidden">
+            <div>
+              <DialogTitle className="text-base">Blocker Summary — One-Page Risk Register</DialogTitle>
+              <DialogDescription className="text-xs">
+                Report Date: {new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+              </DialogDescription>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => window.print()} className="h-8 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">🖨 Print / PDF</button>
+              <button onClick={() => setSummaryOpen(false)} className="h-8 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">Close</button>
+            </div>
+          </div>
+          <div className="overflow-y-auto flex-1 p-5 bg-white" id="blocker-summary-print">
+            <BlockerSummary pending={pending} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
 
+function riskFromStatus(status: string): "Critical" | "High" | "Medium" | "Low" {
+  const s = (status || "").toLowerCase();
+  if (s.includes("red")) return "Critical";
+  if (s.includes("amber") || s.includes("orange")) return "High";
+  if (s.includes("yellow")) return "Medium";
+  return "Low";
+}
+function daysExposed(r: Row): string {
+  const end = parseDate(r["End Date"] || "");
+  if (!end) return "—";
+  const diff = Math.floor((Date.now() - end.getTime()) / 86400000);
+  if (diff > 0) return `${diff} days expired`;
+  if (diff === 0) return "Expires today";
+  return `${Math.abs(diff)} days left`;
+}
+
+function BlockerSummary({ pending }: { pending: Row[] }) {
+  const byOwner = groupCount(pending, (r) => splitOwners(r.Owner || "—"));
+  const byCategory = groupCount(pending, (r) => r["Action Category"] || r.Issue || "—");
+  const byRisk = groupCount(pending, (r) => riskFromStatus(r.Status || ""));
+  const riskOrder = ["Critical", "High", "Medium", "Low"];
+  const byRiskSorted = riskOrder
+    .map((k) => byRisk.find((x) => x.name === k))
+    .filter(Boolean) as { name: string; value: number }[];
+  const riskBg: Record<string, string> = {
+    Critical: "#ef4444", High: "#f97316", Medium: "#facc15", Low: "#a3e635",
+  };
+  return (
+    <div className="space-y-6 text-[#111]">
+      <div>
+        <h2 className="text-lg font-bold">IoT Field_PR/PO Governance Exposure — Detailed Risk Register</h2>
+      </div>
+      <div className="overflow-x-auto border border-[#111]">
+        <table className="w-full text-[11px] border-collapse">
+          <thead className="bg-[#111] text-white">
+            <tr>
+              {["#", "Program", "Vendor", "Category", "Case Description", "PO / End Date", "Days Exposed", "Stakeholder", "Current Blocker", "Stuck With", "Risk Level"].map((h) => (
+                <th key={h} className="px-2 py-2 text-left font-semibold border-r border-[#333] last:border-r-0">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {pending.length === 0 && (
+              <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">No open blockers.</td></tr>
+            )}
+            {pending.map((r, i) => {
+              const risk = riskFromStatus(r.Status || "");
+              return (
+                <tr key={i} className="border-t border-[#ccc] align-top">
+                  <td className="px-2 py-1.5 border-r border-[#eee]">{i + 1}</td>
+                  <td className="px-2 py-1.5 border-r border-[#eee] font-medium">{r["Project Name"] || "—"}</td>
+                  <td className="px-2 py-1.5 border-r border-[#eee]">{r["Vendor Name"] || "—"}</td>
+                  <td className="px-2 py-1.5 border-r border-[#eee]">{r["Action Category"] || "—"}</td>
+                  <td className="px-2 py-1.5 border-r border-[#eee] max-w-[220px]">{r.Description || r.Issue || "—"}</td>
+                  <td className="px-2 py-1.5 border-r border-[#eee] whitespace-nowrap">{r["End Date"] || "N/A"}</td>
+                  <td className={`px-2 py-1.5 border-r border-[#eee] whitespace-nowrap font-semibold ${daysExposed(r).includes("expired") ? "text-red-600" : ""}`}>{daysExposed(r)}</td>
+                  <td className="px-2 py-1.5 border-r border-[#eee]">{r["Next Step Owner"] || r["Initiator (HR)"] || "—"}</td>
+                  <td className="px-2 py-1.5 border-r border-[#eee] max-w-[240px]">{r.Blockers || r.Remarks || r.Comment || "—"}</td>
+                  <td className="px-2 py-1.5 border-r border-[#eee]">{r.Owner || "—"}</td>
+                  <td className="px-2 py-1.5">
+                    <span className="inline-block px-2 py-0.5 rounded text-white font-semibold text-[10px]" style={{ background: riskBg[risk] }}>{risk}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-bold mb-3">Case Distribution: By Blocking Owner and Risk Level</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <DistroBox title="By Blocking Owner" rows={byOwner} />
+          <DistroBox title="By Risk Level" rows={byRiskSorted} rowBg={riskBg} />
+          <DistroBox title="By Category" rows={byCategory} />
+          <DistroBox title="Total Cases" rows={[{ name: "All logged cases", value: pending.length }]} accent />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DistroBox({ title, rows, rowBg, accent }: { title: string; rows: { name: string; value: number }[]; rowBg?: Record<string, string>; accent?: boolean }) {
+  return (
+    <div className="border border-[#111]">
+      <div className={`px-3 py-2 text-center font-semibold text-white ${accent ? "bg-[#7a0e1a]" : "bg-[#1a2340]"}`}>{title}</div>
+      <table className="w-full text-xs">
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.name} className="border-t border-[#eee]">
+              <td className="px-3 py-1.5" style={rowBg?.[r.name] ? { background: rowBg[r.name], color: "#111", fontWeight: 600 } : undefined}>{r.name}</td>
+              <td className="px-3 py-1.5 text-right font-bold text-[#7a0e1a] tabular-nums w-16">{r.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function ClickableBar({ data, color, onClick }: { data: { name: string; value: number }[]; color: string; onClick: (name: string) => void }) {
-  if (!data.length) return <div className="h-[280px] flex items-center justify-center text-xs text-muted-foreground">No pending items.</div>;
   const height = Math.max(280, data.length * 28 + 40);
   return (
     <ResponsiveContainer width="100%" height={height}>

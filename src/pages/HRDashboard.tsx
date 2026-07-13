@@ -259,10 +259,16 @@ export default function HRDashboard() {
           </div>
 
 
-          <button onClick={load} disabled={loading}
-            className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 disabled:opacity-60">
-            {loading ? "Refreshing…" : "↻ Refresh"}
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setSummaryOpen(true)}
+              className="h-9 px-4 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90">
+              📋 Blocker Summary
+            </button>
+            <button onClick={load} disabled={loading}
+              className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 disabled:opacity-60">
+              {loading ? "Refreshing…" : "↻ Refresh"}
+            </button>
+          </div>
         </div>
 
         {error && <div className="border border-destructive/40 bg-destructive/5 text-destructive text-xs rounded-md p-3">{error}</div>}

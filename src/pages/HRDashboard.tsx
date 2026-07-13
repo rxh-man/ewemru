@@ -450,9 +450,6 @@ export default function HRDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppShell>
-  );
-}
 
       {/* Blocker Summary — one-page risk register */}
       <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>

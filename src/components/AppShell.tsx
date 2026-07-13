@@ -1,8 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { logout, type Session } from "@/lib/auth";
+import { logout, type Session, HR_PROFILES } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
 import marinaDp from "@/assets/marina.png";
+import asaadDp from "@/assets/asaad.png";
 import { Toaster } from "sonner";
+
+const HR_PHOTOS: Record<string, string> = { marina: marinaDp, asaad: asaadDp };
 
 export function AppShell({ session, children }: { session: Session; children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -19,12 +22,20 @@ export function AppShell({ session, children }: { session: Session; children: Re
             <span className="text-sm font-semibold text-[#111]">{session.role === "hr" ? "PO Portal" : "Etihad MRU Automation"}</span>
           </div>
           <div className="flex items-center gap-3">
-            {session.role === "hr" && (
-              <div className="flex items-center gap-2">
-                <img src={marinaDp} alt="Marina Emad" className="h-8 w-8 rounded-full object-cover border border-border" />
-                <span className="text-xs font-medium text-[#111] hidden sm:inline">Marina Emad</span>
-              </div>
-            )}
+            {session.role === "hr" && (() => {
+              const profile = HR_PROFILES[session.username];
+              if (!profile) return null;
+              const photo = HR_PHOTOS[profile.photo];
+              return (
+                <div className="flex items-center gap-2">
+                  <img src={photo} alt={profile.name} className="h-8 w-8 rounded-full object-cover border border-border" />
+                  <div className="hidden sm:flex flex-col leading-tight">
+                    <span className="text-xs font-medium text-[#111]">{profile.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{profile.title}</span>
+                  </div>
+                </div>
+              );
+            })()}
             <span className="text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
               {session.role}
             </span>

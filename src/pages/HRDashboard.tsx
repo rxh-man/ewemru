@@ -498,51 +498,110 @@ export default function HRDashboard() {
 }
 
 function UrgentList({ rows }: { rows: Row[] }) {
+  const [openProject, setOpenProject] = useState<string | null>(null);
+
   if (!rows.length) {
     return <div className="text-center py-12 text-xs text-muted-foreground">No urgent items in the sheet.</div>;
   }
-  const cols = Object.keys(rows[0]).filter((k) => k && !k.startsWith("col_"));
-  return (
-    <div className="space-y-2">
-      {rows.map((r, i) => {
-        const title = r["Project Name"] || r["PR Number"] || r["PO Number"] || r["Description"] || `Item ${i + 1}`;
-        const vendor = r["Vendor Name"] || r["Vendor"] || "";
-        const status = r["Status"] || "";
-        const statusColor = STATUS_COLORS[status] || "#6b7280";
-        return (
-          <div key={i} className="border border-border rounded-lg bg-white hover:border-[#111] transition">
-            <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-border">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-muted-foreground">#{i + 1}</span>
-                  <h3 className="text-sm font-semibold text-[#111] truncate">{title}</h3>
-                </div>
-                {vendor && <p className="text-xs text-muted-foreground mt-0.5 truncate">{vendor}</p>}
-              </div>
-              {status && (
-                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
-                  style={{ backgroundColor: statusColor }}>
-                  {status}
-                </span>
-              )}
-            </div>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 px-4 py-3">
-              {cols
-                .filter((k) => k !== "Project Name" && k !== "Vendor Name" && k !== "Vendor" && k !== "Status")
-                .filter((k) => (r[k] || "").trim() !== "")
-                .map((k) => (
-                  <div key={k} className="text-xs flex gap-2 min-w-0">
-                    <dt className="text-muted-foreground shrink-0">{k}:</dt>
-                    <dd className="text-[#111] break-words">{r[k]}</dd>
+
+  // Group by Project Name
+  const byProject = new Map<string, Row[]>();
+  for (const r of rows) {
+    const p = (r["Project Name"] || "Unassigned").trim() || "Unassigned";
+    if (!byProject.has(p)) byProject.set(p, []);
+    byProject.get(p)!.push(r);
+  }
+  const projects = [...byProject.entries()]
+    .map(([name, items]) => ({ name, items }))
+    .sort((a, b) => b.items.length - a.items.length);
+
+  if (openProject) {
+    const items = byProject.get(openProject) || [];
+    const cols = Object.keys(items[0] || {}).filter((k) => k && !k.startsWith("col_"));
+    return (
+      <div className="space-y-3">
+        <button onClick={() => setOpenProject(null)}
+          className="text-xs text-[#dc2626] hover:underline font-medium">← Back to summary</button>
+        <div>
+          <h3 className="text-sm font-semibold text-[#111]">{openProject}</h3>
+          <p className="text-xs text-muted-foreground">{items.length} urgent item{items.length === 1 ? "" : "s"}</p>
+        </div>
+        <div className="space-y-2">
+          {items.map((r, i) => {
+            const title = r["PR Number"] || r["PO Number"] || r["Vendor Name"] || r["Description"] || `Item ${i + 1}`;
+            const vendor = r["Vendor Name"] || r["Vendor"] || "";
+            const status = r["Status"] || "";
+            const statusColor = STATUS_COLORS[status] || "#6b7280";
+            return (
+              <div key={i} className="border border-border rounded-lg bg-white">
+                <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-border">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-muted-foreground">#{i + 1}</span>
+                      <h4 className="text-sm font-semibold text-[#111] truncate">{title}</h4>
+                    </div>
+                    {vendor && <p className="text-xs text-muted-foreground mt-0.5 truncate">{vendor}</p>}
                   </div>
-                ))}
-            </dl>
-          </div>
-        );
-      })}
+                  {status && (
+                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: statusColor }}>{status}</span>
+                  )}
+                </div>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 px-4 py-3">
+                  {cols
+                    .filter((k) => k !== "Project Name" && k !== "Vendor Name" && k !== "Vendor" && k !== "Status")
+                    .filter((k) => (r[k] || "").trim() !== "")
+                    .map((k) => (
+                      <div key={k} className="text-xs flex gap-2 min-w-0">
+                        <dt className="text-muted-foreground shrink-0">{k}:</dt>
+                        <dd className="text-[#111] break-words">{r[k]}</dd>
+                      </div>
+                    ))}
+                </dl>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-[#111]">Summary by Project</h3>
+        <p className="text-xs text-muted-foreground">{projects.length} project{projects.length === 1 ? "" : "s"} · {rows.length} urgent item{rows.length === 1 ? "" : "s"} · Click a project for details</p>
+      </div>
+      <div className="border border-border rounded-lg overflow-hidden divide-y divide-border">
+        {projects.map((p) => {
+          const statuses = groupCount(p.items, (r) => r.Status || "—");
+          return (
+            <button key={p.name} onClick={() => setOpenProject(p.name)}
+              className="w-full flex items-center justify-between gap-4 px-4 py-3 text-left hover:bg-[#fef2f2] transition">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-[#111] truncate">{p.name}</div>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {statuses.map((s) => (
+                    <span key={s.name} className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: STATUS_COLORS[s.name] || "#6b7280" }}>
+                      {s.name} · {s.value}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-lg font-bold text-[#dc2626] tabular-nums leading-none">{p.items.length}</div>
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5">items</div>
+              </div>
+              <span className="shrink-0 text-muted-foreground text-lg leading-none">›</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
+
 
 function riskFromStatus(status: string): "Critical" | "High" | "Medium" | "Low" {
   const s = (status || "").toLowerCase();

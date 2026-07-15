@@ -22,7 +22,7 @@ function toObjects(values: string[][]): Record<string, string>[] {
     });
 }
 
-type CachePayload = { poPr: unknown; paymentRelease: unknown; vendors: unknown; fetchedAt: string };
+type CachePayload = { poPr: unknown; paymentRelease: unknown; vendors: unknown; urgent: unknown; fetchedAt: string };
 let cache: { at: number; payload: CachePayload } | null = null;
 const CACHE_MS = 60_000; // serve cached response for 60s to stay well under Sheets quota
 
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const ranges = ["PO & PR!A1:Z1000", "Payment Release!A1:Z1000", "Vendors!A1:Z1000"];
+    const ranges = ["PO & PR!A1:Z1000", "Payment Release!A1:Z1000", "Vendors!A1:Z1000", "'Urgent PO/PR'!A1:Z1000"];
     const qs = new URLSearchParams();
     ranges.forEach((r) => qs.append("ranges", r));
 
@@ -61,11 +61,12 @@ Deno.serve(async (req) => {
       });
     }
     const data = await r.json();
-    const [po, pay, ven] = data.valueRanges ?? [];
+    const [po, pay, ven, urg] = data.valueRanges ?? [];
     const payload: CachePayload = {
       poPr: toObjects(po?.values ?? []),
       paymentRelease: toObjects(pay?.values ?? []),
       vendors: toObjects(ven?.values ?? []),
+      urgent: toObjects(urg?.values ?? []),
       fetchedAt: new Date().toISOString(),
     };
     cache = { at: Date.now(), payload };

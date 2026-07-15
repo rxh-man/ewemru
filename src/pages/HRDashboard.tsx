@@ -19,6 +19,7 @@ interface SheetData {
   poPr: Row[];
   paymentRelease: Row[];
   vendors: Row[];
+  urgent: Row[];
   fetchedAt: string;
 }
 

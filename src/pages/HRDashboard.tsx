@@ -261,15 +261,15 @@ export default function HRDashboard() {
           <div className="flex gap-2 flex-wrap">
             <button onClick={() => setUrgentOpen(true)}
               className="h-9 px-4 rounded-md bg-[#dc2626] text-white text-xs font-semibold hover:opacity-90">
-              🔥 Top Urgent PO / PRs
+              Top Urgent PO / PRs
             </button>
             <button onClick={() => setSummaryOpen(true)}
               className="h-9 px-4 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90">
-              📋 Blocker Summary
+              Blocker Summary
             </button>
             <button onClick={load} disabled={loading}
               className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 disabled:opacity-60">
-              {loading ? "Refreshing…" : "↻ Refresh"}
+              {loading ? "Refreshing…" : "Refresh"}
             </button>
           </div>
         </div>
@@ -412,7 +412,7 @@ export default function HRDashboard() {
             {drill && (drillRows.poPr.length + drillRows.payment.length > 0) && (
               <button onClick={() => draftEmailFor(drill)}
                 className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">
-                ✉ Draft Email
+                Draft Email
               </button>
             )}
           </DialogFooter>
@@ -465,7 +465,7 @@ export default function HRDashboard() {
               </DialogDescription>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => window.print()} className="h-8 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">🖨 Print / PDF</button>
+              <button onClick={() => window.print()} className="h-8 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">Print / PDF</button>
               <button onClick={() => setSummaryOpen(false)} className="h-8 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">Close</button>
             </div>
           </div>
@@ -480,9 +480,7 @@ export default function HRDashboard() {
         <DialogContent className="max-w-[1100px] max-h-[92vh] overflow-hidden flex flex-col p-0">
           <div className="flex items-center justify-between px-5 py-3 border-b border-border">
             <div>
-              <DialogTitle className="text-base flex items-center gap-2">
-                <span className="text-[#dc2626]">🔥</span> Top Urgent PO / PRs
-              </DialogTitle>
+              <DialogTitle className="text-base">Top Urgent PO / PRs</DialogTitle>
               <DialogDescription className="text-xs">
                 Live from sheet <span className="font-medium text-[#111]">Urgent PO/PR</span>
                 {data?.urgent ? ` · ${data.urgent.length} item${data.urgent.length === 1 ? "" : "s"}` : ""}
@@ -500,51 +498,110 @@ export default function HRDashboard() {
 }
 
 function UrgentList({ rows }: { rows: Row[] }) {
+  const [openProject, setOpenProject] = useState<string | null>(null);
+
   if (!rows.length) {
     return <div className="text-center py-12 text-xs text-muted-foreground">No urgent items in the sheet.</div>;
   }
-  const cols = Object.keys(rows[0]).filter((k) => k && !k.startsWith("col_"));
-  return (
-    <div className="space-y-2">
-      {rows.map((r, i) => {
-        const title = r["Project Name"] || r["PR Number"] || r["PO Number"] || r["Description"] || `Item ${i + 1}`;
-        const vendor = r["Vendor Name"] || r["Vendor"] || "";
-        const status = r["Status"] || "";
-        const statusColor = STATUS_COLORS[status] || "#6b7280";
-        return (
-          <div key={i} className="border border-border rounded-lg bg-white hover:border-[#111] transition">
-            <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-border">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-muted-foreground">#{i + 1}</span>
-                  <h3 className="text-sm font-semibold text-[#111] truncate">{title}</h3>
-                </div>
-                {vendor && <p className="text-xs text-muted-foreground mt-0.5 truncate">{vendor}</p>}
-              </div>
-              {status && (
-                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
-                  style={{ backgroundColor: statusColor }}>
-                  {status}
-                </span>
-              )}
-            </div>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 px-4 py-3">
-              {cols
-                .filter((k) => k !== "Project Name" && k !== "Vendor Name" && k !== "Vendor" && k !== "Status")
-                .filter((k) => (r[k] || "").trim() !== "")
-                .map((k) => (
-                  <div key={k} className="text-xs flex gap-2 min-w-0">
-                    <dt className="text-muted-foreground shrink-0">{k}:</dt>
-                    <dd className="text-[#111] break-words">{r[k]}</dd>
+
+  // Group by Project Name
+  const byProject = new Map<string, Row[]>();
+  for (const r of rows) {
+    const p = (r["Project Name"] || "Unassigned").trim() || "Unassigned";
+    if (!byProject.has(p)) byProject.set(p, []);
+    byProject.get(p)!.push(r);
+  }
+  const projects = [...byProject.entries()]
+    .map(([name, items]) => ({ name, items }))
+    .sort((a, b) => b.items.length - a.items.length);
+
+  if (openProject) {
+    const items = byProject.get(openProject) || [];
+    const cols = Object.keys(items[0] || {}).filter((k) => k && !k.startsWith("col_"));
+    return (
+      <div className="space-y-3">
+        <button onClick={() => setOpenProject(null)}
+          className="text-xs text-[#dc2626] hover:underline font-medium">← Back to summary</button>
+        <div>
+          <h3 className="text-sm font-semibold text-[#111]">{openProject}</h3>
+          <p className="text-xs text-muted-foreground">{items.length} urgent item{items.length === 1 ? "" : "s"}</p>
+        </div>
+        <div className="space-y-2">
+          {items.map((r, i) => {
+            const title = r["PR Number"] || r["PO Number"] || r["Vendor Name"] || r["Description"] || `Item ${i + 1}`;
+            const vendor = r["Vendor Name"] || r["Vendor"] || "";
+            const status = r["Status"] || "";
+            const statusColor = STATUS_COLORS[status] || "#6b7280";
+            return (
+              <div key={i} className="border border-border rounded-lg bg-white">
+                <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-border">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-muted-foreground">#{i + 1}</span>
+                      <h4 className="text-sm font-semibold text-[#111] truncate">{title}</h4>
+                    </div>
+                    {vendor && <p className="text-xs text-muted-foreground mt-0.5 truncate">{vendor}</p>}
                   </div>
-                ))}
-            </dl>
-          </div>
-        );
-      })}
+                  {status && (
+                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: statusColor }}>{status}</span>
+                  )}
+                </div>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 px-4 py-3">
+                  {cols
+                    .filter((k) => k !== "Project Name" && k !== "Vendor Name" && k !== "Vendor" && k !== "Status")
+                    .filter((k) => (r[k] || "").trim() !== "")
+                    .map((k) => (
+                      <div key={k} className="text-xs flex gap-2 min-w-0">
+                        <dt className="text-muted-foreground shrink-0">{k}:</dt>
+                        <dd className="text-[#111] break-words">{r[k]}</dd>
+                      </div>
+                    ))}
+                </dl>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-[#111]">Summary by Project</h3>
+        <p className="text-xs text-muted-foreground">{projects.length} project{projects.length === 1 ? "" : "s"} · {rows.length} urgent item{rows.length === 1 ? "" : "s"} · Click a project for details</p>
+      </div>
+      <div className="border border-border rounded-lg overflow-hidden divide-y divide-border">
+        {projects.map((p) => {
+          const statuses = groupCount(p.items, (r) => r.Status || "—");
+          return (
+            <button key={p.name} onClick={() => setOpenProject(p.name)}
+              className="w-full flex items-center justify-between gap-4 px-4 py-3 text-left hover:bg-[#fef2f2] transition">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-[#111] truncate">{p.name}</div>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {statuses.map((s) => (
+                    <span key={s.name} className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: STATUS_COLORS[s.name] || "#6b7280" }}>
+                      {s.name} · {s.value}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-lg font-bold text-[#dc2626] tabular-nums leading-none">{p.items.length}</div>
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5">items</div>
+              </div>
+              <span className="shrink-0 text-muted-foreground text-lg leading-none">›</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
+
 
 function riskFromStatus(status: string): "Critical" | "High" | "Medium" | "Low" {
   const s = (status || "").toLowerCase();
@@ -646,17 +703,28 @@ function DistroBox({ title, rows, rowBg, accent }: { title: string; rows: { name
   );
 }
 
-function ClickableBar({ data, color, onClick }: { data: { name: string; value: number }[]; color: string; onClick: (name: string) => void }) {
+function ClickableBar({ data, onClick }: { data: { name: string; value: number }[]; color?: string; onClick: (name: string) => void }) {
   const height = Math.max(280, data.length * 28 + 40);
+  // Red-blend palette: darkest for highest value, fading to lighter red
+  const redShade = (i: number, total: number) => {
+    if (total <= 1) return "#dc2626";
+    const t = i / (total - 1); // 0 → darkest, 1 → lightest
+    const start = { r: 127, g: 29, b: 29 };   // #7f1d1d deep red
+    const end = { r: 254, g: 178, b: 178 };   // soft red
+    const r = Math.round(start.r + (end.r - start.r) * t);
+    const g = Math.round(start.g + (end.g - start.g) * t);
+    const b = Math.round(start.b + (end.b - start.b) * t);
+    return `rgb(${r},${g},${b})`;
+  };
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} layout="vertical" margin={{ left: 20, right: 40 }}>
         <XAxis type="number" fontSize={11} allowDecimals={false} />
         <YAxis type="category" dataKey="name" width={140} fontSize={11} />
-        <Tooltip cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+        <Tooltip cursor={{ fill: "rgba(220,38,38,0.06)" }} />
         <Bar dataKey="value" radius={[0, 4, 4, 0]} className="cursor-pointer"
           onClick={(d: { name: string }) => onClick(d.name)}>
-          {data.map((_, i) => <Cell key={i} fill={color} />)}
+          {data.map((_, i) => <Cell key={i} fill={redShade(i, data.length)} />)}
           <LabelList dataKey="value" position="right" fontSize={11} fill="#111" />
         </Bar>
       </BarChart>

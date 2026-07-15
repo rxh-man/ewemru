@@ -61,11 +61,12 @@ Deno.serve(async (req) => {
       });
     }
     const data = await r.json();
-    const [po, pay, ven] = data.valueRanges ?? [];
+    const [po, pay, ven, urg] = data.valueRanges ?? [];
     const payload: CachePayload = {
       poPr: toObjects(po?.values ?? []),
       paymentRelease: toObjects(pay?.values ?? []),
       vendors: toObjects(ven?.values ?? []),
+      urgent: toObjects(urg?.values ?? []),
       fetchedAt: new Date().toISOString(),
     };
     cache = { at: Date.now(), payload };

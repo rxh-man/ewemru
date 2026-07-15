@@ -22,7 +22,7 @@ function toObjects(values: string[][]): Record<string, string>[] {
     });
 }
 
-type CachePayload = { poPr: unknown; paymentRelease: unknown; vendors: unknown; fetchedAt: string };
+type CachePayload = { poPr: unknown; paymentRelease: unknown; vendors: unknown; urgent: unknown; fetchedAt: string };
 let cache: { at: number; payload: CachePayload } | null = null;
 const CACHE_MS = 60_000; // serve cached response for 60s to stay well under Sheets quota
 

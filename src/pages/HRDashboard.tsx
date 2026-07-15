@@ -704,25 +704,33 @@ function DistroBox({ title, rows, rowBg, accent }: { title: string; rows: { name
 }
 
 function ClickableBar({ data, onClick }: { data: { name: string; value: number }[]; color?: string; onClick: (name: string) => void }) {
-  const height = Math.max(280, data.length * 28 + 40);
-  // Red-blend palette: darkest for highest value, fading to lighter red
+  const height = Math.max(300, data.length * 36 + 40);
   const redShade = (i: number, total: number) => {
     if (total <= 1) return "#dc2626";
-    const t = i / (total - 1); // 0 → darkest, 1 → lightest
-    const start = { r: 127, g: 29, b: 29 };   // #7f1d1d deep red
-    const end = { r: 254, g: 178, b: 178 };   // soft red
+    const t = i / (total - 1);
+    const start = { r: 127, g: 29, b: 29 };
+    const end = { r: 254, g: 178, b: 178 };
     const r = Math.round(start.r + (end.r - start.r) * t);
     const g = Math.round(start.g + (end.g - start.g) * t);
     const b = Math.round(start.b + (end.b - start.b) * t);
     return `rgb(${r},${g},${b})`;
   };
+  const truncate = (v: string, n = 26) => (v && v.length > n ? v.slice(0, n - 1) + "…" : v);
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} layout="vertical" margin={{ left: 20, right: 40 }}>
+      <BarChart data={data} layout="vertical" margin={{ top: 4, left: 8, right: 48, bottom: 4 }} barCategoryGap={8}>
         <XAxis type="number" fontSize={11} allowDecimals={false} />
-        <YAxis type="category" dataKey="name" width={140} fontSize={11} />
+        <YAxis
+          type="category"
+          dataKey="name"
+          width={210}
+          fontSize={11}
+          interval={0}
+          tick={{ fill: "#111" }}
+          tickFormatter={(v: string) => truncate(v)}
+        />
         <Tooltip cursor={{ fill: "rgba(220,38,38,0.06)" }} />
-        <Bar dataKey="value" radius={[0, 4, 4, 0]} className="cursor-pointer"
+        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20} className="cursor-pointer"
           onClick={(d: { name: string }) => onClick(d.name)}>
           {data.map((_, i) => <Cell key={i} fill={redShade(i, data.length)} />)}
           <LabelList dataKey="value" position="right" fontSize={11} fill="#111" />

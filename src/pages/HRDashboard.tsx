@@ -261,7 +261,11 @@ export default function HRDashboard() {
           </div>
 
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={() => setUrgentOpen(true)}
+              className="h-9 px-4 rounded-md bg-[#dc2626] text-white text-xs font-semibold hover:opacity-90">
+              🔥 Top Urgent PO / PRs
+            </button>
             <button onClick={() => setSummaryOpen(true)}
               className="h-9 px-4 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90">
               📋 Blocker Summary

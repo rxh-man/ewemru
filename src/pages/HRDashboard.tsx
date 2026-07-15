@@ -412,7 +412,7 @@ export default function HRDashboard() {
             {drill && (drillRows.poPr.length + drillRows.payment.length > 0) && (
               <button onClick={() => draftEmailFor(drill)}
                 className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">
-                ✉ Draft Email
+                Draft Email
               </button>
             )}
           </DialogFooter>

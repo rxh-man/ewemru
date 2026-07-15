@@ -465,7 +465,7 @@ export default function HRDashboard() {
               </DialogDescription>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => window.print()} className="h-8 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">🖨 Print / PDF</button>
+              <button onClick={() => window.print()} className="h-8 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">Print / PDF</button>
               <button onClick={() => setSummaryOpen(false)} className="h-8 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">Close</button>
             </div>
           </div>

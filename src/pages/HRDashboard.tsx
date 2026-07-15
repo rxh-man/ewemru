@@ -255,9 +255,6 @@ export default function HRDashboard() {
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-xl font-semibold text-[#111]">Contract & Procurement</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {data?.fetchedAt ? `Synced ${new Date(data.fetchedAt).toLocaleTimeString()} — live from Google Sheet` : "Loading live data…"}
-            </p>
           </div>
 
 

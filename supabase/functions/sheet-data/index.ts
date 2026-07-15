@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const ranges = ["PO & PR!A1:Z1000", "Payment Release!A1:Z1000", "Vendors!A1:Z1000", "Urgent PO/PR!A1:Z1000"];
+    const ranges = ["PO & PR!A1:Z1000", "Payment Release!A1:Z1000", "Vendors!A1:Z1000", "'Urgent PO/PR'!A1:Z1000"];
     const qs = new URLSearchParams();
     ranges.forEach((r) => qs.append("ranges", r));
 

@@ -95,6 +95,7 @@ export default function HRDashboard() {
   const [emailBody, setEmailBody] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [urgentOpen, setUrgentOpen] = useState(false);
 
   useEffect(() => {
     const s = getSession();

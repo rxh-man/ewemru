@@ -36,9 +36,11 @@ export function AppShell({ session, children }: { session: Session; children: Re
                 </div>
               );
             })()}
-            <span className="text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
-              {session.role}
-            </span>
+            {session.role !== "hr" && (
+              <span className="text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
+                {session.role}
+              </span>
+            )}
             <button onClick={handleLogout} className="text-xs text-muted-foreground hover:text-[#111]">
               Logout
             </button>

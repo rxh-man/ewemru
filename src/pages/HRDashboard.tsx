@@ -480,9 +480,7 @@ export default function HRDashboard() {
         <DialogContent className="max-w-[1100px] max-h-[92vh] overflow-hidden flex flex-col p-0">
           <div className="flex items-center justify-between px-5 py-3 border-b border-border">
             <div>
-              <DialogTitle className="text-base flex items-center gap-2">
-                <span className="text-[#dc2626]">🔥</span> Top Urgent PO / PRs
-              </DialogTitle>
+              <DialogTitle className="text-base">Top Urgent PO / PRs</DialogTitle>
               <DialogDescription className="text-xs">
                 Live from sheet <span className="font-medium text-[#111]">Urgent PO/PR</span>
                 {data?.urgent ? ` · ${data.urgent.length} item${data.urgent.length === 1 ? "" : "s"}` : ""}

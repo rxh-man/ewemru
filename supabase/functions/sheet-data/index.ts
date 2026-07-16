@@ -22,9 +22,13 @@ function toObjects(values: string[][]): Record<string, string>[] {
     });
 }
 
-type CachePayload = { poPr: unknown; paymentRelease: unknown; vendors: unknown; urgent: unknown; fetchedAt: string };
+type CachePayload = {
+  poPr: unknown; paymentRelease: unknown; vendors: unknown; urgent: unknown;
+  mspVendors: unknown; mspPractises: unknown; nocChallenges: unknown;
+  fetchedAt: string;
+};
 let cache: { at: number; payload: CachePayload } | null = null;
-const CACHE_MS = 60_000; // serve cached response for 60s to stay well under Sheets quota
+const CACHE_MS = 60_000;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -37,11 +41,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    const ranges = ["PO & PR!A1:Z1000", "Payment Release!A1:Z1000", "Vendors!A1:Z1000", "'Urgent PO/PR'!A1:Z1000"];
+    const ranges = [
+      "'Field - PO & PR'!A1:Z1000",
+      "'Field - Payment Release'!A1:Z1000",
+      "'Field - Vendors'!A1:Z1000",
+      "'Field - Urgent PO/PR'!A1:Z1000",
+      "'MSP - Vendors'!A1:Z1000",
+      "'MSP - Practises'!A1:AA1000",
+      "'NOC - Vendor Challenges'!A1:Z1000",
+    ];
     const qs = new URLSearchParams();
     ranges.forEach((r) => qs.append("ranges", r));
 
-    // Simple retry with backoff for transient 429s
     let r: Response | null = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       r = await fetch(`${GW}/spreadsheets/${SHEET_ID}/values:batchGet?${qs}`, { headers: headers() });
@@ -49,7 +60,6 @@ Deno.serve(async (req) => {
       await new Promise((res) => setTimeout(res, 500 * (attempt + 1)));
     }
     if (!r || !r.ok) {
-      // On failure, fall back to stale cache if we have one
       if (cache) {
         return new Response(JSON.stringify({ ...cache.payload, cached: true, stale: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -61,12 +71,15 @@ Deno.serve(async (req) => {
       });
     }
     const data = await r.json();
-    const [po, pay, ven, urg] = data.valueRanges ?? [];
+    const [po, pay, ven, urg, mspV, mspP, nocC] = data.valueRanges ?? [];
     const payload: CachePayload = {
       poPr: toObjects(po?.values ?? []),
       paymentRelease: toObjects(pay?.values ?? []),
       vendors: toObjects(ven?.values ?? []),
       urgent: toObjects(urg?.values ?? []),
+      mspVendors: toObjects(mspV?.values ?? []),
+      mspPractises: toObjects(mspP?.values ?? []),
+      nocChallenges: toObjects(nocC?.values ?? []),
       fetchedAt: new Date().toISOString(),
     };
     cache = { at: Date.now(), payload };
@@ -77,3 +90,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+

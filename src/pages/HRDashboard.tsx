@@ -20,8 +20,12 @@ interface SheetData {
   paymentRelease: Row[];
   vendors: Row[];
   urgent: Row[];
+  mspVendors: Row[];
+  mspPractises: Row[];
+  nocChallenges: Row[];
   fetchedAt: string;
 }
+
 
 const STATUS_COLORS: Record<string, string> = {
   Red: "#dc2626", Yellow: "#eab308", Amber: "#f59e0b", Green: "#16a34a", Blue: "#2563eb",

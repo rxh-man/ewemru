@@ -403,7 +403,12 @@ export default function HRDashboard() {
         {tab === "payment" && <SheetTable rows={filtered.payment} columns={["#", "System", "Project Name", "Vendor Name", "Issue", "Comment", "Action Category", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} />}
 
         {tab === "vendors" && <SheetTable rows={filtered.vendors} columns={["#", "Vendor Name", "Project Name", "Field / Support Type", "Contract Type", "Start Date", "End Date", "Contract Owner", "RAG Status"]} onProject={(v) => openDrill({ kind: "project", value: v })} />}
+        </>}
+
+        {track === "msp" && <MspPanel vendors={data?.mspVendors ?? []} practises={data?.mspPractises ?? []} />}
+        {track === "noc" && <NocPanel challenges={data?.nocChallenges ?? []} />}
       </div>
+
 
       {/* Drill-down dialog */}
       <Dialog open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>

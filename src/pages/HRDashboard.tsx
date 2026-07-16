@@ -84,7 +84,7 @@ export default function HRDashboard() {
   const [data, setData] = useState<SheetData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [track, setTrack] = useState<"field" | "msp" | "noc">("field");
+  const [track, setTrack] = useState<"field" | "msp" | "noc" | "gnoc">("field");
   const [tab, setTab] = useState<"overview" | "po_pr" | "payment" | "vendors">("overview");
 
 
@@ -286,7 +286,8 @@ export default function HRDashboard() {
           {([
             { k: "field", l: "Field", count: (data?.poPr.length ?? 0) + (data?.paymentRelease.length ?? 0) },
             { k: "msp", l: "MSP", count: data?.mspVendors.length ?? 0 },
-            { k: "noc", l: "NOC / GNOC", count: data?.nocChallenges.length ?? 0 },
+            { k: "noc", l: "NOC", count: data?.nocChallenges.length ?? 0 },
+            { k: "gnoc", l: "E2E GNOC", count: 0 },
           ] as const).map((t) => (
             <button key={t.k} onClick={() => setTrack(t.k)}
               className={`px-4 h-9 text-xs font-semibold border-r border-border last:border-r-0 transition ${track === t.k ? "bg-[#dc2626] text-white" : "text-[#111] hover:bg-secondary"}`}>
@@ -407,6 +408,12 @@ export default function HRDashboard() {
 
         {track === "msp" && <MspPanel vendors={data?.mspVendors ?? []} practises={data?.mspPractises ?? []} />}
         {track === "noc" && <NocPanel challenges={data?.nocChallenges ?? []} />}
+        {track === "gnoc" && (
+          <div className="border border-dashed border-border rounded-lg p-12 text-center bg-white">
+            <div className="text-sm font-semibold text-[#111]">E2E GNOC</div>
+            <p className="text-xs text-muted-foreground mt-1">Awaiting sheet — this view will populate automatically once the GNOC sheet is added.</p>
+          </div>
+        )}
       </div>
 
 

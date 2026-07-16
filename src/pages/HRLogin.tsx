@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { login, getSession } from "@/lib/auth";
+import { login, getSession, homeFor } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
 
 export default function HRLogin() {
@@ -19,7 +19,7 @@ export default function HRLogin() {
     setErr(null);
     const s = login(u, p);
     if (!s) { setErr("Invalid username or password"); return; }
-    navigate(homeFor(s.role));
+    navigate("/welcome");
   }
 
   return (

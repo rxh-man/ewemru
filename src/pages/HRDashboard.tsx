@@ -408,6 +408,12 @@ export default function HRDashboard() {
 
         {track === "msp" && <MspPanel vendors={data?.mspVendors ?? []} practises={data?.mspPractises ?? []} />}
         {track === "noc" && <NocPanel challenges={data?.nocChallenges ?? []} />}
+        {track === "gnoc" && (
+          <div className="border border-dashed border-border rounded-lg p-12 text-center bg-white">
+            <div className="text-sm font-semibold text-[#111]">E2E GNOC</div>
+            <p className="text-xs text-muted-foreground mt-1">Awaiting sheet — this view will populate automatically once the GNOC sheet is added.</p>
+          </div>
+        )}
       </div>
 
 

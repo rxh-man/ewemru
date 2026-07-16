@@ -792,8 +792,12 @@ function DrillSection({ title, rows, cols }: { title: string; rows: Row[]; cols:
   );
 }
 
-function KPI({ label, value, tone }: { label: string; value: number; tone: "red" | "amber" | "dark" }) {
-  const bg = tone === "red" ? "bg-primary text-primary-foreground" : tone === "amber" ? "bg-amber-50 border border-amber-200 text-amber-900" : "bg-[#111] text-white";
+function KPI({ label, value, tone }: { label: string; value: number; tone: "red" | "amber" | "dark" | "green" }) {
+  const bg = tone === "red" ? "bg-primary text-primary-foreground"
+    : tone === "amber" ? "bg-amber-50 border border-amber-200 text-amber-900"
+    : tone === "green" ? "bg-emerald-50 border border-emerald-200 text-emerald-900"
+    : "bg-[#111] text-white";
+
   return (
     <div className={`${bg} rounded-lg p-4`}>
       <div className="text-[11px] uppercase tracking-wide opacity-80">{label}</div>

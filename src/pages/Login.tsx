@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login, getSession } from "@/lib/auth";
+import { login, getSession, homeFor } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
 
 export default function Login() {

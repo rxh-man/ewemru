@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import HRLogin from "./pages/HRLogin";
+import Welcome from "./pages/Welcome";
 import HRDashboard from "./pages/HRDashboard";
 import Admin from "./pages/Admin";
 import Surveyor from "./pages/Surveyor";
@@ -12,6 +13,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HRLogin />} />
         <Route path="/hr-login" element={<Navigate to="/" replace />} />
+        <Route path="/welcome" element={<Welcome />} />
         <Route path="/hr" element={<HRDashboard />} />
         <Route path="/mru-login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />

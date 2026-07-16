@@ -19,7 +19,7 @@ export default function HRLogin() {
     setErr(null);
     const s = login(u, p);
     if (!s) { setErr("Invalid username or password"); return; }
-    navigate(homeFor(s.role));
+    navigate("/welcome");
   }
 
   return (

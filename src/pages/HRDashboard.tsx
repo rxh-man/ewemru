@@ -895,3 +895,243 @@ function SheetTable({ rows, columns, onOwner, onProject }: { rows: Row[]; column
     </div>
   );
 }
+
+/* ------------------------- MSP ------------------------- */
+function MspPanel({ vendors, practises }: { vendors: Row[]; practises: Row[] }) {
+  const [openVendor, setOpenVendor] = useState<Row | null>(null);
+  const rag = groupCount(vendors, (r) => r["RAG Status"] || "—");
+  const byType = groupCount(vendors.filter((r) => (r["Field / Support Type"] || "").trim()), (r) => r["Field / Support Type"] || "—");
+  const byContract = groupCount(vendors.filter((r) => (r["Contract Type"] || "").trim()), (r) => r["Contract Type"] || "—");
+  const totalVendors = vendors.length;
+  const activeContracts = vendors.filter((r) => (r["Start Date"] || "").trim() && !isExpired(r)).length;
+  const expiredContracts = vendors.filter((r) => isExpired(r)).length;
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KPI label="MSP Vendors" value={totalVendors} tone="dark" />
+        <KPI label="Active Contracts" value={activeContracts} tone="green" />
+        <KPI label="Expired / At Risk" value={expiredContracts} tone="red" />
+        <KPI label="Practises Covered" value={practises.length} tone="amber" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ChartCard title="RAG Distribution">
+          <div className="space-y-2 py-2">
+            {rag.map((s) => (
+              <div key={s.name} className="flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: STATUS_COLORS[s.name] || "#6b7280" }} />
+                <span className="text-xs text-[#111] flex-1">{s.name}</span>
+                <span className="text-xs font-semibold tabular-nums">{s.value}</span>
+                <div className="w-24 h-1.5 rounded-full bg-secondary overflow-hidden">
+                  <div className="h-full" style={{ width: `${(s.value / Math.max(totalVendors,1)) * 100}%`, background: STATUS_COLORS[s.name] || "#6b7280" }} />
+                </div>
+              </div>
+            ))}
+            {!rag.length && <div className="text-xs text-muted-foreground">No data.</div>}
+          </div>
+        </ChartCard>
+
+        <ChartCard title="By Support Type">
+          <MiniList rows={byType} empty="Not yet classified" />
+        </ChartCard>
+
+        <ChartCard title="By Contract Type">
+          <MiniList rows={byContract} empty="Not yet classified" />
+        </ChartCard>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 border border-border rounded-lg overflow-hidden bg-white">
+          <div className="px-4 py-2 border-b border-border bg-secondary/40 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-[#111]">MSP Vendors</h3>
+            <span className="text-xs text-muted-foreground">{vendors.length} total</span>
+          </div>
+          <div className="max-h-[480px] overflow-y-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-white sticky top-0 border-b border-border">
+                <tr className="text-left">
+                  <th className="px-3 py-2 font-semibold">Vendor</th>
+                  <th className="px-3 py-2 font-semibold">Project</th>
+                  <th className="px-3 py-2 font-semibold">Contract</th>
+                  <th className="px-3 py-2 font-semibold">RAG</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vendors.map((v, i) => (
+                  <tr key={i} onClick={() => setOpenVendor(v)}
+                    className="border-t border-border cursor-pointer hover:bg-[#fef2f2] transition">
+                    <td className="px-3 py-2 font-medium text-[#111]">{v["Vendor Name"] || "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{v["Project Name"] || "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{v["Contract Type"] || "—"}</td>
+                    <td className="px-3 py-2"><StatusDot value={v["RAG Status"] || ""} /></td>
+                  </tr>
+                ))}
+                {!vendors.length && <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">No vendors.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="border border-border rounded-lg overflow-hidden bg-white">
+          <div className="px-4 py-2 border-b border-border bg-secondary/40">
+            <h3 className="text-sm font-semibold text-[#111]">Practises</h3>
+          </div>
+          <ul className="p-2 max-h-[480px] overflow-y-auto">
+            {practises.map((p, i) => (
+              <li key={i} className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary/40">
+                <span className="w-6 h-6 rounded-full bg-[#fef2f2] text-[#dc2626] text-[10px] font-semibold flex items-center justify-center">{i + 1}</span>
+                <span className="text-xs text-[#111]">{p["Practises"] || p["Practices"] || Object.values(p)[1] || "—"}</span>
+              </li>
+            ))}
+            {!practises.length && <div className="text-xs text-muted-foreground p-3">No practises.</div>}
+          </ul>
+        </div>
+      </div>
+
+      <Dialog open={!!openVendor} onOpenChange={(o) => !o && setOpenVendor(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{openVendor?.["Vendor Name"] || "Vendor"}</DialogTitle>
+            <DialogDescription>{openVendor?.["Project Name"] || "MSP Vendor detail"}</DialogDescription>
+          </DialogHeader>
+          <dl className="grid grid-cols-1 gap-2 text-xs">
+            {openVendor && Object.entries(openVendor)
+              .filter(([k, v]) => k && !k.startsWith("col_") && (v || "").trim())
+              .map(([k, v]) => (
+                <div key={k} className="flex gap-3 border-b border-border pb-1.5">
+                  <dt className="text-muted-foreground w-40 shrink-0">{k}</dt>
+                  <dd className="text-[#111]">{v}</dd>
+                </div>
+              ))}
+          </dl>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ------------------------- NOC ------------------------- */
+function NocPanel({ challenges }: { challenges: Row[] }) {
+  const [openItem, setOpenItem] = useState<Row | null>(null);
+  const bySeverity = groupCount(challenges, (r) => r["Severity"] || "—");
+  const byGap = groupCount(challenges, (r) => r["Gap Area"] || "—");
+  const byProject = groupCount(challenges, (r) => r["Project"] || "—");
+  const byVendor = groupCount(challenges, (r) => r["Vendor"] || "—");
+  const critical = challenges.filter((r) => (r["Severity"] || "").toLowerCase() === "critical").length;
+
+  const sevColor = (s: string) => {
+    const t = (s || "").toLowerCase();
+    if (t.includes("critical")) return "#dc2626";
+    if (t.includes("high")) return "#f97316";
+    if (t.includes("medium")) return "#eab308";
+    return "#6b7280";
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KPI label="Total Challenges" value={challenges.length} tone="dark" />
+        <KPI label="Critical" value={critical} tone="red" />
+        <KPI label="Projects Impacted" value={byProject.length} tone="amber" />
+        <KPI label="Vendors Involved" value={byVendor.length} tone="dark" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ChartCard title="Severity Mix">
+          <div className="space-y-2 py-2">
+            {bySeverity.map((s) => (
+              <div key={s.name} className="flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: sevColor(s.name) }} />
+                <span className="text-xs text-[#111] flex-1">{s.name}</span>
+                <span className="text-xs font-semibold tabular-nums">{s.value}</span>
+                <div className="w-24 h-1.5 rounded-full bg-secondary overflow-hidden">
+                  <div className="h-full" style={{ width: `${(s.value / Math.max(challenges.length, 1)) * 100}%`, background: sevColor(s.name) }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
+        <ChartCard title="By Gap Area"><MiniList rows={byGap.slice(0, 8)} /></ChartCard>
+        <ChartCard title="By Project"><MiniList rows={byProject.slice(0, 8)} /></ChartCard>
+      </div>
+
+      <div className="border border-border rounded-lg overflow-hidden bg-white">
+        <div className="px-4 py-2 border-b border-border bg-secondary/40 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-[#111]">Vendor Challenges</h3>
+          <span className="text-xs text-muted-foreground">{challenges.length} logged</span>
+        </div>
+        <div className="divide-y divide-border">
+          {challenges.map((r, i) => (
+            <button key={i} onClick={() => setOpenItem(r)}
+              className="w-full text-left px-4 py-3 hover:bg-[#fef2f2] transition flex items-start gap-3">
+              <span className="shrink-0 mt-0.5 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
+                style={{ backgroundColor: sevColor(r["Severity"] || "") }}>
+                {r["Severity"] || "—"}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-[#111]">{r["Project"] || "—"}</span>
+                  <span className="text-xs text-muted-foreground">· {r["Vendor"] || "—"}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">· {r["Gap Area"] || "—"}</span>
+                </div>
+                <p className="text-xs text-[#111] mt-1 line-clamp-2">{r["Specific Gap"] || "—"}</p>
+                {r["Owner"] && <p className="text-[11px] text-muted-foreground mt-1">Owner: {r["Owner"]}</p>}
+              </div>
+              <span className="shrink-0 text-muted-foreground">›</span>
+            </button>
+          ))}
+          {!challenges.length && <div className="p-8 text-center text-xs text-muted-foreground">No challenges logged.</div>}
+        </div>
+      </div>
+
+      <Dialog open={!!openItem} onOpenChange={(o) => !o && setOpenItem(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{openItem?.["Project"] || "Challenge"} · {openItem?.["Vendor"] || ""}</DialogTitle>
+            <DialogDescription>{openItem?.["Gap Area"] || ""}</DialogDescription>
+          </DialogHeader>
+          <dl className="grid grid-cols-1 gap-2 text-xs">
+            {openItem && Object.entries(openItem)
+              .filter(([k, v]) => k && !k.startsWith("col_") && (v || "").trim())
+              .map(([k, v]) => (
+                <div key={k} className="flex gap-3 border-b border-border pb-1.5">
+                  <dt className="text-muted-foreground w-40 shrink-0">{k}</dt>
+                  <dd className="text-[#111]">{v}</dd>
+                </div>
+              ))}
+          </dl>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function MiniList({ rows, empty = "No data" }: { rows: { name: string; value: number }[]; empty?: string }) {
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  if (!rows.length) return <div className="text-xs text-muted-foreground py-2">{empty}</div>;
+  return (
+    <div className="space-y-1.5 py-2">
+      {rows.map((r) => (
+        <div key={r.name} className="flex items-center gap-3">
+          <span className="text-xs text-[#111] flex-1 truncate" title={r.name}>{r.name}</span>
+          <span className="text-xs font-semibold tabular-nums w-8 text-right">{r.value}</span>
+          <div className="w-24 h-1.5 rounded-full bg-secondary overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-[#dc2626] to-[#7f1d1d]" style={{ width: `${(r.value / max) * 100}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatusDot({ value }: { value: string }) {
+  const color = STATUS_COLORS[value] || "#6b7280";
+  if (!value) return <span className="text-muted-foreground text-xs">—</span>;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs">
+      <span className="w-2 h-2 rounded-full" style={{ background: color }} />
+      {value}
+    </span>
+  );
+}

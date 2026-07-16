@@ -84,7 +84,9 @@ export default function HRDashboard() {
   const [data, setData] = useState<SheetData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [track, setTrack] = useState<"field" | "msp" | "noc">("field");
   const [tab, setTab] = useState<"overview" | "po_pr" | "payment" | "vendors">("overview");
+
 
   const [fProject, setFProject] = useState("");
   const [fOwner, setFOwner] = useState("");

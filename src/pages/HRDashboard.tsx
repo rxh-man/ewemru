@@ -282,12 +282,27 @@ export default function HRDashboard() {
 
         {error && <div className="border border-destructive/40 bg-destructive/5 text-destructive text-xs rounded-md p-3">{error}</div>}
 
+        <div className="inline-flex border border-border rounded-md overflow-hidden bg-white">
+          {([
+            { k: "field", l: "Field", count: (data?.poPr.length ?? 0) + (data?.paymentRelease.length ?? 0) },
+            { k: "msp", l: "MSP", count: data?.mspVendors.length ?? 0 },
+            { k: "noc", l: "NOC / GNOC", count: data?.nocChallenges.length ?? 0 },
+          ] as const).map((t) => (
+            <button key={t.k} onClick={() => setTrack(t.k)}
+              className={`px-4 h-9 text-xs font-semibold border-r border-border last:border-r-0 transition ${track === t.k ? "bg-[#dc2626] text-white" : "text-[#111] hover:bg-secondary"}`}>
+              {t.l} <span className={`ml-1 ${track === t.k ? "opacity-80" : "text-muted-foreground"}`}>· {t.count}</span>
+            </button>
+          ))}
+        </div>
+
+        {track === "field" && <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPI label="Total Items" value={allActionable.length} tone="dark" />
           <KPI label="Pending / Blockers" value={pending.length} tone="red" />
           <KPI label="Projects Affected" value={new Set(pending.map((r) => r["Project Name"])).size} tone="amber" />
           <KPI label="Action Owners" value={new Set(pending.flatMap((r) => splitOwners(r.Owner || ""))).size} tone="dark" />
         </div>
+
 
         <div className="border border-border rounded-lg p-3 bg-white">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2">

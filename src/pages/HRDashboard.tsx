@@ -280,6 +280,7 @@ export default function HRDashboard() {
         {error && <div className="border border-destructive/40 bg-destructive/5 text-destructive text-xs rounded-md p-3">{error}</div>}
 
         <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tracks</span>
           <div className="inline-flex border border-border rounded-md overflow-hidden bg-white">
             {([
               { k: "field", l: "Field", count: (data?.poPr.length ?? 0) + (data?.paymentRelease.length ?? 0) },
@@ -293,11 +294,14 @@ export default function HRDashboard() {
               </button>
             ))}
           </div>
+          <div className="hidden md:block h-8 w-px bg-border mx-3" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Program</span>
           <button onClick={() => setTrack("customer")}
-            className={`ml-4 md:ml-8 px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "customer" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+            className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "customer" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
             Customer Excellence <span className={`ml-1 ${track === "customer" ? "opacity-80" : "text-muted-foreground"}`}>· 4</span>
           </button>
         </div>
+
 
         {track === "field" && <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

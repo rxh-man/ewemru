@@ -456,13 +456,11 @@ function ProjectDetail({ p }: { p: CustomerProject }) {
                   {d.name}
                   {d.critical && <span className="text-[9px] font-bold text-red-700 uppercase">crit</span>}
                 </span>
-                <div className="flex gap-2 text-[10px]">
-                  {d.status === "complete" ? (
-                    <button className="text-primary hover:underline">Download</button>
-                  ) : (
-                    <button className="text-primary hover:underline">Upload</button>
-                  )}
-                </div>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide ${
+                  d.status === "complete" ? "text-emerald-700" : d.status === "pending" ? "text-amber-700" : "text-red-700"
+                }`}>
+                  {d.status}
+                </span>
               </div>
             ))}
           </div>

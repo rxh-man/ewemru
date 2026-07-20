@@ -266,6 +266,56 @@ export function CustomerExcellence() {
       {loading && <div className="text-xs text-muted-foreground">Loading CS sheet…</div>}
       {error && <div className="text-xs text-red-700">Failed to load: {error}</div>}
 
+      {/* Priority Actions */}
+      {!loading && projects.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <PriorityPanel
+            title="Expired Contracts"
+            tone="red"
+            items={projects
+              .filter((p) => p.earliestContractDaysLeft !== null && p.earliestContractDaysLeft < 0)
+              .sort((a, b) => (a.earliestContractDaysLeft ?? 0) - (b.earliestContractDaysLeft ?? 0))
+              .slice(0, 5)
+              .map((p) => ({
+                project: p, label: `${p.customer} · ${p.scope}`,
+                meta: `Expired ${Math.abs(p.earliestContractDaysLeft!)}d ago`,
+              }))}
+            onOpen={setSelected}
+            emptyText="No contracts expired."
+          />
+          <PriorityPanel
+            title="Expiring Soon (< 60 days)"
+            tone="amber"
+            items={projects
+              .filter((p) => p.earliestContractDaysLeft !== null && p.earliestContractDaysLeft >= 0 && p.earliestContractDaysLeft < 60)
+              .sort((a, b) => (a.earliestContractDaysLeft ?? 0) - (b.earliestContractDaysLeft ?? 0))
+              .slice(0, 5)
+              .map((p) => ({
+                project: p, label: `${p.customer} · ${p.scope}`,
+                meta: `${p.earliestContractDaysLeft}d left`,
+              }))}
+            onOpen={setSelected}
+            emptyText="Nothing expiring in the next 60 days."
+          />
+          <PriorityPanel
+            title="Critical Docs Missing"
+            tone="red"
+            items={projects
+              .filter((p) => p.totalCriticalMissing > 0)
+              .sort((a, b) => b.totalCriticalMissing - a.totalCriticalMissing)
+              .slice(0, 5)
+              .map((p) => ({
+                project: p, label: `${p.customer} · ${p.scope}`,
+                meta: `${p.totalCriticalMissing} critical`,
+              }))}
+            onOpen={setSelected}
+            emptyText="All critical documents in place."
+          />
+        </div>
+      )}
+
+
+
       {/* Filters */}
       <div className="border border-border rounded-lg p-3 bg-white">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2">

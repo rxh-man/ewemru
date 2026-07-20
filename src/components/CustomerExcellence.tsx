@@ -153,11 +153,13 @@ function buildProjects(rows: CsRow[]): CustomerProject[] {
 
 function status(p: CustomerProject): "green" | "yellow" | "red" | "gray" {
   if (!p.hasData) return "gray";
-  if (p.totalCriticalMissing > 0) return "red";
   const cd = p.earliestContractDaysLeft;
   const pd = p.earliestPoDaysLeft;
+  // Red ONLY when contract or PO is actually expired
   if ((cd !== null && cd < 0) || (pd !== null && pd < 0)) return "red";
-  if ((cd !== null && cd < 60) || (pd !== null && pd < 60) || p.totalMissing > 0) return "yellow";
+  // Yellow when expiring soon (<60 days) or critical docs missing
+  if ((cd !== null && cd < 60) || (pd !== null && pd < 60) || p.totalCriticalMissing > 0) return "yellow";
+  // Otherwise healthy — plenty of runway
   return "green";
 }
 

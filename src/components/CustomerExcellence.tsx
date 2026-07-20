@@ -383,6 +383,55 @@ export function CustomerExcellence() {
         })}
       </div>
 
+      <div className="border border-border rounded-lg bg-white overflow-hidden">
+        <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+          <h3 className="text-xs font-semibold text-[#111] uppercase tracking-wide">Customer Projects — Table View</h3>
+          <span className="text-[10px] text-muted-foreground">{rows.length} row{rows.length === 1 ? "" : "s"}</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead className="bg-[#f8f8f8]">
+              <tr className="text-left text-[#111]">
+                {["Customer", "Scope", "Vendor", "Contract Expiry", "Days Left", "Vendor Rating", "On-Time %", "Docs Missing", "Health", "Status"].map((h) => (
+                  <th key={h} className="px-3 py-2 border-b border-border font-semibold whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">No projects match the filters.</td></tr>
+              )}
+              {rows.map((p) => {
+                const s = status(p);
+                const meta = STATUS_META[s];
+                const days = daysUntil(p.contractExpiry);
+                const missing = p.documents.filter((d) => d.status !== "complete").length;
+                return (
+                  <tr key={p.id} onClick={() => setSelected(p)}
+                    className="cursor-pointer hover:bg-secondary/50 border-b border-border/60">
+                    <td className="px-3 py-2 font-semibold text-[#111] whitespace-nowrap">{p.customer}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{p.scope}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{p.vendor}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{p.contractExpiry}</td>
+                    <td className={`px-3 py-2 whitespace-nowrap ${days < 60 ? "text-red-700 font-semibold" : ""}`}>{days < 0 ? "Expired" : `${days}d`}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{p.vendorRating.toFixed(1)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{p.onTimePct}%</td>
+                    <td className={`px-3 py-2 whitespace-nowrap ${missing > 0 ? "text-red-700 font-semibold" : ""}`}>{missing}</td>
+                    <td className={`px-3 py-2 whitespace-nowrap ${p.healthScore < 6 ? "text-red-700 font-semibold" : ""}`}>{p.healthScore.toFixed(1)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1.5 font-semibold ${meta.text}`}>
+                        <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+                        {meta.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-w-4xl max-h-[88vh] overflow-hidden flex flex-col">
           {selected && <ProjectDetail p={selected} />}
@@ -426,7 +475,7 @@ function ProjectDetail({ p }: { p: CustomerProject }) {
           </ul>
         </Section>
 
-        <Section title="Expansion Opportunities (AI)">
+        <Section title="Expansion Opportunities">
           <ul className="space-y-1 text-xs">
             {p.expansions.map((x, i) => (
               <li key={i} className="flex gap-2"><span className="text-red-600">+</span>{x}</li>

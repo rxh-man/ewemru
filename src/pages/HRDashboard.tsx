@@ -270,10 +270,6 @@ export default function HRDashboard() {
               className="h-9 px-4 rounded-md bg-[#dc2626] text-white text-xs font-semibold hover:opacity-90">
               Top Urgent PO / PRs
             </button>
-            <button onClick={() => setSummaryOpen(true)}
-              className="h-9 px-4 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90">
-              Blocker Summary
-            </button>
             <button onClick={load} disabled={loading}
               className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 disabled:opacity-60">
               {loading ? "Refreshing…" : "Refresh"}
@@ -283,19 +279,24 @@ export default function HRDashboard() {
 
         {error && <div className="border border-destructive/40 bg-destructive/5 text-destructive text-xs rounded-md p-3">{error}</div>}
 
-        <div className="inline-flex border border-border rounded-md overflow-hidden bg-white">
-          {([
-            { k: "field", l: "Field", count: (data?.poPr.length ?? 0) + (data?.paymentRelease.length ?? 0) },
-            { k: "msp", l: "MSP", count: data?.mspVendors.length ?? 0 },
-            { k: "noc", l: "NOC", count: data?.nocChallenges.length ?? 0 },
-            { k: "gnoc", l: "E2E GNOC", count: 0 },
-            { k: "customer", l: "Customer Excellence", count: 4 },
-          ] as const).map((t) => (
-            <button key={t.k} onClick={() => setTrack(t.k)}
-              className={`px-4 h-9 text-xs font-semibold border-r border-border last:border-r-0 transition ${track === t.k ? "bg-[#dc2626] text-white" : "text-[#111] hover:bg-secondary"}`}>
-              {t.l} <span className={`ml-1 ${track === t.k ? "opacity-80" : "text-muted-foreground"}`}>· {t.count}</span>
-            </button>
-          ))}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="inline-flex border border-border rounded-md overflow-hidden bg-white">
+            {([
+              { k: "field", l: "Field", count: (data?.poPr.length ?? 0) + (data?.paymentRelease.length ?? 0) },
+              { k: "msp", l: "MSP", count: data?.mspVendors.length ?? 0 },
+              { k: "noc", l: "NOC", count: data?.nocChallenges.length ?? 0 },
+              { k: "gnoc", l: "E2E GNOC", count: 0 },
+            ] as const).map((t) => (
+              <button key={t.k} onClick={() => setTrack(t.k)}
+                className={`px-4 h-9 text-xs font-semibold border-r border-border last:border-r-0 transition ${track === t.k ? "bg-[#dc2626] text-white" : "text-[#111] hover:bg-secondary"}`}>
+                {t.l} <span className={`ml-1 ${track === t.k ? "opacity-80" : "text-muted-foreground"}`}>· {t.count}</span>
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setTrack("customer")}
+            className={`ml-4 md:ml-8 px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "customer" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+            Customer Excellence <span className={`ml-1 ${track === "customer" ? "opacity-80" : "text-muted-foreground"}`}>· 4</span>
+          </button>
         </div>
 
         {track === "field" && <>

@@ -456,7 +456,7 @@ function ProjectDetail({ p }: { p: CustomerProject }) {
                           <span className={`text-[10px] font-semibold uppercase tracking-wide ${
                             d.status === "complete" ? "text-emerald-700" : d.status === "pending" ? "text-amber-700" : "text-red-700"
                           }`}>
-                            {d.status}
+                            {d.display}
                           </span>
                         </div>
                       ))}
@@ -475,8 +475,22 @@ function ProjectDetail({ p }: { p: CustomerProject }) {
             </Section>
 
             <Section title="Expansion Opportunities">
-              <div className="text-xs text-muted-foreground">Awaiting data.</div>
+              {(() => {
+                const notes = PROJECT_NOTES[p.id] ?? [];
+                if (notes.length === 0) return <div className="text-xs text-muted-foreground">Awaiting data.</div>;
+                return (
+                  <ul className="space-y-1.5 text-xs text-[#111]">
+                    {notes.map((n, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-red-600 font-bold">•</span>
+                        <span>{n}</span>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
             </Section>
+
 
             <Section title="Action Items">
               <div className="text-xs text-muted-foreground">Awaiting data.</div>

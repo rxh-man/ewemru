@@ -5,7 +5,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 type DocStatus = "complete" | "missing" | "pending";
-type Doc = { name: string; status: DocStatus; critical?: boolean };
+type Doc = { name: string; status: DocStatus; raw: string; display: string; critical?: boolean };
 
 type CsRow = Record<string, string>;
 
@@ -18,14 +18,30 @@ const DOC_COLS: { key: string; critical?: boolean }[] = [
   { key: "Compliance", critical: true },
 ];
 
-function parseDoc(val: string | undefined): DocStatus {
-  const v = (val ?? "").trim();
-  if (!v) return "pending";
+// Per-project enhancement / opportunity notes (manually curated)
+const PROJECT_NOTES: Record<string, string[]> = {
+  "adcb::field": [
+    "Enhance Hamnet points coverage across ADCB call center sites",
+    "Remote provisioning to reduce field deployment from 48 hours to 1 hour",
+  ],
+  "dubai frame::field": [
+    "Introduce computer vision solutions for visitor flow analytics",
+    "Explore AI-based crowd density and safety monitoring ideas",
+  ],
+};
+
+function parseDoc(val: string | undefined): { status: DocStatus; display: string; raw: string } {
+  const raw = (val ?? "").toString();
+  const v = raw.trim();
+  if (!v) return { status: "pending", display: "To be submitted", raw };
   const l = v.toLowerCase();
-  if (l === "y" || l === "yes" || l === "complete" || l === "done") return "complete";
-  if (l === "n" || l === "no" || l === "missing" || l === "expired") return "missing";
-  return "pending";
+  if (l === "y" || l === "yes" || l === "complete" || l === "done") return { status: "complete", display: "Complete", raw };
+  if (l === "n" || l === "no" || l === "missing") return { status: "pending", display: "To be submitted", raw };
+  if (l === "expired") return { status: "missing", display: "Expired", raw };
+  // Any other free-text value from the sheet is shown verbatim and treated as pending
+  return { status: "pending", display: v, raw };
 }
+
 
 function parseDMY(s: string | undefined): Date | null {
   if (!s) return null;
@@ -70,11 +86,10 @@ type CustomerProject = {
 };
 
 function buildVendorEntry(r: CsRow): VendorEntry {
-  const docs: Doc[] = DOC_COLS.map((c) => ({
-    name: c.key,
-    status: parseDoc(r[c.key]),
-    critical: c.critical,
-  }));
+  const docs: Doc[] = DOC_COLS.map((c) => {
+    const p = parseDoc(r[c.key]);
+    return { name: c.key, status: p.status, display: p.display, raw: p.raw, critical: c.critical };
+  });
   const now = new Date();
   const cExp = parseDMY(r["Customer Contract Expiry"] ?? r["Contract Expiry"]);
   const pExp = parseDMY(r["Vendor PO Expiry"] ?? r["PO Expiry"]);
@@ -363,9 +378,19 @@ export function CustomerExcellence() {
                 </div>
                 <div className="mt-3 space-y-1.5 text-xs">
                   <Row label="Vendors" value={p.vendors.length ? String(p.vendors.length) : "—"} />
-                  <Row label="Earliest contract" value={cd === null ? "—" : cd < 0 ? "Expired" : `${cd} days`} strong={cd !== null && cd < 60} />
+                  <Row label="Earliest contract" value={cd === null ? "—" : cd < 0 ? `Expired ${Math.abs(cd)}d ago` : `${cd} days left`} strong={cd !== null && cd < 60} />
                   <Row label="Docs missing" value={p.hasData ? String(p.totalMissing) : "—"} strong={p.totalMissing > 0} />
                 </div>
+                {(PROJECT_NOTES[p.id]?.length ?? 0) > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border/60">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-red-700 mb-1">Enhancements</div>
+                    <ul className="space-y-1 text-[11px] text-[#111]">
+                      {PROJECT_NOTES[p.id].map((n, i) => (
+                        <li key={i} className="flex gap-1.5"><span className="text-red-600 font-bold">•</span><span>{n}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </button>
             );
           })}
@@ -441,7 +466,7 @@ function ProjectDetail({ p }: { p: CustomerProject }) {
                           <span className={`text-[10px] font-semibold uppercase tracking-wide ${
                             d.status === "complete" ? "text-emerald-700" : d.status === "pending" ? "text-amber-700" : "text-red-700"
                           }`}>
-                            {d.status}
+                            {d.display}
                           </span>
                         </div>
                       ))}
@@ -460,8 +485,22 @@ function ProjectDetail({ p }: { p: CustomerProject }) {
             </Section>
 
             <Section title="Expansion Opportunities">
-              <div className="text-xs text-muted-foreground">Awaiting data.</div>
+              {(() => {
+                const notes = PROJECT_NOTES[p.id] ?? [];
+                if (notes.length === 0) return <div className="text-xs text-muted-foreground">Awaiting data.</div>;
+                return (
+                  <ul className="space-y-1.5 text-xs text-[#111]">
+                    {notes.map((n, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-red-600 font-bold">•</span>
+                        <span>{n}</span>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
             </Section>
+
 
             <Section title="Action Items">
               <div className="text-xs text-muted-foreground">Awaiting data.</div>

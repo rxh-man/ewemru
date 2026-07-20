@@ -589,6 +589,50 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
+function PriorityPanel({
+  title, tone, items, onOpen, emptyText,
+}: {
+  title: string;
+  tone: "red" | "amber";
+  items: { project: CustomerProject; label: string; meta: string }[];
+  onOpen: (p: CustomerProject) => void;
+  emptyText: string;
+}) {
+  const toneCls = tone === "red"
+    ? "border-red-200 bg-red-50 text-red-700"
+    : "border-amber-200 bg-amber-50 text-amber-700";
+  const dot = tone === "red" ? "bg-red-600" : "bg-amber-500";
+  return (
+    <div className={`border rounded-lg p-3 ${toneCls}`}>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide">{title}</h3>
+        <span className="text-[10px] font-semibold">{items.length}</span>
+      </div>
+      {items.length === 0 ? (
+        <div className="text-[11px] text-muted-foreground">{emptyText}</div>
+      ) : (
+        <ul className="space-y-1.5">
+          {items.map((it, i) => (
+            <li key={i}>
+              <button
+                onClick={() => onOpen(it.project)}
+                className="w-full flex items-center justify-between gap-2 text-left text-xs bg-white/70 hover:bg-white border border-white rounded px-2 py-1.5"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className={`h-1.5 w-1.5 rounded-full flex-none ${dot}`} />
+                  <span className="truncate text-[#111] font-medium">{it.label}</span>
+                </span>
+                <span className="text-[10px] font-semibold whitespace-nowrap">{it.meta}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+
 function HeroStat({ label, value, accent }: { label: string; value: number; accent?: "emerald" | "amber" | "red" }) {
   const cls =
     accent === "emerald" ? "text-emerald-300" :

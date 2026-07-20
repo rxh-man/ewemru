@@ -76,18 +76,20 @@ function buildVendorEntry(r: CsRow): VendorEntry {
     critical: c.critical,
   }));
   const now = new Date();
-  const cExp = parseDMY(r["Contract Expiry"]);
-  const pExp = parseDMY(r["PO Expiry"]);
+  const cExp = parseDMY(r["Customer Contract Expiry"] ?? r["Contract Expiry"]);
+  const pExp = parseDMY(r["Vendor PO Expiry"] ?? r["PO Expiry"]);
+  const cDaysSheet = parseInt((r["Days to Contract Expiry"] ?? "").trim());
+  const pDaysSheet = parseInt((r["Days to Vendor PO Expiry"] ?? "").trim());
   return {
     vendor: (r["Vendor"] ?? "").trim(),
     docs,
-    contractDate: (r["Contract Date"] ?? "").trim(),
-    contractExpiry: (r["Contract Expiry"] ?? "").trim(),
-    contractDaysLeft: cExp ? daysBetween(cExp, now) : null,
-    poNumber: (r["PO Number"] ?? "").trim(),
-    poDate: (r["PO Date"] ?? "").trim(),
-    poExpiry: (r["PO Expiry"] ?? "").trim(),
-    poDaysLeft: pExp ? daysBetween(pExp, now) : null,
+    contractDate: (r["Customer Contract Date"] ?? r["Contract Date"] ?? "").trim(),
+    contractExpiry: (r["Customer Contract Expiry"] ?? r["Contract Expiry"] ?? "").trim(),
+    contractDaysLeft: cExp ? daysBetween(cExp, now) : (Number.isFinite(cDaysSheet) ? cDaysSheet : null),
+    poNumber: (r["Vender PO Number"] ?? r["Vendor PO Number"] ?? r["PO Number"] ?? "").trim(),
+    poDate: (r["Vendor PO Date"] ?? r["PO Date"] ?? "").trim(),
+    poExpiry: (r["Vendor PO Expiry"] ?? r["PO Expiry"] ?? "").trim(),
+    poDaysLeft: pExp ? daysBetween(pExp, now) : (Number.isFinite(pDaysSheet) ? pDaysSheet : null),
     missingCritical: docs.filter((d) => d.critical && d.status !== "complete").length,
     missingAny: docs.filter((d) => d.status !== "complete").length,
   };

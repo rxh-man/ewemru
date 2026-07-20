@@ -54,6 +54,9 @@ const PROJECTS: CustomerProject[] = [
       { label: "Contract renewal window opens", date: "2025-01-15" },
     ],
     documents: [
+      { name: "Business Case", status: "complete", critical: true },
+      { name: "Commercials", status: "complete", critical: true },
+      { name: "PR (Purchase Requisition)", status: "complete", critical: true },
       { name: "Signed Contract", status: "complete", critical: true },
       { name: "SOW", status: "complete", critical: true },
       { name: "PO Copy", status: "complete", critical: true },
@@ -101,6 +104,9 @@ const PROJECTS: CustomerProject[] = [
       { label: "Next AMC visit", date: "2024-11-25" },
     ],
     documents: [
+      { name: "Business Case", status: "complete", critical: true },
+      { name: "Commercials", status: "missing", critical: true },
+      { name: "PR (Purchase Requisition)", status: "complete", critical: true },
       { name: "Signed Contract", status: "complete", critical: true },
       { name: "SOW", status: "missing", critical: true },
       { name: "PO Copy", status: "complete", critical: true },
@@ -139,7 +145,7 @@ const PROJECTS: CustomerProject[] = [
     qualityScore: 6.4,
     contractStart: "2022-09-15",
     contractExpiry: "2024-09-15",
-    vendorHistory: "Vendor payment strike on 2024-07-10 (this project, this scope) — 3 day field delay.",
+    vendorHistory: "Vendor payment strike on 2024-07-20 (this project, this scope) — 1 day field delay.",
     services: ["MRU automation field ops", "Meter installation & verification", "Site survey"],
     expansions: [
       "MRU automation extension — Al Ain zone",
@@ -151,6 +157,9 @@ const PROJECTS: CustomerProject[] = [
       { label: "Vendor performance review", date: "2024-08-01" },
     ],
     documents: [
+      { name: "Business Case", status: "complete", critical: true },
+      { name: "Commercials", status: "complete", critical: true },
+      { name: "PR (Purchase Requisition)", status: "complete", critical: true },
       { name: "Signed Contract", status: "complete", critical: true },
       { name: "SOW", status: "complete", critical: true },
       { name: "PO Copy", status: "complete", critical: true },
@@ -162,12 +171,12 @@ const PROJECTS: CustomerProject[] = [
       { name: "Escalation Matrix", status: "complete" },
     ],
     risks: [
-      { level: "red", text: "Vendor payment strike history on this exact project — 3-day delay on 10 Jul 2024" },
+      { level: "red", text: "Vendor payment reliability flagged — see Vendor Health for incident detail" },
       { level: "red", text: "Contract expires in 57 days — renewal not in flight" },
       { level: "yellow", text: "Q3 service report not received from vendor" },
     ],
     aiRecommendations: [
-      { kind: "vendor", text: "Shams Itkan had payment strike on 2024-07-10 (Etihad WE, Field). Recommend strict milestone-based payment terms in next PO and dual-vendor fallback." },
+      { kind: "vendor", text: "Recommend strict milestone-based payment terms in next PO and dual-vendor fallback for Shams Itkan." },
       { kind: "renewal", text: "Renewal at high risk — engage Etihad WE procurement head this week to prevent lapse." },
       { kind: "scope", text: "Al Ain expansion is aligned with Etihad WE's 2025 investment plan — bundle with renewal to lift value." },
     ],
@@ -200,6 +209,9 @@ const PROJECTS: CustomerProject[] = [
       { label: "Quarterly service review", date: "2025-01-30" },
     ],
     documents: [
+      { name: "Business Case", status: "complete", critical: true },
+      { name: "Commercials", status: "complete", critical: true },
+      { name: "PR (Purchase Requisition)", status: "complete", critical: true },
       { name: "Signed Contract", status: "complete", critical: true },
       { name: "SOW", status: "complete", critical: true },
       { name: "PO Copy", status: "complete", critical: true },
@@ -444,13 +456,11 @@ function ProjectDetail({ p }: { p: CustomerProject }) {
                   {d.name}
                   {d.critical && <span className="text-[9px] font-bold text-red-700 uppercase">crit</span>}
                 </span>
-                <div className="flex gap-2 text-[10px]">
-                  {d.status === "complete" ? (
-                    <button className="text-primary hover:underline">Download</button>
-                  ) : (
-                    <button className="text-primary hover:underline">Upload</button>
-                  )}
-                </div>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide ${
+                  d.status === "complete" ? "text-emerald-700" : d.status === "pending" ? "text-amber-700" : "text-red-700"
+                }`}>
+                  {d.status}
+                </span>
               </div>
             ))}
           </div>

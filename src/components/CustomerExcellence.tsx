@@ -162,12 +162,12 @@ const PROJECTS: CustomerProject[] = [
       { name: "Escalation Matrix", status: "complete" },
     ],
     risks: [
-      { level: "red", text: "Vendor payment strike history on this exact project — 3-day delay on 10 Jul 2024" },
+      { level: "red", text: "Vendor payment reliability flagged — see Vendor Health for incident detail" },
       { level: "red", text: "Contract expires in 57 days — renewal not in flight" },
       { level: "yellow", text: "Q3 service report not received from vendor" },
     ],
     aiRecommendations: [
-      { kind: "vendor", text: "Shams Itkan had payment strike on 2024-07-10 (Etihad WE, Field). Recommend strict milestone-based payment terms in next PO and dual-vendor fallback." },
+      { kind: "vendor", text: "Recommend strict milestone-based payment terms in next PO and dual-vendor fallback for Shams Itkan." },
       { kind: "renewal", text: "Renewal at high risk — engage Etihad WE procurement head this week to prevent lapse." },
       { kind: "scope", text: "Al Ain expansion is aligned with Etihad WE's 2025 investment plan — bundle with renewal to lift value." },
     ],

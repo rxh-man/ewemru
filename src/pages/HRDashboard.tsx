@@ -416,6 +416,7 @@ export default function HRDashboard() {
             <p className="text-xs text-muted-foreground mt-1">Awaiting sheet — this view will populate automatically once the GNOC sheet is added.</p>
           </div>
         )}
+        {track === "customer" && <CustomerExcellence />}
       </div>
 
 

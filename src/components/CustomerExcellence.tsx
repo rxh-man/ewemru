@@ -86,11 +86,10 @@ type CustomerProject = {
 };
 
 function buildVendorEntry(r: CsRow): VendorEntry {
-  const docs: Doc[] = DOC_COLS.map((c) => ({
-    name: c.key,
-    status: parseDoc(r[c.key]),
-    critical: c.critical,
-  }));
+  const docs: Doc[] = DOC_COLS.map((c) => {
+    const p = parseDoc(r[c.key]);
+    return { name: c.key, status: p.status, display: p.display, raw: p.raw, critical: c.critical };
+  });
   const now = new Date();
   const cExp = parseDMY(r["Customer Contract Expiry"] ?? r["Contract Expiry"]);
   const pExp = parseDMY(r["Vendor PO Expiry"] ?? r["PO Expiry"]);

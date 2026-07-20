@@ -11,6 +11,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import { CustomerExcellence } from "@/components/CustomerExcellence";
 
 
 
@@ -84,7 +85,7 @@ export default function HRDashboard() {
   const [data, setData] = useState<SheetData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [track, setTrack] = useState<"field" | "msp" | "noc" | "gnoc">("field");
+  const [track, setTrack] = useState<"field" | "msp" | "noc" | "gnoc" | "customer">("field");
   const [tab, setTab] = useState<"overview" | "po_pr" | "payment" | "vendors">("overview");
 
 
@@ -288,6 +289,7 @@ export default function HRDashboard() {
             { k: "msp", l: "MSP", count: data?.mspVendors.length ?? 0 },
             { k: "noc", l: "NOC", count: data?.nocChallenges.length ?? 0 },
             { k: "gnoc", l: "E2E GNOC", count: 0 },
+            { k: "customer", l: "Customer Excellence", count: 4 },
           ] as const).map((t) => (
             <button key={t.k} onClick={() => setTrack(t.k)}
               className={`px-4 h-9 text-xs font-semibold border-r border-border last:border-r-0 transition ${track === t.k ? "bg-[#dc2626] text-white" : "text-[#111] hover:bg-secondary"}`}>
@@ -414,6 +416,7 @@ export default function HRDashboard() {
             <p className="text-xs text-muted-foreground mt-1">Awaiting sheet — this view will populate automatically once the GNOC sheet is added.</p>
           </div>
         )}
+        {track === "customer" && <CustomerExcellence />}
       </div>
 
 

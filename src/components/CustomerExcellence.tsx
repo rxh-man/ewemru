@@ -250,16 +250,6 @@ const PROJECTS: CustomerProject[] = [
   },
 ];
 
-// Customer Excellence Framework — adapted from KPMG "Six Pillars of Customer Experience"
-// and TSIA / SIRIUS Decisions Customer Success frameworks. Public-domain reference model.
-const FRAMEWORK = [
-  { pillar: "Integrity", desc: "Being trustworthy and engendering trust — transparent commercials, honest status reporting, no surprises on invoices or SLAs.", metric: "Trust index · escalation count" },
-  { pillar: "Resolution", desc: "Turning a poor experience into a great one — closed-loop incident handling, RCA within SLA, credit posture where warranted.", metric: "MTTR · repeat-incident rate" },
-  { pillar: "Expectations", desc: "Managing, meeting and exceeding customer expectations — clear SOW, proactive change comms, quarterly business reviews.", metric: "SLA attainment · QBR cadence" },
-  { pillar: "Time & Effort", desc: "Minimising customer effort and creating frictionless processes — single point of contact, self-serve portals, one-touch escalation.", metric: "Customer effort score" },
-  { pillar: "Personalisation", desc: "Using individualised attention to drive an emotional connection — named delivery lead, tailored expansion plays, exec sponsorship.", metric: "NPS · sponsor engagement" },
-  { pillar: "Empathy", desc: "Achieving an understanding of the customer's circumstances to drive deep rapport — voice-of-customer loop into scope reviews.", metric: "VoC actions closed" },
-];
 
 function daysUntil(iso: string): number {
   const d = new Date(iso).getTime();
@@ -489,22 +479,6 @@ export function CustomerExcellence() {
         </div>
       </div>
 
-      {/* Framework */}
-      <div className="border border-border rounded-lg bg-white p-4">
-        <div className="flex items-baseline justify-between mb-3">
-          <h3 className="text-xs font-semibold text-[#111] uppercase tracking-wide">Customer Excellence Framework</h3>
-          <span className="text-[10px] text-muted-foreground">Six Pillars · adapted from KPMG CEE / TSIA</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {FRAMEWORK.map((f) => (
-            <div key={f.pillar} className="border border-border rounded-md p-3 bg-gradient-to-br from-white to-[#fff7f7]">
-              <div className="text-sm font-semibold text-[#111]">{f.pillar}</div>
-              <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{f.desc}</div>
-              <div className="text-[10px] uppercase tracking-wide text-red-700 font-semibold mt-2">Metric · {f.metric}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-w-4xl max-h-[88vh] overflow-hidden flex flex-col">

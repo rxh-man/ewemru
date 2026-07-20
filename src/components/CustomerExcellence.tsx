@@ -139,7 +139,7 @@ const PROJECTS: CustomerProject[] = [
     qualityScore: 6.4,
     contractStart: "2022-09-15",
     contractExpiry: "2024-09-15",
-    vendorHistory: "Vendor payment strike on 2024-07-10 (this project, this scope) — 3 day field delay.",
+    vendorHistory: "Vendor payment strike on 2024-07-20 (this project, this scope) — 1 day field delay.",
     services: ["MRU automation field ops", "Meter installation & verification", "Site survey"],
     expansions: [
       "MRU automation extension — Al Ain zone",

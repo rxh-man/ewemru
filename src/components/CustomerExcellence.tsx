@@ -104,6 +104,9 @@ const PROJECTS: CustomerProject[] = [
       { label: "Next AMC visit", date: "2024-11-25" },
     ],
     documents: [
+      { name: "Business Case", status: "complete", critical: true },
+      { name: "Commercials", status: "missing", critical: true },
+      { name: "PR (Purchase Requisition)", status: "complete", critical: true },
       { name: "Signed Contract", status: "complete", critical: true },
       { name: "SOW", status: "missing", critical: true },
       { name: "PO Copy", status: "complete", critical: true },

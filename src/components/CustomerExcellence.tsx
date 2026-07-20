@@ -378,9 +378,19 @@ export function CustomerExcellence() {
                 </div>
                 <div className="mt-3 space-y-1.5 text-xs">
                   <Row label="Vendors" value={p.vendors.length ? String(p.vendors.length) : "—"} />
-                  <Row label="Earliest contract" value={cd === null ? "—" : cd < 0 ? "Expired" : `${cd} days`} strong={cd !== null && cd < 60} />
+                  <Row label="Earliest contract" value={cd === null ? "—" : cd < 0 ? `Expired ${Math.abs(cd)}d ago` : `${cd} days left`} strong={cd !== null && cd < 60} />
                   <Row label="Docs missing" value={p.hasData ? String(p.totalMissing) : "—"} strong={p.totalMissing > 0} />
                 </div>
+                {(PROJECT_NOTES[p.id]?.length ?? 0) > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border/60">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-red-700 mb-1">Enhancements</div>
+                    <ul className="space-y-1 text-[11px] text-[#111]">
+                      {PROJECT_NOTES[p.id].map((n, i) => (
+                        <li key={i} className="flex gap-1.5"><span className="text-red-600 font-bold">•</span><span>{n}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </button>
             );
           })}

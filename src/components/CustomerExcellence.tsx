@@ -35,11 +35,13 @@ function parseDoc(val: string | undefined): { status: DocStatus; display: string
   const v = raw.trim();
   if (!v) return { status: "pending", display: "To be submitted", raw };
   const l = v.toLowerCase();
-  if (l === "y" || l === "yes" || l === "complete" || l === "done") return { status: "complete", display: "Complete", raw };
-  if (l === "n" || l === "no" || l === "missing") return { status: "pending", display: "To be submitted", raw };
+  if (l === "n" || l === "no" || l === "missing" || l === "na" || l === "n/a" || l === "-" || l === "tbd" || l === "to be submitted" || l === "pending") {
+    return { status: "pending", display: "To be submitted", raw };
+  }
   if (l === "expired") return { status: "missing", display: "Expired", raw };
-  // Any other free-text value from the sheet is shown verbatim and treated as pending
-  return { status: "pending", display: v, raw };
+  if (l === "y" || l === "yes" || l === "complete" || l === "done") return { status: "complete", display: "Complete", raw };
+  // Any other non-empty value (link, date, "Signed", etc.) counts as submitted/complete
+  return { status: "complete", display: v, raw };
 }
 
 

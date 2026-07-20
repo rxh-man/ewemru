@@ -24,7 +24,7 @@ function toObjects(values: string[][]): Record<string, string>[] {
 
 type CachePayload = {
   poPr: unknown; paymentRelease: unknown; vendors: unknown; urgent: unknown;
-  mspVendors: unknown; mspPractises: unknown; nocChallenges: unknown;
+  mspVendors: unknown; mspPractises: unknown; nocChallenges: unknown; cs: unknown;
   fetchedAt: string;
 };
 let cache: { at: number; payload: CachePayload } | null = null;
@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
       "'MSP - Vendors'!A1:Z1000",
       "'MSP - Practises'!A1:AA1000",
       "'NOC - Vendor Challenges'!A1:Z1000",
+      "'CS'!A1:Z1000",
     ];
     const qs = new URLSearchParams();
     ranges.forEach((r) => qs.append("ranges", r));
@@ -71,7 +72,7 @@ Deno.serve(async (req) => {
       });
     }
     const data = await r.json();
-    const [po, pay, ven, urg, mspV, mspP, nocC] = data.valueRanges ?? [];
+    const [po, pay, ven, urg, mspV, mspP, nocC, cs] = data.valueRanges ?? [];
     const payload: CachePayload = {
       poPr: toObjects(po?.values ?? []),
       paymentRelease: toObjects(pay?.values ?? []),
@@ -80,6 +81,7 @@ Deno.serve(async (req) => {
       mspVendors: toObjects(mspV?.values ?? []),
       mspPractises: toObjects(mspP?.values ?? []),
       nocChallenges: toObjects(nocC?.values ?? []),
+      cs: toObjects(cs?.values ?? []),
       fetchedAt: new Date().toISOString(),
     };
     cache = { at: Date.now(), payload };

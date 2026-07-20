@@ -54,6 +54,9 @@ const PROJECTS: CustomerProject[] = [
       { label: "Contract renewal window opens", date: "2025-01-15" },
     ],
     documents: [
+      { name: "Business Case", status: "complete", critical: true },
+      { name: "Commercials", status: "complete", critical: true },
+      { name: "PR (Purchase Requisition)", status: "complete", critical: true },
       { name: "Signed Contract", status: "complete", critical: true },
       { name: "SOW", status: "complete", critical: true },
       { name: "PO Copy", status: "complete", critical: true },

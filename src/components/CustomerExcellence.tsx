@@ -5,7 +5,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 type DocStatus = "complete" | "missing" | "pending";
-type Doc = { name: string; status: DocStatus; critical?: boolean };
+type Doc = { name: string; status: DocStatus; raw: string; display: string; critical?: boolean };
 
 type CsRow = Record<string, string>;
 
@@ -18,14 +18,30 @@ const DOC_COLS: { key: string; critical?: boolean }[] = [
   { key: "Compliance", critical: true },
 ];
 
-function parseDoc(val: string | undefined): DocStatus {
-  const v = (val ?? "").trim();
-  if (!v) return "pending";
+// Per-project enhancement / opportunity notes (manually curated)
+const PROJECT_NOTES: Record<string, string[]> = {
+  "adcb::field": [
+    "Enhance Hamnet points coverage across ADCB call center sites",
+    "Remote provisioning to reduce field deployment from 48 hours to 1 hour",
+  ],
+  "dubai frame::field": [
+    "Introduce computer vision solutions for visitor flow analytics",
+    "Explore AI-based crowd density and safety monitoring ideas",
+  ],
+};
+
+function parseDoc(val: string | undefined): { status: DocStatus; display: string; raw: string } {
+  const raw = (val ?? "").toString();
+  const v = raw.trim();
+  if (!v) return { status: "pending", display: "To be submitted", raw };
   const l = v.toLowerCase();
-  if (l === "y" || l === "yes" || l === "complete" || l === "done") return "complete";
-  if (l === "n" || l === "no" || l === "missing" || l === "expired") return "missing";
-  return "pending";
+  if (l === "y" || l === "yes" || l === "complete" || l === "done") return { status: "complete", display: "Complete", raw };
+  if (l === "n" || l === "no" || l === "missing") return { status: "pending", display: "To be submitted", raw };
+  if (l === "expired") return { status: "missing", display: "Expired", raw };
+  // Any other free-text value from the sheet is shown verbatim and treated as pending
+  return { status: "pending", display: v, raw };
 }
+
 
 function parseDMY(s: string | undefined): Date | null {
   if (!s) return null;

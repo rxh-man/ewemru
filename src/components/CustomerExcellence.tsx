@@ -21,7 +21,7 @@ const DOC_COLS: { key: string; critical?: boolean }[] = [
 // Per-project enhancement / opportunity notes (manually curated)
 const PROJECT_NOTES: Record<string, string[]> = {
   "adcb::field": [
-    "Enhance Hamnet points coverage across ADCB call center sites",
+    "Introduce automation using AI agents in the ADCB call center",
     "Remote provisioning to reduce field deployment from 48 hours to 1 hour",
   ],
   "dubai frame::field": [

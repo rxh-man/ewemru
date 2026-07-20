@@ -35,11 +35,13 @@ function parseDoc(val: string | undefined): { status: DocStatus; display: string
   const v = raw.trim();
   if (!v) return { status: "pending", display: "To be submitted", raw };
   const l = v.toLowerCase();
-  if (l === "y" || l === "yes" || l === "complete" || l === "done") return { status: "complete", display: "Complete", raw };
-  if (l === "n" || l === "no" || l === "missing") return { status: "pending", display: "To be submitted", raw };
+  if (l === "n" || l === "no" || l === "missing" || l === "na" || l === "n/a" || l === "-" || l === "tbd" || l === "to be submitted" || l === "pending") {
+    return { status: "pending", display: "To be submitted", raw };
+  }
   if (l === "expired") return { status: "missing", display: "Expired", raw };
-  // Any other free-text value from the sheet is shown verbatim and treated as pending
-  return { status: "pending", display: v, raw };
+  if (l === "y" || l === "yes" || l === "complete" || l === "done") return { status: "complete", display: "Complete", raw };
+  // Any other non-empty value (link, date, "Signed", etc.) counts as submitted/complete
+  return { status: "complete", display: v, raw };
 }
 
 
@@ -270,30 +272,40 @@ export function CustomerExcellence() {
       {!loading && projects.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <PriorityPanel
-            title="Expired Contracts"
+            title="Expired (Contract or PO)"
             tone="red"
             items={projects
-              .filter((p) => p.earliestContractDaysLeft !== null && p.earliestContractDaysLeft < 0)
-              .sort((a, b) => (a.earliestContractDaysLeft ?? 0) - (b.earliestContractDaysLeft ?? 0))
-              .slice(0, 5)
-              .map((p) => ({
-                project: p, label: `${p.customer} · ${p.scope}`,
-                meta: `Expired ${Math.abs(p.earliestContractDaysLeft!)}d ago`,
-              }))}
+              .map((p) => {
+                const c = p.earliestContractDaysLeft;
+                const po = p.earliestPoDaysLeft;
+                const vals = [c, po].filter((x): x is number => x !== null && x < 0);
+                if (vals.length === 0) return null;
+                const worst = Math.min(...vals);
+                const kind = c !== null && c < 0 && (po === null || c <= po) ? "Contract" : "PO";
+                return { project: p, label: `${p.customer} · ${p.scope}`, meta: `${kind} expired ${Math.abs(worst)}d ago`, sortKey: worst };
+              })
+              .filter((x): x is { project: CustomerProject; label: string; meta: string; sortKey: number } => x !== null)
+              .sort((a, b) => a.sortKey - b.sortKey)
+              .slice(0, 5)}
             onOpen={setSelected}
-            emptyText="No contracts expired."
+            emptyText="No contracts or POs expired."
           />
           <PriorityPanel
             title="Expiring Soon (< 60 days)"
             tone="amber"
             items={projects
-              .filter((p) => p.earliestContractDaysLeft !== null && p.earliestContractDaysLeft >= 0 && p.earliestContractDaysLeft < 60)
-              .sort((a, b) => (a.earliestContractDaysLeft ?? 0) - (b.earliestContractDaysLeft ?? 0))
-              .slice(0, 5)
-              .map((p) => ({
-                project: p, label: `${p.customer} · ${p.scope}`,
-                meta: `${p.earliestContractDaysLeft}d left`,
-              }))}
+              .map((p) => {
+                const c = p.earliestContractDaysLeft;
+                const po = p.earliestPoDaysLeft;
+                const vals = [c, po].filter((x): x is number => x !== null && x >= 0 && x < 60);
+                if (vals.length === 0) return null;
+                const soonest = Math.min(...vals);
+                const kind = c !== null && c >= 0 && c < 60 && (po === null || po < 0 || c <= po) ? "Contract" : "PO";
+                return { project: p, label: `${p.customer} · ${p.scope}`, meta: `${kind} · ${soonest}d left`, sortKey: soonest };
+              })
+              .filter((x): x is { project: CustomerProject; label: string; meta: string; sortKey: number } => x !== null)
+              .sort((a, b) => a.sortKey - b.sortKey)
+              .slice(0, 5)}
             onOpen={setSelected}
             emptyText="Nothing expiring in the next 60 days."
           />

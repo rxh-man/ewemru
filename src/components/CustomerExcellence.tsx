@@ -426,7 +426,7 @@ function ProjectDetail({ p }: { p: CustomerProject }) {
           </ul>
         </Section>
 
-        <Section title="Expansion Opportunities (AI)">
+        <Section title="Expansion Opportunities">
           <ul className="space-y-1 text-xs">
             {p.expansions.map((x, i) => (
               <li key={i} className="flex gap-2"><span className="text-red-600">+</span>{x}</li>

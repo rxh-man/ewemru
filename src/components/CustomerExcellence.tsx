@@ -157,6 +157,9 @@ const PROJECTS: CustomerProject[] = [
       { label: "Vendor performance review", date: "2024-08-01" },
     ],
     documents: [
+      { name: "Business Case", status: "complete", critical: true },
+      { name: "Commercials", status: "complete", critical: true },
+      { name: "PR (Purchase Requisition)", status: "complete", critical: true },
       { name: "Signed Contract", status: "complete", critical: true },
       { name: "SOW", status: "complete", critical: true },
       { name: "PO Copy", status: "complete", critical: true },

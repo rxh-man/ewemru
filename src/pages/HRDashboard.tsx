@@ -289,6 +289,7 @@ export default function HRDashboard() {
             { k: "msp", l: "MSP", count: data?.mspVendors.length ?? 0 },
             { k: "noc", l: "NOC", count: data?.nocChallenges.length ?? 0 },
             { k: "gnoc", l: "E2E GNOC", count: 0 },
+            { k: "customer", l: "Customer Excellence", count: 4 },
           ] as const).map((t) => (
             <button key={t.k} onClick={() => setTrack(t.k)}
               className={`px-4 h-9 text-xs font-semibold border-r border-border last:border-r-0 transition ${track === t.k ? "bg-[#dc2626] text-white" : "text-[#111] hover:bg-secondary"}`}>

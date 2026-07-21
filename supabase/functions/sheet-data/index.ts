@@ -63,14 +63,22 @@ Deno.serve(async (req) => {
     ranges.forEach((r) => qs.append("ranges", r));
 
     let r: Response | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 4; attempt++) {
       r = await fetch(`${GW}/spreadsheets/${SHEET_ID}/values:batchGet?${qs}`, { headers: headers() });
       if (r.status !== 429) break;
-      await new Promise((res) => setTimeout(res, 500 * (attempt + 1)));
+      await new Promise((res) => setTimeout(res, 800 * (attempt + 1)));
     }
     if (!r || !r.ok) {
+      // Serve stale cache if we have one, regardless of age
       if (cache) {
         return new Response(JSON.stringify({ ...cache.payload, cached: true, stale: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // On rate limit with no cache, return empty payload (200) so UI doesn't blank-screen
+      if (r?.status === 429) {
+        const payload = emptyPayload();
+        return new Response(JSON.stringify({ ...payload, rateLimited: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

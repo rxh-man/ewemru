@@ -309,8 +309,16 @@ export function CustomerExcellence() {
             <HeroStat label="Awaiting" value={kpis.gray} />
           </div>
         </div>
-        <div className="mt-4 flex items-center gap-6 text-xs">
+        <div className="mt-4 flex items-center justify-between gap-4 text-xs flex-wrap">
           <div><span className="text-white/60">Documents missing</span> <span className="font-semibold">{kpis.missing}</span></div>
+          <button
+            onClick={() => setBlockersOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 text-xs font-medium text-white transition"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+            Top 10 Blockers
+            <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px]">{blockers.byProject.length}</span>
+          </button>
         </div>
       </div>
 

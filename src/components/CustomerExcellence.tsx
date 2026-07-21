@@ -541,7 +541,7 @@ function ProjectDetail({ p }: { p: CustomerProject }) {
             </Section>
 
             <Section title="Responsibility Matrix (RACI)">
-              <div className="text-xs text-muted-foreground">Awaiting data — will populate once RACI is added to the CS sheet.</div>
+              <RaciFlow projectId={p.id} />
             </Section>
 
             <Section title="Risk Alerts">

@@ -170,6 +170,49 @@ const STATUS_META = {
   gray: { dot: "bg-slate-400", label: "Awaiting data", text: "text-slate-600", bg: "bg-slate-50 border-slate-200" },
 } as const;
 
+type BlockerIssue = { kind: "expired" | "expiring" | "critical-doc" | "missing-doc"; label: string; severity: number };
+type ProjectBlocker = { project: CustomerProject; issues: BlockerIssue[]; score: number };
+type VendorBlocker = { project: CustomerProject; vendor: VendorEntry; issues: BlockerIssue[]; score: number };
+
+function issuesForVendor(v: VendorEntry): BlockerIssue[] {
+  const out: BlockerIssue[] = [];
+  if (v.contractDaysLeft !== null) {
+    if (v.contractDaysLeft < 0) out.push({ kind: "expired", label: `Contract expired ${Math.abs(v.contractDaysLeft)}d ago`, severity: 5 });
+    else if (v.contractDaysLeft < 60) out.push({ kind: "expiring", label: `Contract expires in ${v.contractDaysLeft}d`, severity: 2 });
+  }
+  if (v.poDaysLeft !== null) {
+    if (v.poDaysLeft < 0) out.push({ kind: "expired", label: `PO expired ${Math.abs(v.poDaysLeft)}d ago`, severity: 5 });
+    else if (v.poDaysLeft < 60) out.push({ kind: "expiring", label: `PO expires in ${v.poDaysLeft}d`, severity: 2 });
+  }
+  for (const d of v.docs) {
+    if (d.status === "complete") continue;
+    if (d.critical) out.push({ kind: "critical-doc", label: `Critical doc pending: ${d.name}`, severity: 3 });
+    else out.push({ kind: "missing-doc", label: `Doc pending: ${d.name}`, severity: 1 });
+  }
+  return out;
+}
+
+function computeBlockers(projects: CustomerProject[]): { byProject: ProjectBlocker[]; byVendor: VendorBlocker[] } {
+  const byProject: ProjectBlocker[] = [];
+  const byVendor: VendorBlocker[] = [];
+  for (const p of projects) {
+    let projIssues: BlockerIssue[] = [];
+    let projScore = 0;
+    for (const v of p.vendors) {
+      const issues = issuesForVendor(v);
+      if (issues.length === 0) continue;
+      const score = issues.reduce((s, i) => s + i.severity, 0);
+      byVendor.push({ project: p, vendor: v, issues, score });
+      projIssues = projIssues.concat(issues.map((i) => ({ ...i, label: `${v.vendor}: ${i.label}` })));
+      projScore += score;
+    }
+    if (projIssues.length > 0) byProject.push({ project: p, issues: projIssues, score: projScore });
+  }
+  byProject.sort((a, b) => b.score - a.score);
+  byVendor.sort((a, b) => b.score - a.score);
+  return { byProject: byProject.slice(0, 10), byVendor: byVendor.slice(0, 10) };
+}
+
 export function CustomerExcellence() {
   const [rows, setRows] = useState<CsRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,6 +224,8 @@ export function CustomerExcellence() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"days" | "status" | "name">("days");
   const [visible, setVisible] = useState(false);
+  const [blockersOpen, setBlockersOpen] = useState(false);
+  const [blockersView, setBlockersView] = useState<"projects" | "vendors">("projects");
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 50);
@@ -238,6 +283,8 @@ export function CustomerExcellence() {
     return { total, red, yellow, green, gray, missing };
   }, [projects]);
 
+  const blockers = useMemo(() => computeBlockers(projects), [projects]);
+
   return (
     <div
       className={`space-y-5 transition-all ease-out duration-[1200ms] ${
@@ -262,8 +309,16 @@ export function CustomerExcellence() {
             <HeroStat label="Awaiting" value={kpis.gray} />
           </div>
         </div>
-        <div className="mt-4 flex items-center gap-6 text-xs">
+        <div className="mt-4 flex items-center justify-between gap-4 text-xs flex-wrap">
           <div><span className="text-white/60">Documents missing</span> <span className="font-semibold">{kpis.missing}</span></div>
+          <button
+            onClick={() => setBlockersOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 text-xs font-medium text-white transition"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+            Top 10 Blockers
+            <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px]">{blockers.byProject.length}</span>
+          </button>
         </div>
       </div>
 
@@ -464,6 +519,88 @@ export function CustomerExcellence() {
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-w-4xl max-h-[88vh] overflow-hidden flex flex-col">
           {selected && <ProjectDetail p={selected} />}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={blockersOpen} onOpenChange={setBlockersOpen}>
+        <DialogContent className="max-w-3xl max-h-[88vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Top 10 Blockers</DialogTitle>
+            <DialogDescription>Ranked from CS sheet data — expirations, expiring soon (&lt; 60 days), and pending documents.</DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2 border-b pb-2">
+            <button
+              onClick={() => setBlockersView("projects")}
+              className={`text-xs px-3 py-1.5 rounded-md border ${blockersView === "projects" ? "bg-red-600 text-white border-red-700" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}
+            >By Project</button>
+            <button
+              onClick={() => setBlockersView("vendors")}
+              className={`text-xs px-3 py-1.5 rounded-md border ${blockersView === "vendors" ? "bg-red-600 text-white border-red-700" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}
+            >By Vendor</button>
+            <div className="ml-auto text-[11px] text-muted-foreground">Click a row to open the project</div>
+          </div>
+          <div className="overflow-auto -mx-6 px-6">
+            {blockersView === "projects" ? (
+              <ol className="space-y-2 py-2">
+                {blockers.byProject.length === 0 && (
+                  <li className="text-xs text-muted-foreground text-center py-6">No blockers detected in current sheet data.</li>
+                )}
+                {blockers.byProject.map((b, i) => (
+                  <li key={b.project.id}>
+                    <button
+                      onClick={() => { setSelected(b.project); setBlockersOpen(false); }}
+                      className="w-full text-left rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50/40 p-3 transition"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-600 text-white text-[11px] font-semibold">{i + 1}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-medium text-sm truncate">{b.project.customer} · <span className="text-slate-500">{b.project.scope || "—"}</span></div>
+                            <div className="text-[11px] text-red-700 font-semibold whitespace-nowrap">{b.issues.length} issue{b.issues.length !== 1 ? "s" : ""}</div>
+                          </div>
+                          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                            {b.issues.slice(0, 6).map((it, k) => (
+                              <li key={k} className={`text-[11px] px-2 py-0.5 rounded border ${it.severity >= 5 ? "bg-red-50 border-red-200 text-red-700" : it.severity >= 3 ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-slate-50 border-slate-200 text-slate-700"}`}>{it.label}</li>
+                            ))}
+                            {b.issues.length > 6 && <li className="text-[11px] text-muted-foreground px-1">+{b.issues.length - 6} more</li>}
+                          </ul>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <ol className="space-y-2 py-2">
+                {blockers.byVendor.length === 0 && (
+                  <li className="text-xs text-muted-foreground text-center py-6">No vendor blockers detected.</li>
+                )}
+                {blockers.byVendor.map((b, i) => (
+                  <li key={`${b.project.id}-${b.vendor.vendor}-${i}`}>
+                    <button
+                      onClick={() => { setSelected(b.project); setBlockersOpen(false); }}
+                      className="w-full text-left rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50/40 p-3 transition"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-600 text-white text-[11px] font-semibold">{i + 1}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-medium text-sm truncate">{b.vendor.vendor || "—"} <span className="text-slate-400">·</span> <span className="text-slate-500">{b.project.customer} / {b.project.scope || "—"}</span></div>
+                            <div className="text-[11px] text-red-700 font-semibold whitespace-nowrap">{b.issues.length} issue{b.issues.length !== 1 ? "s" : ""}</div>
+                          </div>
+                          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                            {b.issues.map((it, k) => (
+                              <li key={k} className={`text-[11px] px-2 py-0.5 rounded border ${it.severity >= 5 ? "bg-red-50 border-red-200 text-red-700" : it.severity >= 3 ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-slate-50 border-slate-200 text-slate-700"}`}>{it.label}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

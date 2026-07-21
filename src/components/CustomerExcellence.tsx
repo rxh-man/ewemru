@@ -541,7 +541,7 @@ function ProjectDetail({ p }: { p: CustomerProject }) {
             </Section>
 
             <Section title="Responsibility Matrix (RACI)">
-              <div className="text-xs text-muted-foreground">Awaiting data — will populate once RACI is added to the CS sheet.</div>
+              <RaciFlow projectId={p.id} />
             </Section>
 
             <Section title="Risk Alerts">
@@ -656,6 +656,176 @@ function HeroStat({ label, value, accent }: { label: string; value: number; acce
     <div className="rounded-md border border-white/15 bg-white/5 px-3 py-2 backdrop-blur">
       <div className="text-[10px] uppercase tracking-wide text-white/60">{label}</div>
       <div className={`text-2xl font-semibold mt-0.5 ${cls}`}>{value}</div>
+    </div>
+  );
+}
+
+// ---------- RACI Flow ----------
+type RaciRole = "R" | "A" | "C" | "I";
+type RaciAssignments = Record<RaciRole, string>;
+type RaciStage = { key: string; title: string; desc: string; assignments: RaciAssignments };
+
+const DEFAULT_STAGES: Omit<RaciStage, "assignments">[] = [
+  { key: "business-case", title: "Business Case", desc: "Define scope, objectives and ROI for the customer engagement." },
+  { key: "proposal", title: "Proposal & Solution", desc: "Draft the technical + commercial proposal and align with the customer." },
+  { key: "commercials", title: "Commercials", desc: "Finalize pricing, margins, terms and get internal approvals." },
+  { key: "vendor-eval", title: "Vendor Evaluation", desc: "Shortlist vendors, compare capability, cost and delivery risk." },
+  { key: "sow", title: "SOW & Compliance", desc: "Freeze SOW, legal, compliance and security sign-off." },
+  { key: "po", title: "Contract & PO", desc: "Issue customer contract and vendor PO; track expiry." },
+  { key: "delivery", title: "Delivery & Ops", desc: "Execute delivery, track SLAs and operational health." },
+  { key: "closure", title: "Review & Renewal", desc: "Customer review, renewals, upsell / expansion planning." },
+];
+
+const DEFAULT_RACI: Record<string, RaciAssignments> = {
+  "business-case":  { R: "Account Manager", A: "Head of D&O",       C: "Finance",         I: "Customer Sponsor" },
+  "proposal":       { R: "Solution Architect", A: "Account Manager", C: "Product / Vendor", I: "Delivery Lead" },
+  "commercials":    { R: "Commercial Lead",  A: "Head of D&O",       C: "Finance, Legal",  I: "Account Manager" },
+  "vendor-eval":    { R: "Procurement",       A: "Head of D&O",      C: "Solution Architect", I: "Delivery Lead" },
+  "sow":            { R: "Legal / Compliance", A: "Head of D&O",     C: "Account Manager", I: "Vendor" },
+  "po":             { R: "Procurement",       A: "Finance",          C: "Legal",           I: "Vendor, Delivery Lead" },
+  "delivery":       { R: "Delivery Lead",     A: "Head of Delivery", C: "Vendor",          I: "Customer, Account Manager" },
+  "closure":        { R: "Account Manager",   A: "Head of D&O",      C: "Delivery Lead",   I: "Customer" },
+};
+
+const ROLE_META: Record<RaciRole, { label: string; hint: string; cls: string }> = {
+  R: { label: "Responsible", hint: "Does the work", cls: "bg-red-50 border-red-200 text-red-700" },
+  A: { label: "Accountable", hint: "Owns the outcome", cls: "bg-amber-50 border-amber-200 text-amber-700" },
+  C: { label: "Consulted",   hint: "Two-way input",    cls: "bg-blue-50 border-blue-200 text-blue-700" },
+  I: { label: "Informed",    hint: "Kept in the loop", cls: "bg-slate-50 border-slate-200 text-slate-700" },
+};
+
+function RaciFlow({ projectId }: { projectId: string }) {
+  const storageKey = `raci::${projectId}`;
+  const [stages, setStages] = useState<RaciStage[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved) as RaciStage[];
+    } catch {}
+    return DEFAULT_STAGES.map((s) => ({ ...s, assignments: { ...DEFAULT_RACI[s.key] } }));
+  });
+  const [activeKey, setActiveKey] = useState<string>(stages[0]?.key ?? "");
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem(storageKey, JSON.stringify(stages)); } catch {}
+  }, [stages, storageKey]);
+
+  const active = stages.find((s) => s.key === activeKey) ?? stages[0];
+
+  const updateRole = (role: RaciRole, value: string) => {
+    setStages((prev) => prev.map((s) => s.key === active.key ? { ...s, assignments: { ...s.assignments, [role]: value } } : s));
+  };
+
+  const resetProject = () => {
+    if (!confirm("Reset RACI for this project to defaults?")) return;
+    setStages(DEFAULT_STAGES.map((s) => ({ ...s, assignments: { ...DEFAULT_RACI[s.key] } })));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <p className="text-[11px] text-muted-foreground max-w-lg">
+          Follow the process left-to-right. Click a stage to see who is Responsible, Accountable, Consulted or Informed — and edit it for this project.
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setEditing((e) => !e)}
+            className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded border ${editing ? "bg-[#111] text-white border-[#111]" : "bg-white text-[#111] border-border hover:bg-slate-50"}`}
+          >
+            {editing ? "Done" : "Edit RACI"}
+          </button>
+          <button
+            onClick={resetProject}
+            className="text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded border border-border bg-white text-muted-foreground hover:bg-slate-50"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* Flow diagram */}
+      <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <div className="flex items-stretch gap-1 min-w-max">
+          {stages.map((s, i) => {
+            const isActive = s.key === active.key;
+            return (
+              <div key={s.key} className="flex items-stretch">
+                <button
+                  onClick={() => setActiveKey(s.key)}
+                  className={`relative text-left rounded-md border px-3 py-2 min-w-[130px] transition ${
+                    isActive
+                      ? "bg-[#111] text-white border-[#111] shadow-sm"
+                      : "bg-white text-[#111] border-border hover:border-[#111]/40 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className={`text-[9px] font-bold uppercase tracking-wider ${isActive ? "text-white/60" : "text-muted-foreground"}`}>
+                    Step {i + 1}
+                  </div>
+                  <div className="text-xs font-semibold leading-tight mt-0.5">{s.title}</div>
+                </button>
+                {i < stages.length - 1 && (
+                  <div className="flex items-center px-1 text-muted-foreground" aria-hidden>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Active stage details */}
+      {active && (
+        <div className="border border-border rounded-lg p-3 bg-slate-50/50">
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Current stage</div>
+              <div className="text-sm font-semibold text-[#111]">{active.title}</div>
+            </div>
+            <div className="text-[11px] text-muted-foreground max-w-sm text-right">{active.desc}</div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(Object.keys(ROLE_META) as RaciRole[]).map((role) => {
+              const meta = ROLE_META[role];
+              const val = active.assignments[role] ?? "";
+              return (
+                <div key={role} className={`rounded-md border px-2.5 py-2 ${meta.cls}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="h-6 w-6 rounded-full bg-white border border-current flex items-center justify-center text-[11px] font-bold">
+                        {role}
+                      </span>
+                      <div>
+                        <div className="text-[11px] font-semibold leading-tight">{meta.label}</div>
+                        <div className="text-[9px] uppercase tracking-wide opacity-70">{meta.hint}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    {editing ? (
+                      <input
+                        value={val}
+                        onChange={(e) => updateRole(role, e.target.value)}
+                        placeholder="Add name / team"
+                        className="w-full text-xs rounded border border-current/30 bg-white px-2 py-1 text-[#111] focus:outline-none focus:ring-1 focus:ring-current"
+                      />
+                    ) : (
+                      <div className="text-xs font-medium text-[#111] min-h-[20px]">
+                        {val || <span className="text-muted-foreground italic">Unassigned</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-2">
+            Changes save automatically to this browser for “{projectId}”.
+          </div>
+        </div>
+      )}
     </div>
   );
 }

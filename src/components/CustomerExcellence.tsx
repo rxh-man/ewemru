@@ -181,6 +181,8 @@ export function CustomerExcellence() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"days" | "status" | "name">("days");
   const [visible, setVisible] = useState(false);
+  const [blockersOpen, setBlockersOpen] = useState(false);
+  const [blockersView, setBlockersView] = useState<"projects" | "vendors">("projects");
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 50);

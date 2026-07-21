@@ -240,6 +240,8 @@ export function CustomerExcellence() {
     return { total, red, yellow, green, gray, missing };
   }, [projects]);
 
+  const blockers = useMemo(() => computeBlockers(projects), [projects]);
+
   return (
     <div
       className={`space-y-5 transition-all ease-out duration-[1200ms] ${

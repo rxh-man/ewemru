@@ -521,6 +521,88 @@ export function CustomerExcellence() {
           {selected && <ProjectDetail p={selected} />}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={blockersOpen} onOpenChange={setBlockersOpen}>
+        <DialogContent className="max-w-3xl max-h-[88vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Top 10 Blockers</DialogTitle>
+            <DialogDescription>Ranked from CS sheet data — expirations, expiring soon (&lt; 60 days), and pending documents.</DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2 border-b pb-2">
+            <button
+              onClick={() => setBlockersView("projects")}
+              className={`text-xs px-3 py-1.5 rounded-md border ${blockersView === "projects" ? "bg-red-600 text-white border-red-700" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}
+            >By Project</button>
+            <button
+              onClick={() => setBlockersView("vendors")}
+              className={`text-xs px-3 py-1.5 rounded-md border ${blockersView === "vendors" ? "bg-red-600 text-white border-red-700" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}
+            >By Vendor</button>
+            <div className="ml-auto text-[11px] text-muted-foreground">Click a row to open the project</div>
+          </div>
+          <div className="overflow-auto -mx-6 px-6">
+            {blockersView === "projects" ? (
+              <ol className="space-y-2 py-2">
+                {blockers.byProject.length === 0 && (
+                  <li className="text-xs text-muted-foreground text-center py-6">No blockers detected in current sheet data.</li>
+                )}
+                {blockers.byProject.map((b, i) => (
+                  <li key={b.project.id}>
+                    <button
+                      onClick={() => { setSelected(b.project); setBlockersOpen(false); }}
+                      className="w-full text-left rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50/40 p-3 transition"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-600 text-white text-[11px] font-semibold">{i + 1}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-medium text-sm truncate">{b.project.customer} · <span className="text-slate-500">{b.project.scope || "—"}</span></div>
+                            <div className="text-[11px] text-red-700 font-semibold whitespace-nowrap">{b.issues.length} issue{b.issues.length !== 1 ? "s" : ""}</div>
+                          </div>
+                          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                            {b.issues.slice(0, 6).map((it, k) => (
+                              <li key={k} className={`text-[11px] px-2 py-0.5 rounded border ${it.severity >= 5 ? "bg-red-50 border-red-200 text-red-700" : it.severity >= 3 ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-slate-50 border-slate-200 text-slate-700"}`}>{it.label}</li>
+                            ))}
+                            {b.issues.length > 6 && <li className="text-[11px] text-muted-foreground px-1">+{b.issues.length - 6} more</li>}
+                          </ul>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <ol className="space-y-2 py-2">
+                {blockers.byVendor.length === 0 && (
+                  <li className="text-xs text-muted-foreground text-center py-6">No vendor blockers detected.</li>
+                )}
+                {blockers.byVendor.map((b, i) => (
+                  <li key={`${b.project.id}-${b.vendor.vendor}-${i}`}>
+                    <button
+                      onClick={() => { setSelected(b.project); setBlockersOpen(false); }}
+                      className="w-full text-left rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50/40 p-3 transition"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-600 text-white text-[11px] font-semibold">{i + 1}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-medium text-sm truncate">{b.vendor.vendor || "—"} <span className="text-slate-400">·</span> <span className="text-slate-500">{b.project.customer} / {b.project.scope || "—"}</span></div>
+                            <div className="text-[11px] text-red-700 font-semibold whitespace-nowrap">{b.issues.length} issue{b.issues.length !== 1 ? "s" : ""}</div>
+                          </div>
+                          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                            {b.issues.map((it, k) => (
+                              <li key={k} className={`text-[11px] px-2 py-0.5 rounded border ${it.severity >= 5 ? "bg-red-50 border-red-200 text-red-700" : it.severity >= 3 ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-slate-50 border-slate-200 text-slate-700"}`}>{it.label}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

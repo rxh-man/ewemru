@@ -28,7 +28,15 @@ type CachePayload = {
   fetchedAt: string;
 };
 let cache: { at: number; payload: CachePayload } | null = null;
-const CACHE_MS = 60_000;
+const CACHE_MS = 5 * 60_000;
+
+function emptyPayload(): CachePayload {
+  return {
+    poPr: [], paymentRelease: [], vendors: [], urgent: [],
+    mspVendors: [], mspPractises: [], nocChallenges: [], cs: [],
+    fetchedAt: new Date().toISOString(),
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });

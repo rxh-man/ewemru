@@ -170,6 +170,49 @@ const STATUS_META = {
   gray: { dot: "bg-slate-400", label: "Awaiting data", text: "text-slate-600", bg: "bg-slate-50 border-slate-200" },
 } as const;
 
+type BlockerIssue = { kind: "expired" | "expiring" | "critical-doc" | "missing-doc"; label: string; severity: number };
+type ProjectBlocker = { project: CustomerProject; issues: BlockerIssue[]; score: number };
+type VendorBlocker = { project: CustomerProject; vendor: VendorEntry; issues: BlockerIssue[]; score: number };
+
+function issuesForVendor(v: VendorEntry): BlockerIssue[] {
+  const out: BlockerIssue[] = [];
+  if (v.contractDaysLeft !== null) {
+    if (v.contractDaysLeft < 0) out.push({ kind: "expired", label: `Contract expired ${Math.abs(v.contractDaysLeft)}d ago`, severity: 5 });
+    else if (v.contractDaysLeft < 60) out.push({ kind: "expiring", label: `Contract expires in ${v.contractDaysLeft}d`, severity: 2 });
+  }
+  if (v.poDaysLeft !== null) {
+    if (v.poDaysLeft < 0) out.push({ kind: "expired", label: `PO expired ${Math.abs(v.poDaysLeft)}d ago`, severity: 5 });
+    else if (v.poDaysLeft < 60) out.push({ kind: "expiring", label: `PO expires in ${v.poDaysLeft}d`, severity: 2 });
+  }
+  for (const d of v.docs) {
+    if (d.status === "complete") continue;
+    if (d.critical) out.push({ kind: "critical-doc", label: `Critical doc pending: ${d.name}`, severity: 3 });
+    else out.push({ kind: "missing-doc", label: `Doc pending: ${d.name}`, severity: 1 });
+  }
+  return out;
+}
+
+function computeBlockers(projects: CustomerProject[]): { byProject: ProjectBlocker[]; byVendor: VendorBlocker[] } {
+  const byProject: ProjectBlocker[] = [];
+  const byVendor: VendorBlocker[] = [];
+  for (const p of projects) {
+    let projIssues: BlockerIssue[] = [];
+    let projScore = 0;
+    for (const v of p.vendors) {
+      const issues = issuesForVendor(v);
+      if (issues.length === 0) continue;
+      const score = issues.reduce((s, i) => s + i.severity, 0);
+      byVendor.push({ project: p, vendor: v, issues, score });
+      projIssues = projIssues.concat(issues.map((i) => ({ ...i, label: `${v.vendor}: ${i.label}` })));
+      projScore += score;
+    }
+    if (projIssues.length > 0) byProject.push({ project: p, issues: projIssues, score: projScore });
+  }
+  byProject.sort((a, b) => b.score - a.score);
+  byVendor.sort((a, b) => b.score - a.score);
+  return { byProject: byProject.slice(0, 10), byVendor: byVendor.slice(0, 10) };
+}
+
 export function CustomerExcellence() {
   const [rows, setRows] = useState<CsRow[]>([]);
   const [loading, setLoading] = useState(true);

@@ -7,8 +7,18 @@ import * as pdfjsLib from "pdfjs-dist";
 // @ts-ignore
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { toast } from "sonner";
+import templateAsset from "@/assets/payment-certificate-template.pdf.asset.json";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfWorker;
+
+let _templateBytes: Uint8Array | null = null;
+async function loadTemplateBytes(): Promise<Uint8Array> {
+  if (_templateBytes) return _templateBytes;
+  const r = await fetch(templateAsset.url);
+  if (!r.ok) throw new Error("Failed to load certificate template");
+  _templateBytes = new Uint8Array(await r.arrayBuffer());
+  return _templateBytes;
+}
 
 const APPROVERS: { role: string; name: string }[] = [
   { role: "End User", name: "AMR MOHAMED HAMED RASHWAN" },

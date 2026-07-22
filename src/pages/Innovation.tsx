@@ -20,16 +20,6 @@ async function loadTemplateBytes(): Promise<Uint8Array> {
   return _templateBytes;
 }
 
-const APPROVERS: { role: string; name: string }[] = [
-  { role: "End User", name: "AMR MOHAMED HAMED RASHWAN" },
-  { role: "Section Head", name: "Asaad Tawfik" },
-  { role: "Division Head", name: "Abubaker Mohamed Almarzooqi" },
-  { role: "Budgeting & Cost Control", name: "George Abili" },
-  { role: "Manager - Business Commercial Management", name: "Bassem Elbashandy" },
-  { role: "Director – Business Commercial Management & Budgeting", name: "Michael Thabit" },
-  { role: "Senior Vice President – Business Strategy & Planning", name: "Hazim Deyab" },
-];
-const ABOVE_500K = { role: "Group Chief AI Network & Solutions Officer", name: "Haitham Abdulrazzak" };
 
 async function extractPdfText(file: File): Promise<{ text: string; bytes: Uint8Array }> {
   const buf = await file.arrayBuffer();

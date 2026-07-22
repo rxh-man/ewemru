@@ -6,6 +6,7 @@ import HRDashboard from "./pages/HRDashboard";
 import Admin from "./pages/Admin";
 import Surveyor from "./pages/Surveyor";
 import FieldTech from "./pages/FieldTech";
+import Innovation from "./pages/Innovation";
 
 export default function App() {
   return (

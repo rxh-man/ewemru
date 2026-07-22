@@ -4,15 +4,25 @@ import { getSession } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { toast } from "sonner";
-import templateAsset from "@/assets/payment-certificate-template.pdf.asset.json";
+import templateUrl from "@/assets/payment-certificate-template.pdf?url";
 
 let _templateBytes: Uint8Array | null = null;
 async function loadTemplateBytes(): Promise<Uint8Array> {
   if (_templateBytes) return _templateBytes;
-  const r = await fetch(templateAsset.url);
-  if (!r.ok) throw new Error("Failed to load certificate template");
-  _templateBytes = new Uint8Array(await r.arrayBuffer());
-  return _templateBytes;
+  // Try bundled asset first (works on any static host: Vercel, GH Pages, Lovable)
+  const candidates = [templateUrl, "./payment-certificate-template.pdf", "/payment-certificate-template.pdf"];
+  let lastErr: any = null;
+  for (const u of candidates) {
+    try {
+      const r = await fetch(u);
+      if (r.ok) {
+        _templateBytes = new Uint8Array(await r.arrayBuffer());
+        return _templateBytes;
+      }
+      lastErr = new Error(`HTTP ${r.status} for ${u}`);
+    } catch (e) { lastErr = e; }
+  }
+  throw new Error("Failed to load certificate template" + (lastErr ? `: ${lastErr.message ?? lastErr}` : ""));
 }
 
 

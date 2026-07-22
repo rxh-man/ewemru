@@ -280,14 +280,8 @@ export default function Innovation() {
                       candidates={e.candidates.invoice}
                       onChange={(v) => updateEntry(e.id, { invoice: v })}
                     />
-                    <MappedField
-                      label="Amount & Currency"
-                      value={e.amount}
-                      candidates={e.candidates.amount}
-                      onChange={(v) => updateEntry(e.id, { amount: v })}
-                      placeholder="AED 0.00"
-                    />
                   </div>
+
                   {(e.candidates.po.length === 0 || e.candidates.invoice.length === 0) && (
                     <p className="mt-2 text-[11px] text-[#dc2626]">
                       {e.candidates.po.length === 0 && "No 'PO No' pattern detected — enter manually. "}

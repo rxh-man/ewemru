@@ -41,27 +41,45 @@ function findAll(text: string, re: RegExp): string[] {
 }
 
 function extractFromFilename(filename: string): Candidates {
-  // strip extension
+  // strip extension, normalize separators to spaces for easier labeled parsing
   const base = filename.replace(/\.pdf$/i, "");
-  // Split on common separators to get tokens
-  const tokens = base.split(/[\s_\-]+/).filter(Boolean);
+  const norm = base.replace(/[_\-]+/g, " ").replace(/\s+/g, " ").trim();
 
-  const poRegs = [
-    /\bPO[\s_\-]*(?:No\.?|Number|#)?[\s_\-]*([A-Z0-9][A-Z0-9\-\/]{3,})/gi,
-    /\bP\.?O\.?[\s_\-]*([0-9]{4,})/gi,
+  // ---- PO detection ----
+  // 1) Labeled: "PO No", "PO No.", "PO Number", "PO #", "P.O.", "PO" followed by value.
+  //    Value: alphanumeric with optional -/ (min 4 chars, must contain a digit).
+  const poLabeled = [
+    /\bP\s*\.?\s*O\s*\.?\s*(?:No\.?|Number|#)?\s*[:\-]?\s*((?=[A-Z0-9\-\/]*\d)[A-Z0-9][A-Z0-9\-\/]{3,})/gi,
+    /\bPurchase\s*Order\s*(?:No\.?|Number|#)?\s*[:\-]?\s*((?=[A-Z0-9\-\/]*\d)[A-Z0-9][A-Z0-9\-\/]{3,})/gi,
   ];
-  const invRegs = [
-    /\b(?:Invoice|INV)[\s_\-]*(?:No\.?|Number|#)?[\s_\-]*([A-Z0-9][A-Z0-9\-\/]{2,})/gi,
+  let po = unique(poLabeled.flatMap((r) => findAll(norm, r)));
+
+  // 2) SAP-style: 10-digit number starting with 45 (very common for Etihad WE POs).
+  const sap = unique(findAll(norm, /(?<![A-Z0-9])(45\d{8})(?![A-Z0-9])/gi));
+  po = unique([...po, ...sap]);
+
+  // ---- Invoice detection ----
+  // 1) Labeled: "Invoice No", "Inv No", "Inv #", "Invoice"
+  const invLabeled = [
+    /\bInvoice\s*(?:No\.?|Number|#)?\s*[:\-]?\s*((?=[A-Z0-9\-\/]*\d)[A-Z0-9][A-Z0-9\-\/]{2,})/gi,
+    /\bInv\s*\.?\s*(?:No\.?|Number|#)?\s*[:\-]?\s*((?=[A-Z0-9\-\/]*\d)[A-Z0-9][A-Z0-9\-\/]{2,})/gi,
+    /\bINV[\s\-_]*((?=[A-Z0-9\-\/]*\d)[A-Z0-9][A-Z0-9\-\/]{2,})/gi,
   ];
+  let invoice = unique(invLabeled.flatMap((r) => findAll(norm, r)));
 
-  const po = unique(poRegs.flatMap((r) => findAll(base, r)));
-  const invoice = unique(invRegs.flatMap((r) => findAll(base, r)));
+  // Remove any token that is actually the PO (avoid PO leaking into invoice candidates)
+  invoice = invoice.filter((v) => !po.includes(v));
 
-  // Fallback: numeric tokens (4+ digits) as candidates
-  const numTokens = unique(tokens.filter((t) => /^[A-Z0-9\-\/]{4,}$/i.test(t) && /\d/.test(t)));
+  // ---- Fallbacks: any remaining alphanumeric tokens with a digit (min 4 chars) ----
+  const tokens = unique(
+    norm.split(/\s+/).filter((t) => /^[A-Z0-9\-\/]{4,}$/i.test(t) && /\d/.test(t))
+  );
+  // exclude values already claimed
+  const rest = tokens.filter((t) => !po.includes(t) && !invoice.includes(t));
+
   return {
-    po: po.length ? po : numTokens,
-    invoice: invoice.length ? invoice : numTokens,
+    po: po.length ? po : rest,
+    invoice: invoice.length ? invoice : rest.filter((t) => !po.includes(t)),
   };
 }
 

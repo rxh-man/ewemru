@@ -128,7 +128,6 @@ type FileEntry = {
   candidates: Candidates;
   po: string;
   invoice: string;
-  amount: string;
 };
 
 const MAX_FILES = 5;
@@ -158,18 +157,16 @@ export default function Innovation() {
       const added: FileEntry[] = [];
       for (const f of files) {
         const bytes = new Uint8Array(await f.arrayBuffer());
-        const text = await extractPdfText(bytes);
-        const c = extractCandidates(text);
+        const c = extractFromFilename(f.name);
         added.push({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           file: f, bytes, candidates: c,
           po: c.po[0] || "",
           invoice: c.invoice[0] || "",
-          amount: c.amount[0] || "",
         });
       }
       setEntries((prev) => [...prev, ...added]);
-      toast.success(`Scanned ${added.length} PDF${added.length > 1 ? "s" : ""} — review the mapping below`);
+      toast.success(`Added ${added.length} PDF${added.length > 1 ? "s" : ""} — review the mapping below`);
     } catch (e: any) {
       toast.error("Could not read PDF: " + (e?.message ?? e));
     } finally {
@@ -193,7 +190,7 @@ export default function Innovation() {
       for (const e of entries) {
         const merged = await buildMergedPdf({
           vendorName, projectName, scope,
-          poNumber: e.po, invoiceNumber: e.invoice, amount: e.amount,
+          poNumber: e.po, invoiceNumber: e.invoice,
         }, e.bytes);
         const safeVendor = vendorName.replace(/[^a-z0-9]+/gi, "_");
         const safeInv = (e.invoice || "invoice").replace(/[^a-z0-9]+/gi, "_");

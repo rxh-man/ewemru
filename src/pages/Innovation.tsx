@@ -267,7 +267,8 @@ export default function Innovation() {
                     <button onClick={() => removeEntry(e.id)}
                       className="text-[11px] font-semibold text-[#dc2626] hover:underline shrink-0">Remove</button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
                     <MappedField
                       label="Vendor PO No"
                       value={e.po}

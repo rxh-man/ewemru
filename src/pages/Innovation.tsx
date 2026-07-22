@@ -68,7 +68,7 @@ function extractFromFilename(filename: string): Candidates {
 
 async function buildCoverPage(fields: {
   vendorName: string; poNumber: string; invoiceNumber: string;
-  projectName: string; scope: string; amount: string;
+  projectName: string; scope: string;
 }): Promise<Uint8Array> {
   const templateBytes = await loadTemplateBytes();
   const doc = await PDFDocument.load(templateBytes);
@@ -85,7 +85,6 @@ async function buildCoverPage(fields: {
     [fields.projectName, 208],
     [fields.scope, 226],
     [fields.vendorName, 244],
-    [fields.amount, 263],
   ];
   for (const [val, top] of rows) {
     if (!val) continue;
@@ -98,7 +97,7 @@ async function buildCoverPage(fields: {
 
 async function buildMergedPdf(fields: {
   vendorName: string; poNumber: string; invoiceNumber: string;
-  projectName: string; scope: string; amount: string;
+  projectName: string; scope: string;
 }, originalBytes: Uint8Array): Promise<Uint8Array> {
   const coverBytes = await buildCoverPage(fields);
   const out = await PDFDocument.create();

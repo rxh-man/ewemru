@@ -20,6 +20,7 @@ export default function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/surveyor" element={<Surveyor />} />
         <Route path="/ft" element={<FieldTech />} />
+        <Route path="/innovation" element={<Innovation />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>

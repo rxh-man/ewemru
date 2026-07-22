@@ -270,6 +270,10 @@ export default function HRDashboard() {
               className="h-9 px-4 rounded-md bg-[#dc2626] text-white text-xs font-semibold hover:opacity-90">
               Top Urgent PO / PRs
             </button>
+            <button onClick={() => navigate("/innovation")}
+              className="h-9 px-4 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90">
+              Innovation Tools
+            </button>
             <button onClick={load} disabled={loading}
               className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 disabled:opacity-60">
               {loading ? "Refreshing…" : "Refresh"}

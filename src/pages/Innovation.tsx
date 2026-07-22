@@ -20,10 +20,7 @@ async function loadTemplateBytes(): Promise<Uint8Array> {
   return _templateBytes;
 }
 
-
-async function extractPdfText(file: File): Promise<{ text: string; bytes: Uint8Array }> {
-  const buf = await file.arrayBuffer();
-  const bytes = new Uint8Array(buf);
+async function extractPdfText(bytes: Uint8Array): Promise<string> {
   const loadingTask = (pdfjsLib as any).getDocument({ data: bytes.slice() });
   const pdf = await loadingTask.promise;
   let text = "";
@@ -32,26 +29,55 @@ async function extractPdfText(file: File): Promise<{ text: string; bytes: Uint8A
     const c = await p.getTextContent();
     text += c.items.map((it: any) => it.str).join(" ") + "\n";
   }
-  return { text, bytes };
+  return text;
 }
 
-function scrape(text: string): { po: string; invoice: string; amount: string } {
+type Candidates = { po: string[]; invoice: string[]; amount: string[] };
+
+function unique(arr: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of arr) {
+    const k = v.trim();
+    if (k && !seen.has(k)) { seen.add(k); out.push(k); }
+  }
+  return out;
+}
+
+function findAll(text: string, re: RegExp): string[] {
+  const out: string[] = [];
+  const flags = re.flags.includes("g") ? re.flags : re.flags + "g";
+  const r = new RegExp(re.source, flags);
+  let m: RegExpExecArray | null;
+  while ((m = r.exec(text)) !== null) {
+    if (m[1]) out.push(m[1]);
+    if (m.index === r.lastIndex) r.lastIndex++;
+  }
+  return out;
+}
+
+function extractCandidates(text: string): Candidates {
   const t = text.replace(/\s+/g, " ");
-  const pick = (patterns: RegExp[]) => {
-    for (const re of patterns) { const m = t.match(re); if (m) return (m[1] || "").trim(); }
-    return "";
-  };
-  const po = pick([
-    /(?:Vendor\s*PO\s*(?:No\.?|Number)?|Purchase\s*Order\s*(?:No\.?|Number)?|PO\s*(?:No\.?|Number|#))\s*[:\-]?\s*([A-Z0-9\-\/]{4,})/i,
-    /\bPO\s*[:#\-]\s*([A-Z0-9\-\/]{4,})/i,
-  ]);
-  const invoice = pick([
-    /(?:Invoice\s*(?:No\.?|Number|#)|Vendor\s*Invoice\s*(?:No\.?|Number)?|Tax\s*Invoice\s*(?:No\.?|#)?)\s*[:\-]?\s*([A-Z0-9\-\/]{3,})/i,
-    /\bINV[\s\-#:]*([A-Z0-9\-\/]{3,})/i,
-  ]);
-  const amount = pick([
-    /(?:Total\s*(?:Amount|Due|Payable)|Grand\s*Total|Amount\s*Due)\s*[:\-]?\s*(?:AED|USD|EUR|SAR)?\s*([\d,]+(?:\.\d{1,2})?)/i,
-  ]);
+
+  // PO — must be labeled with "PO No" / "Vendor PO" / "Purchase Order"
+  const poRegs = [
+    /(?:Vendor\s*)?PO\s*(?:No\.?|Number|#)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{3,})/gi,
+    /Purchase\s*Order\s*(?:No\.?|Number|#)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{3,})/gi,
+  ];
+  const po = unique(poRegs.flatMap((r) => findAll(t, r)));
+
+  // Invoice — must be labeled with "Invoice No" / "Invoice Number" / "Tax Invoice"
+  const invRegs = [
+    /(?:Vendor\s*|Tax\s*)?Invoice\s*(?:No\.?|Number|#)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{2,})/gi,
+    /\bINV[\s\-#:]+([A-Z0-9][A-Z0-9\-\/]{2,})/gi,
+  ];
+  const invoice = unique(invRegs.flatMap((r) => findAll(t, r)));
+
+  const amountRegs = [
+    /(?:Total\s*(?:Amount|Due|Payable)|Grand\s*Total|Amount\s*Due|Net\s*Total)\s*[:\-]?\s*(?:AED|USD|EUR|SAR)?\s*([\d,]+(?:\.\d{1,2})?)/gi,
+  ];
+  const amount = unique(amountRegs.flatMap((r) => findAll(t, r)));
+
   return { po, invoice, amount };
 }
 
@@ -66,8 +92,6 @@ async function buildCoverPage(fields: {
   const black = rgb(0.07, 0.07, 0.07);
   const PH = page.getHeight();
 
-  // Overlay values on the right column of the info table.
-  // Coordinates measured from the rendered template (top-based y).
   const size = 10;
   const xVal = 290;
   const rows: [string, number][] = [
@@ -87,6 +111,44 @@ async function buildCoverPage(fields: {
   return await doc.save();
 }
 
+async function buildMergedPdf(fields: {
+  vendorName: string; poNumber: string; invoiceNumber: string;
+  projectName: string; scope: string; amount: string;
+}, originalBytes: Uint8Array): Promise<Uint8Array> {
+  const coverBytes = await buildCoverPage(fields);
+  const out = await PDFDocument.create();
+  const cover = await PDFDocument.load(coverBytes);
+  const original = await PDFDocument.load(originalBytes, { ignoreEncryption: true });
+  const c = await out.copyPages(cover, cover.getPageIndices());
+  c.forEach((p) => out.addPage(p));
+  const o = await out.copyPages(original, original.getPageIndices());
+  o.forEach((p) => out.addPage(p));
+  return await out.save();
+}
+
+function downloadPdf(bytes: Uint8Array, filename: string) {
+  const ab = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(ab).set(bytes);
+  const blob = new Blob([ab], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+type FileEntry = {
+  id: string;
+  file: File;
+  bytes: Uint8Array;
+  candidates: Candidates;
+  po: string;
+  invoice: string;
+  amount: string;
+};
+
+const MAX_FILES = 5;
+
 export default function Innovation() {
   const nav = useNavigate();
   const session = getSession();
@@ -98,71 +160,65 @@ export default function Innovation() {
   const [vendorName, setVendorName] = useState("");
   const [projectName, setProjectName] = useState("");
   const [scope, setScope] = useState("");
-  const [poNumber, setPoNumber] = useState("");
-  const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [amount, setAmount] = useState("");
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
+  const [entries, setEntries] = useState<FileEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function onPdfChange(f: File | null) {
-    if (!f) { setPdfFile(null); setPdfBytes(null); return; }
-    setPdfFile(f);
+  async function onFilesSelected(list: FileList | null) {
+    if (!list || list.length === 0) return;
+    const remaining = MAX_FILES - entries.length;
+    if (remaining <= 0) { toast.error(`Max ${MAX_FILES} PDFs at a time`); return; }
+    const files = Array.from(list).slice(0, remaining);
     setBusy(true);
     try {
-      const { text, bytes } = await extractPdfText(f);
-      setPdfBytes(bytes);
-      const scraped = scrape(text);
-      if (scraped.po && !poNumber) setPoNumber(scraped.po);
-      if (scraped.invoice && !invoiceNumber) setInvoiceNumber(scraped.invoice);
-      if (scraped.amount && !amount) setAmount(scraped.amount);
-      toast.success("PDF scanned — fields auto-filled where possible");
-      // Auto-generate & download
-      setTimeout(() => generate(bytes, {
-        po: scraped.po || poNumber,
-        invoice: scraped.invoice || invoiceNumber,
-        amt: scraped.amount || amount,
-      }), 300);
+      const added: FileEntry[] = [];
+      for (const f of files) {
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        const text = await extractPdfText(bytes);
+        const c = extractCandidates(text);
+        added.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          file: f, bytes, candidates: c,
+          po: c.po[0] || "",
+          invoice: c.invoice[0] || "",
+          amount: c.amount[0] || "",
+        });
+      }
+      setEntries((prev) => [...prev, ...added]);
+      toast.success(`Scanned ${added.length} PDF${added.length > 1 ? "s" : ""} — review the mapping below`);
     } catch (e: any) {
       toast.error("Could not read PDF: " + (e?.message ?? e));
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
   }
 
-  async function generate(bytesOverride?: Uint8Array, overrides?: { po?: string; invoice?: string; amt?: string }) {
-    const bytes = bytesOverride ?? pdfBytes;
-    if (!bytes) { toast.error("Upload a PDF first"); return; }
+  function updateEntry(id: string, patch: Partial<FileEntry>) {
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  }
+  function removeEntry(id: string) {
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  async function generateAll() {
+    if (!vendorName) { toast.error("Vendor Name is required"); return; }
+    if (entries.length === 0) { toast.error("Upload at least one PDF"); return; }
     setBusy(true);
     try {
-      const coverBytes = await buildCoverPage({
-        vendorName, projectName, scope,
-        poNumber: overrides?.po ?? poNumber,
-        invoiceNumber: overrides?.invoice ?? invoiceNumber,
-        amount: overrides?.amt ?? amount,
-      });
-      const out = await PDFDocument.create();
-      const cover = await PDFDocument.load(coverBytes);
-      const original = await PDFDocument.load(bytes, { ignoreEncryption: true });
-      const c = await out.copyPages(cover, cover.getPageIndices());
-      c.forEach((p) => out.addPage(p));
-      const o = await out.copyPages(original, original.getPageIndices());
-      o.forEach((p) => out.addPage(p));
-      const finalBytes = await out.save();
-      // Convert to plain ArrayBuffer for Blob (avoids TS SharedArrayBuffer typing issue)
-      const ab = new ArrayBuffer(finalBytes.byteLength);
-      new Uint8Array(ab).set(finalBytes);
-      const blob = new Blob([ab], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const safeVendor = (vendorName || "vendor").replace(/[^a-z0-9]+/gi, "_");
-      const safeInv = (overrides?.invoice ?? invoiceNumber ?? "invoice").replace(/[^a-z0-9]+/gi, "_");
-      a.href = url;
-      a.download = `Payment_Certificate_${safeVendor}_${safeInv}.pdf`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      toast.success("Certificate generated and downloaded");
+      for (const e of entries) {
+        const merged = await buildMergedPdf({
+          vendorName, projectName, scope,
+          poNumber: e.po, invoiceNumber: e.invoice, amount: e.amount,
+        }, e.bytes);
+        const safeVendor = vendorName.replace(/[^a-z0-9]+/gi, "_");
+        const safeInv = (e.invoice || "invoice").replace(/[^a-z0-9]+/gi, "_");
+        downloadPdf(merged, `Payment_Certificate_${safeVendor}_${safeInv}.pdf`);
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      toast.success(`Generated ${entries.length} certificate${entries.length > 1 ? "s" : ""}`);
     } catch (e: any) {
-      toast.error("Failed to build PDF: " + (e?.message ?? e));
+      toast.error("Failed: " + (e?.message ?? e));
     } finally { setBusy(false); }
   }
 
@@ -185,48 +241,92 @@ export default function Innovation() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#dc2626]">Innovation Tools</p>
           <h1 className="text-xl font-semibold text-[#111] mt-1">Payment Certificate Builder</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Upload a vendor invoice PDF. We'll auto-fill PO / Invoice numbers, prepend the certification form, and download the merged file.
+            Upload up to {MAX_FILES} vendor invoice PDFs. Review the auto-mapped PO / Invoice numbers, adjust if needed, then generate.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="rounded-lg border border-border bg-white p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-[#111]">Certificate Details</h2>
-            <Field label="Vendor Name *" value={vendorName} onChange={setVendorName} placeholder="Type vendor name" />
+        <div className="rounded-lg border border-border bg-white p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-[#111]">Shared Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Field label="Vendor Name *" value={vendorName} onChange={setVendorName} placeholder="e.g. TASC" />
             <Field label="Project Name / Contract Ref." value={projectName} onChange={setProjectName} />
             <Field label="Scope of Work" value={scope} onChange={setScope} />
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Vendor PO No (scraped)" value={poNumber} onChange={setPoNumber} />
-              <Field label="Invoice No (scraped)" value={invoiceNumber} onChange={setInvoiceNumber} />
-            </div>
-            <Field label="Amount & Currency" value={amount} onChange={setAmount} placeholder="AED 0.00" />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-[#111]">Invoice PDFs ({entries.length}/{MAX_FILES})</h2>
+            <button
+              onClick={() => inputRef.current?.click()}
+              disabled={entries.length >= MAX_FILES || busy}
+              className="h-8 px-3 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50">
+              + Add PDF(s)
+            </button>
+            <input ref={inputRef} type="file" accept="application/pdf" multiple className="hidden"
+              onChange={(e) => onFilesSelected(e.target.files)} />
           </div>
 
-          <div className="rounded-lg border border-border bg-white p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-[#111]">Invoice PDF</h2>
+          {entries.length === 0 ? (
             <div
               onClick={() => inputRef.current?.click()}
-              className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-[#dc2626] transition">
-              <input ref={inputRef} type="file" accept="application/pdf" className="hidden"
-                onChange={(e) => onPdfChange(e.target.files?.[0] ?? null)} />
-              <div className="text-sm font-medium text-[#111]">
-                {pdfFile ? pdfFile.name : "Click to upload PDF"}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {pdfFile ? `${(pdfFile.size / 1024).toFixed(0)} KB` : "PO / Invoice numbers will be extracted automatically"}
-              </div>
+              className="border-2 border-dashed border-border rounded-lg p-10 text-center cursor-pointer hover:border-[#dc2626] transition">
+              <div className="text-sm font-medium text-[#111]">Click to upload up to {MAX_FILES} PDFs</div>
+              <div className="text-xs text-muted-foreground mt-1">PO No / Invoice No detected automatically — you can re-map any file below</div>
             </div>
+          ) : (
+            <div className="space-y-3">
+              {entries.map((e, idx) => (
+                <div key={e.id} className="border border-border rounded-lg p-4 bg-secondary/30">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-[#111] truncate">#{idx + 1} · {e.file.name}</div>
+                      <div className="text-[11px] text-muted-foreground">{(e.file.size / 1024).toFixed(0)} KB</div>
+                    </div>
+                    <button onClick={() => removeEntry(e.id)}
+                      className="text-[11px] font-semibold text-[#dc2626] hover:underline shrink-0">Remove</button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <MappedField
+                      label="Vendor PO No"
+                      value={e.po}
+                      candidates={e.candidates.po}
+                      onChange={(v) => updateEntry(e.id, { po: v })}
+                    />
+                    <MappedField
+                      label="Vendor Invoice No"
+                      value={e.invoice}
+                      candidates={e.candidates.invoice}
+                      onChange={(v) => updateEntry(e.id, { invoice: v })}
+                    />
+                    <MappedField
+                      label="Amount & Currency"
+                      value={e.amount}
+                      candidates={e.candidates.amount}
+                      onChange={(v) => updateEntry(e.id, { amount: v })}
+                      placeholder="AED 0.00"
+                    />
+                  </div>
+                  {(e.candidates.po.length === 0 || e.candidates.invoice.length === 0) && (
+                    <p className="mt-2 text-[11px] text-[#dc2626]">
+                      {e.candidates.po.length === 0 && "No 'PO No' pattern detected — enter manually. "}
+                      {e.candidates.invoice.length === 0 && "No 'Invoice No' pattern detected — enter manually."}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
-            <button
-              disabled={!pdfBytes || busy || !vendorName}
-              onClick={() => generate()}
-              className="w-full h-10 rounded-md bg-[#dc2626] text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50">
-              {busy ? "Working…" : "Generate & Download Certificate"}
-            </button>
-            <p className="text-[11px] text-muted-foreground">
-              The certification form (with all approvers) is added as page 1, followed by your uploaded PDF.
-            </p>
-          </div>
+          <button
+            disabled={entries.length === 0 || busy || !vendorName}
+            onClick={generateAll}
+            className="w-full h-10 rounded-md bg-[#dc2626] text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50">
+            {busy ? "Working…" : `Generate & Download ${entries.length > 0 ? entries.length : ""} Certificate${entries.length !== 1 ? "s" : ""}`}
+          </button>
+          <p className="text-[11px] text-muted-foreground">
+            The certification form (with all approvers) is added as page 1 of each merged PDF.
+          </p>
         </div>
       </div>
     </AppShell>
@@ -241,6 +341,40 @@ function Field({ label, value, onChange, placeholder }: {
       <span className="block text-[11px] font-semibold text-[#111] mb-1">{label}</span>
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
         className="w-full h-9 px-3 border border-input rounded-md text-xs bg-white focus:outline-none focus:border-[#dc2626]" />
+    </label>
+  );
+}
+
+function MappedField({ label, value, candidates, onChange, placeholder }: {
+  label: string; value: string; candidates: string[]; onChange: (v: string) => void; placeholder?: string;
+}) {
+  const hasCandidates = candidates.length > 0;
+  return (
+    <label className="block">
+      <span className="block text-[11px] font-semibold text-[#111] mb-1">
+        {label}
+        {hasCandidates && (
+          <span className="ml-2 text-[10px] font-medium text-muted-foreground">
+            ({candidates.length} detected)
+          </span>
+        )}
+      </span>
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full h-9 px-3 border border-input rounded-md text-xs bg-white focus:outline-none focus:border-[#dc2626]" />
+      {hasCandidates && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {candidates.map((c) => (
+            <button key={c} type="button" onClick={() => onChange(c)}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium border transition ${
+                c === value
+                  ? "bg-[#dc2626] text-white border-[#dc2626]"
+                  : "bg-white text-[#111] border-border hover:border-[#dc2626]"
+              }`}>
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
     </label>
   );
 }

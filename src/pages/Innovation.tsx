@@ -3,13 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { getSession } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import * as pdfjsLib from "pdfjs-dist";
-// @ts-ignore
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { toast } from "sonner";
 import templateAsset from "@/assets/payment-certificate-template.pdf.asset.json";
-
-(pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfWorker;
 
 let _templateBytes: Uint8Array | null = null;
 async function loadTemplateBytes(): Promise<Uint8Array> {
@@ -20,19 +15,8 @@ async function loadTemplateBytes(): Promise<Uint8Array> {
   return _templateBytes;
 }
 
-async function extractPdfText(bytes: Uint8Array): Promise<string> {
-  const loadingTask = (pdfjsLib as any).getDocument({ data: bytes.slice() });
-  const pdf = await loadingTask.promise;
-  let text = "";
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const p = await pdf.getPage(i);
-    const c = await p.getTextContent();
-    text += c.items.map((it: any) => it.str).join(" ") + "\n";
-  }
-  return text;
-}
 
-type Candidates = { po: string[]; invoice: string[]; amount: string[] };
+type Candidates = { po: string[]; invoice: string[] };
 
 function unique(arr: string[]): string[] {
   const seen = new Set<string>();
@@ -56,34 +40,35 @@ function findAll(text: string, re: RegExp): string[] {
   return out;
 }
 
-function extractCandidates(text: string): Candidates {
-  const t = text.replace(/\s+/g, " ");
+function extractFromFilename(filename: string): Candidates {
+  // strip extension
+  const base = filename.replace(/\.pdf$/i, "");
+  // Split on common separators to get tokens
+  const tokens = base.split(/[\s_\-]+/).filter(Boolean);
 
-  // PO — must be labeled with "PO No" / "Vendor PO" / "Purchase Order"
   const poRegs = [
-    /(?:Vendor\s*)?PO\s*(?:No\.?|Number|#)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{3,})/gi,
-    /Purchase\s*Order\s*(?:No\.?|Number|#)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{3,})/gi,
+    /\bPO[\s_\-]*(?:No\.?|Number|#)?[\s_\-]*([A-Z0-9][A-Z0-9\-\/]{3,})/gi,
+    /\bP\.?O\.?[\s_\-]*([0-9]{4,})/gi,
   ];
-  const po = unique(poRegs.flatMap((r) => findAll(t, r)));
-
-  // Invoice — must be labeled with "Invoice No" / "Invoice Number" / "Tax Invoice"
   const invRegs = [
-    /(?:Vendor\s*|Tax\s*)?Invoice\s*(?:No\.?|Number|#)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{2,})/gi,
-    /\bINV[\s\-#:]+([A-Z0-9][A-Z0-9\-\/]{2,})/gi,
+    /\b(?:Invoice|INV)[\s_\-]*(?:No\.?|Number|#)?[\s_\-]*([A-Z0-9][A-Z0-9\-\/]{2,})/gi,
   ];
-  const invoice = unique(invRegs.flatMap((r) => findAll(t, r)));
 
-  const amountRegs = [
-    /(?:Total\s*(?:Amount|Due|Payable)|Grand\s*Total|Amount\s*Due|Net\s*Total)\s*[:\-]?\s*(?:AED|USD|EUR|SAR)?\s*([\d,]+(?:\.\d{1,2})?)/gi,
-  ];
-  const amount = unique(amountRegs.flatMap((r) => findAll(t, r)));
+  const po = unique(poRegs.flatMap((r) => findAll(base, r)));
+  const invoice = unique(invRegs.flatMap((r) => findAll(base, r)));
 
-  return { po, invoice, amount };
+  // Fallback: numeric tokens (4+ digits) as candidates
+  const numTokens = unique(tokens.filter((t) => /^[A-Z0-9\-\/]{4,}$/i.test(t) && /\d/.test(t)));
+  return {
+    po: po.length ? po : numTokens,
+    invoice: invoice.length ? invoice : numTokens,
+  };
 }
+
 
 async function buildCoverPage(fields: {
   vendorName: string; poNumber: string; invoiceNumber: string;
-  projectName: string; scope: string; amount: string;
+  projectName: string; scope: string;
 }): Promise<Uint8Array> {
   const templateBytes = await loadTemplateBytes();
   const doc = await PDFDocument.load(templateBytes);
@@ -100,7 +85,6 @@ async function buildCoverPage(fields: {
     [fields.projectName, 208],
     [fields.scope, 226],
     [fields.vendorName, 244],
-    [fields.amount, 263],
   ];
   for (const [val, top] of rows) {
     if (!val) continue;
@@ -113,7 +97,7 @@ async function buildCoverPage(fields: {
 
 async function buildMergedPdf(fields: {
   vendorName: string; poNumber: string; invoiceNumber: string;
-  projectName: string; scope: string; amount: string;
+  projectName: string; scope: string;
 }, originalBytes: Uint8Array): Promise<Uint8Array> {
   const coverBytes = await buildCoverPage(fields);
   const out = await PDFDocument.create();
@@ -144,7 +128,6 @@ type FileEntry = {
   candidates: Candidates;
   po: string;
   invoice: string;
-  amount: string;
 };
 
 const MAX_FILES = 5;
@@ -174,18 +157,16 @@ export default function Innovation() {
       const added: FileEntry[] = [];
       for (const f of files) {
         const bytes = new Uint8Array(await f.arrayBuffer());
-        const text = await extractPdfText(bytes);
-        const c = extractCandidates(text);
+        const c = extractFromFilename(f.name);
         added.push({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           file: f, bytes, candidates: c,
           po: c.po[0] || "",
           invoice: c.invoice[0] || "",
-          amount: c.amount[0] || "",
         });
       }
       setEntries((prev) => [...prev, ...added]);
-      toast.success(`Scanned ${added.length} PDF${added.length > 1 ? "s" : ""} — review the mapping below`);
+      toast.success(`Added ${added.length} PDF${added.length > 1 ? "s" : ""} — review the mapping below`);
     } catch (e: any) {
       toast.error("Could not read PDF: " + (e?.message ?? e));
     } finally {
@@ -209,7 +190,7 @@ export default function Innovation() {
       for (const e of entries) {
         const merged = await buildMergedPdf({
           vendorName, projectName, scope,
-          poNumber: e.po, invoiceNumber: e.invoice, amount: e.amount,
+          poNumber: e.po, invoiceNumber: e.invoice,
         }, e.bytes);
         const safeVendor = vendorName.replace(/[^a-z0-9]+/gi, "_");
         const safeInv = (e.invoice || "invoice").replace(/[^a-z0-9]+/gi, "_");
@@ -286,7 +267,8 @@ export default function Innovation() {
                     <button onClick={() => removeEntry(e.id)}
                       className="text-[11px] font-semibold text-[#dc2626] hover:underline shrink-0">Remove</button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
                     <MappedField
                       label="Vendor PO No"
                       value={e.po}
@@ -299,14 +281,8 @@ export default function Innovation() {
                       candidates={e.candidates.invoice}
                       onChange={(v) => updateEntry(e.id, { invoice: v })}
                     />
-                    <MappedField
-                      label="Amount & Currency"
-                      value={e.amount}
-                      candidates={e.candidates.amount}
-                      onChange={(v) => updateEntry(e.id, { amount: v })}
-                      placeholder="AED 0.00"
-                    />
                   </div>
+
                   {(e.candidates.po.length === 0 || e.candidates.invoice.length === 0) && (
                     <p className="mt-2 text-[11px] text-[#dc2626]">
                       {e.candidates.po.length === 0 && "No 'PO No' pattern detected — enter manually. "}

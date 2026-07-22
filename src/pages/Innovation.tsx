@@ -7,19 +7,19 @@ import * as pdfjsLib from "pdfjs-dist";
 // @ts-ignore
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { toast } from "sonner";
+import templateAsset from "@/assets/payment-certificate-template.pdf.asset.json";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfWorker;
 
-const APPROVERS: { role: string; name: string }[] = [
-  { role: "End User", name: "AMR MOHAMED HAMED RASHWAN" },
-  { role: "Section Head", name: "Asaad Tawfik" },
-  { role: "Division Head", name: "Abubaker Mohamed Almarzooqi" },
-  { role: "Budgeting & Cost Control", name: "George Abili" },
-  { role: "Manager - Business Commercial Management", name: "Bassem Elbashandy" },
-  { role: "Director – Business Commercial Management & Budgeting", name: "Michael Thabit" },
-  { role: "Senior Vice President – Business Strategy & Planning", name: "Hazim Deyab" },
-];
-const ABOVE_500K = { role: "Group Chief AI Network & Solutions Officer", name: "Haitham Abdulrazzak" };
+let _templateBytes: Uint8Array | null = null;
+async function loadTemplateBytes(): Promise<Uint8Array> {
+  if (_templateBytes) return _templateBytes;
+  const r = await fetch(templateAsset.url);
+  if (!r.ok) throw new Error("Failed to load certificate template");
+  _templateBytes = new Uint8Array(await r.arrayBuffer());
+  return _templateBytes;
+}
+
 
 async function extractPdfText(file: File): Promise<{ text: string; bytes: Uint8Array }> {
   const buf = await file.arrayBuffer();
@@ -59,65 +59,31 @@ async function buildCoverPage(fields: {
   vendorName: string; poNumber: string; invoiceNumber: string;
   projectName: string; scope: string; amount: string;
 }): Promise<Uint8Array> {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([595, 842]); // A4
+  const templateBytes = await loadTemplateBytes();
+  const doc = await PDFDocument.load(templateBytes);
+  const page = doc.getPage(0);
   const font = await doc.embedFont(StandardFonts.Helvetica);
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const black = rgb(0.07, 0.07, 0.07);
-  const grey = rgb(0.85, 0.85, 0.85);
-  const red = rgb(0.86, 0.15, 0.15);
+  const PH = page.getHeight();
 
-  // Title
-  page.drawText("PAYMENT CERTIFICATION FORM", { x: 90, y: 780, size: 18, font: bold, color: black });
-  page.drawLine({ start: { x: 50, y: 765 }, end: { x: 545, y: 765 }, thickness: 1.2, color: red });
-
-  // Info table
-  const rows: [string, string][] = [
-    ["Vendor Invoice Number", fields.invoiceNumber || "—"],
-    ["Vendor PO No", fields.poNumber || "—"],
-    ["Project Name / Contract Ref.", fields.projectName || "—"],
-    ["Scope of Work", fields.scope || "—"],
-    ["Vendor Name", fields.vendorName || "—"],
-    ["Amount & Currency", fields.amount || "—"],
+  // Overlay values on the right column of the info table.
+  // Coordinates measured from the rendered template (top-based y).
+  const size = 10;
+  const xVal = 290;
+  const rows: [string, number][] = [
+    [fields.invoiceNumber, 172],
+    [fields.poNumber, 190],
+    [fields.projectName, 208],
+    [fields.scope, 226],
+    [fields.vendorName, 244],
+    [fields.amount, 263],
   ];
-  let y = 730;
-  const rowH = 32, labelW = 210, valueW = 285, xL = 50, xV = xL + labelW;
-  for (const [k, v] of rows) {
-    page.drawRectangle({ x: xL, y: y - rowH, width: labelW, height: rowH, borderColor: grey, borderWidth: 0.7 });
-    page.drawRectangle({ x: xV, y: y - rowH, width: valueW, height: rowH, borderColor: grey, borderWidth: 0.7 });
-    page.drawText(k, { x: xL + 8, y: y - 20, size: 10, font: bold, color: black });
-    page.drawText(String(v).slice(0, 60), { x: xV + 8, y: y - 20, size: 10, font, color: black });
-    y -= rowH;
+  for (const [val, top] of rows) {
+    if (!val) continue;
+    page.drawText(String(val).slice(0, 80), {
+      x: xVal, y: PH - top - 10, size, font, color: black,
+    });
   }
-
-  // Signatures table
-  y -= 20;
-  page.drawText("Approvals", { x: 50, y, size: 11, font: bold, color: black });
-  y -= 12;
-  const colW = [230, 130, 80, 55];
-  const headers = ["Role", "Name", "Signature", "Date"];
-  const drawRow = (vals: string[], hy: number, isHead = false) => {
-    let x = 50;
-    for (let i = 0; i < 4; i++) {
-      page.drawRectangle({ x, y: hy - 22, width: colW[i], height: 22, borderColor: grey, borderWidth: 0.6,
-        color: isHead ? rgb(0.96,0.96,0.96) : undefined });
-      page.drawText(vals[i] || "", { x: x + 6, y: hy - 15, size: 9, font: isHead ? bold : font, color: black });
-      x += colW[i];
-    }
-  };
-  drawRow(headers, y, true); y -= 22;
-  for (const a of APPROVERS) { drawRow([a.role, a.name, "", ""], y); y -= 22; }
-  // Above 500k header
-  let x = 50;
-  page.drawRectangle({ x, y: y - 22, width: colW.reduce((a,b)=>a+b,0), height: 22,
-    color: rgb(0.99,0.94,0.94), borderColor: grey, borderWidth: 0.6 });
-  page.drawText("Approval for Invoice Above AED 500k", { x: x + 6, y: y - 15, size: 9, font: bold, color: red });
-  y -= 22;
-  drawRow([ABOVE_500K.role, ABOVE_500K.name, "", ""], y); y -= 22;
-
-  // Footer
-  page.drawText(`Generated ${new Date().toLocaleString()}`, { x: 50, y: 40, size: 8, font, color: rgb(0.4,0.4,0.4) });
-
   return await doc.save();
 }
 

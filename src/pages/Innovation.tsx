@@ -32,7 +32,7 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
   return text;
 }
 
-type Candidates = { po: string[]; invoice: string[]; amount: string[] };
+type Candidates = { po: string[]; invoice: string[] };
 
 function unique(arr: string[]): string[] {
   const seen = new Set<string>();
@@ -56,30 +56,31 @@ function findAll(text: string, re: RegExp): string[] {
   return out;
 }
 
-function extractCandidates(text: string): Candidates {
-  const t = text.replace(/\s+/g, " ");
+function extractFromFilename(filename: string): Candidates {
+  // strip extension
+  const base = filename.replace(/\.pdf$/i, "");
+  // Split on common separators to get tokens
+  const tokens = base.split(/[\s_\-]+/).filter(Boolean);
 
-  // PO — must be labeled with "PO No" / "Vendor PO" / "Purchase Order"
   const poRegs = [
-    /(?:Vendor\s*)?PO\s*(?:No\.?|Number|#)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{3,})/gi,
-    /Purchase\s*Order\s*(?:No\.?|Number|#)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{3,})/gi,
+    /\bPO[\s_\-]*(?:No\.?|Number|#)?[\s_\-]*([A-Z0-9][A-Z0-9\-\/]{3,})/gi,
+    /\bP\.?O\.?[\s_\-]*([0-9]{4,})/gi,
   ];
-  const po = unique(poRegs.flatMap((r) => findAll(t, r)));
-
-  // Invoice — must be labeled with "Invoice No" / "Invoice Number" / "Tax Invoice"
   const invRegs = [
-    /(?:Vendor\s*|Tax\s*)?Invoice\s*(?:No\.?|Number|#)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{2,})/gi,
-    /\bINV[\s\-#:]+([A-Z0-9][A-Z0-9\-\/]{2,})/gi,
+    /\b(?:Invoice|INV)[\s_\-]*(?:No\.?|Number|#)?[\s_\-]*([A-Z0-9][A-Z0-9\-\/]{2,})/gi,
   ];
-  const invoice = unique(invRegs.flatMap((r) => findAll(t, r)));
 
-  const amountRegs = [
-    /(?:Total\s*(?:Amount|Due|Payable)|Grand\s*Total|Amount\s*Due|Net\s*Total)\s*[:\-]?\s*(?:AED|USD|EUR|SAR)?\s*([\d,]+(?:\.\d{1,2})?)/gi,
-  ];
-  const amount = unique(amountRegs.flatMap((r) => findAll(t, r)));
+  const po = unique(poRegs.flatMap((r) => findAll(base, r)));
+  const invoice = unique(invRegs.flatMap((r) => findAll(base, r)));
 
-  return { po, invoice, amount };
+  // Fallback: numeric tokens (4+ digits) as candidates
+  const numTokens = unique(tokens.filter((t) => /^[A-Z0-9\-\/]{4,}$/i.test(t) && /\d/.test(t)));
+  return {
+    po: po.length ? po : numTokens,
+    invoice: invoice.length ? invoice : numTokens,
+  };
 }
+
 
 async function buildCoverPage(fields: {
   vendorName: string; poNumber: string; invoiceNumber: string;

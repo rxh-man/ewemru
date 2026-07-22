@@ -3,13 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { getSession } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import * as pdfjsLib from "pdfjs-dist";
-// @ts-ignore
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { toast } from "sonner";
 import templateAsset from "@/assets/payment-certificate-template.pdf.asset.json";
-
-(pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfWorker;
 
 let _templateBytes: Uint8Array | null = null;
 async function loadTemplateBytes(): Promise<Uint8Array> {
@@ -20,17 +15,6 @@ async function loadTemplateBytes(): Promise<Uint8Array> {
   return _templateBytes;
 }
 
-async function extractPdfText(bytes: Uint8Array): Promise<string> {
-  const loadingTask = (pdfjsLib as any).getDocument({ data: bytes.slice() });
-  const pdf = await loadingTask.promise;
-  let text = "";
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const p = await pdf.getPage(i);
-    const c = await p.getTextContent();
-    text += c.items.map((it: any) => it.str).join(" ") + "\n";
-  }
-  return text;
-}
 
 type Candidates = { po: string[]; invoice: string[] };
 

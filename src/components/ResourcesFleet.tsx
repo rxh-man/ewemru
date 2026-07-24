@@ -41,25 +41,47 @@ function parseDate(s: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+function isReplacementRow(r: string[]): boolean {
+  const joined = r.join(" ").toLowerCase();
+  return joined.includes("replacement");
+}
+
 function parseFleet(raw: string[][]): { rows: Row[]; transformR: Row[]; transformF: Row[] } {
   const rows: Row[] = [];
   const transformR: Row[] = [];
   const transformF: Row[] = [];
   let section: Row["section"] | null = null;
-  let inFleetType = false;
 
   for (const r of raw) {
-    if (!r || r.length === 0 || r.every((c) => !c || !c.trim())) { inFleetType = false; continue; }
+    if (!r || r.length === 0 || r.every((c) => !c || !c.trim())) continue;
     const first = (r[0] || "").trim();
     const firstLow = first.toLowerCase();
     if (firstLow.includes("iot project outsourcing")) { section = "outsourcing"; continue; }
     if (firstLow.includes("iot project fleet vendor")) { section = "fleet"; continue; }
     if (firstLow.includes("transformation plan to emind")) { section = "transformResource"; continue; }
-    if (firstLow.includes("transformation plan to fleet")) { section = "transformFleet"; inFleetType = true; continue; }
+    if (firstLow.includes("transformation plan to fleet")) { section = "transformFleet"; continue; }
+    // Summary blocks at the bottom of the sheet — stop parsing register lines
+    if (firstLow === "owner" || firstLow === "emind" || firstLow === "shared service") { section = null; continue; }
     // skip header rows
     if (HEADER_TOKENS.every((tok, i) => (r[i] || "").toLowerCase().includes(tok.split(" ")[0]))) continue;
-    if (firstLow === "project name" || firstLow === "type" || firstLow === "owner") continue;
+    if (firstLow === "project name" || firstLow === "type") continue;
     if (!section) continue;
+
+    // Replacement rows (e.g. Hertz / TAQA - Replacement) are informational — do not count in KPIs/tables
+    if ((section === "outsourcing" || section === "fleet") && isReplacementRow(r)) continue;
+
+    if (section === "transformFleet") {
+      // 2-col block: Type | Count
+      transformF.push({
+        project: r[0] || "",
+        vendor: "",
+        type: r[0] || "",
+        count: Number((r[1] || "").toString().replace(/[^\d.-]/g, "")) || 0,
+        bcNo: "", poStart: "", poEnd: "", comments: "", temp: "", perm: "", priority: "",
+        section,
+      });
+      continue;
+    }
 
     const base: Row = {
       project: r[0] || "",
@@ -75,14 +97,8 @@ function parseFleet(raw: string[][]): { rows: Row[]; transformR: Row[]; transfor
       priority: r[10] || "",
       section,
     };
-    if (section === "outsourcing" || section === "fleet") {
-      rows.push(base);
-    } else if (section === "transformResource") {
-      transformR.push(base);
-    } else if (section === "transformFleet") {
-      // Fleet type block (Sedan/Van/Pickup/Hiace) has only 2 cols
-      transformF.push(base);
-    }
+    if (section === "outsourcing" || section === "fleet") rows.push(base);
+    else if (section === "transformResource") transformR.push(base);
   }
   return { rows, transformR, transformF };
 }
@@ -109,18 +125,22 @@ export function ResourcesFleet({ fleetRaw }: { fleetRaw: string[][] }) {
   const filtered = useMemo(() => rows.filter((r) => {
     if (filter === "resource" && r.section !== "outsourcing") return false;
     if (filter === "fleet" && r.section !== "fleet") return false;
-    if (projectFilter && !r.project.toLowerCase().includes(projectFilter.toLowerCase())) return false;
+    if (projectFilter) {
+      const q = projectFilter.toLowerCase();
+      const hay = `${r.project} ${r.vendor} ${r.type} ${r.bcNo} ${r.comments}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     return true;
   }), [rows, filter, projectFilter]);
 
-  const totalResources = rows.filter((r) => r.section === "outsourcing").reduce((a, b) => a + b.count, 0);
-  const totalFleet = rows.filter((r) => r.section === "fleet").reduce((a, b) => a + b.count, 0);
+  const totalResources = filtered.filter((r) => r.section === "outsourcing").reduce((a, b) => a + b.count, 0);
+  const totalFleet = filtered.filter((r) => r.section === "fleet").reduce((a, b) => a + b.count, 0);
   const targetEmind = transformR.reduce((a, b) => a + b.count, 0);
   const fleetTargetShared = transformF.reduce((a, b) => a + b.count, 0);
 
   const byProject = useMemo(() => {
     const m = new Map<string, { resource: number; fleet: number }>();
-    for (const r of rows) {
+    for (const r of filtered) {
       const key = r.project || "—";
       const cur = m.get(key) || { resource: 0, fleet: 0 };
       if (r.section === "outsourcing") cur.resource += r.count;
@@ -129,27 +149,27 @@ export function ResourcesFleet({ fleetRaw }: { fleetRaw: string[][] }) {
     }
     return [...m.entries()].map(([name, v]) => ({ name, ...v, total: v.resource + v.fleet }))
       .sort((a, b) => b.total - a.total);
-  }, [rows]);
+  }, [filtered]);
 
   const byVendor = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of rows) m.set(r.vendor || "—", (m.get(r.vendor || "—") || 0) + r.count);
+    for (const r of filtered) m.set(r.vendor || "—", (m.get(r.vendor || "—") || 0) + r.count);
     return [...m.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [rows]);
+  }, [filtered]);
 
   const byPriority = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of rows) {
+    for (const r of filtered) {
       const k = r.priority || "—";
       m.set(k, (m.get(k) || 0) + r.count);
     }
     return [...m.entries()].map(([name, value]) => ({ name, value }));
-  }, [rows]);
+  }, [filtered]);
 
-  const expiring = useMemo(() => rows
+  const expiring = useMemo(() => filtered
     .map((r) => ({ ...r, end: parseDate(r.poEnd), dLeft: daysUntil(parseDate(r.poEnd)) }))
     .filter((r) => r.dLeft !== null)
-    .sort((a, b) => (a.dLeft as number) - (b.dLeft as number)), [rows]);
+    .sort((a, b) => (a.dLeft as number) - (b.dLeft as number)), [filtered]);
 
   return (
     <div className="space-y-5">

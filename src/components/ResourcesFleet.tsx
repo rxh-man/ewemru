@@ -41,25 +41,47 @@ function parseDate(s: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+function isReplacementRow(r: string[]): boolean {
+  const joined = r.join(" ").toLowerCase();
+  return joined.includes("replacement");
+}
+
 function parseFleet(raw: string[][]): { rows: Row[]; transformR: Row[]; transformF: Row[] } {
   const rows: Row[] = [];
   const transformR: Row[] = [];
   const transformF: Row[] = [];
   let section: Row["section"] | null = null;
-  let inFleetType = false;
 
   for (const r of raw) {
-    if (!r || r.length === 0 || r.every((c) => !c || !c.trim())) { inFleetType = false; continue; }
+    if (!r || r.length === 0 || r.every((c) => !c || !c.trim())) continue;
     const first = (r[0] || "").trim();
     const firstLow = first.toLowerCase();
     if (firstLow.includes("iot project outsourcing")) { section = "outsourcing"; continue; }
     if (firstLow.includes("iot project fleet vendor")) { section = "fleet"; continue; }
     if (firstLow.includes("transformation plan to emind")) { section = "transformResource"; continue; }
-    if (firstLow.includes("transformation plan to fleet")) { section = "transformFleet"; inFleetType = true; continue; }
+    if (firstLow.includes("transformation plan to fleet")) { section = "transformFleet"; continue; }
+    // Summary blocks at the bottom of the sheet — stop parsing register lines
+    if (firstLow === "owner" || firstLow === "emind" || firstLow === "shared service") { section = null; continue; }
     // skip header rows
     if (HEADER_TOKENS.every((tok, i) => (r[i] || "").toLowerCase().includes(tok.split(" ")[0]))) continue;
-    if (firstLow === "project name" || firstLow === "type" || firstLow === "owner") continue;
+    if (firstLow === "project name" || firstLow === "type") continue;
     if (!section) continue;
+
+    // Replacement rows (e.g. Hertz / TAQA - Replacement) are informational — do not count in KPIs/tables
+    if ((section === "outsourcing" || section === "fleet") && isReplacementRow(r)) continue;
+
+    if (section === "transformFleet") {
+      // 2-col block: Type | Count
+      transformF.push({
+        project: r[0] || "",
+        vendor: "",
+        type: r[0] || "",
+        count: Number((r[1] || "").toString().replace(/[^\d.-]/g, "")) || 0,
+        bcNo: "", poStart: "", poEnd: "", comments: "", temp: "", perm: "", priority: "",
+        section,
+      });
+      continue;
+    }
 
     const base: Row = {
       project: r[0] || "",
@@ -75,14 +97,8 @@ function parseFleet(raw: string[][]): { rows: Row[]; transformR: Row[]; transfor
       priority: r[10] || "",
       section,
     };
-    if (section === "outsourcing" || section === "fleet") {
-      rows.push(base);
-    } else if (section === "transformResource") {
-      transformR.push(base);
-    } else if (section === "transformFleet") {
-      // Fleet type block (Sedan/Van/Pickup/Hiace) has only 2 cols
-      transformF.push(base);
-    }
+    if (section === "outsourcing" || section === "fleet") rows.push(base);
+    else if (section === "transformResource") transformR.push(base);
   }
   return { rows, transformR, transformF };
 }

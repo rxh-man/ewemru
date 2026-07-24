@@ -12,6 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { CustomerExcellence } from "@/components/CustomerExcellence";
+import { ResourcesFleet } from "@/components/ResourcesFleet";
 
 
 
@@ -24,6 +25,7 @@ interface SheetData {
   mspVendors: Row[];
   mspPractises: Row[];
   nocChallenges: Row[];
+  fleetRaw: string[][];
   fetchedAt: string;
 }
 
@@ -85,7 +87,7 @@ export default function HRDashboard() {
   const [data, setData] = useState<SheetData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [track, setTrack] = useState<"field" | "msp" | "noc" | "gnoc" | "customer">("field");
+  const [track, setTrack] = useState<"field" | "msp" | "noc" | "gnoc" | "customer" | "resources">("field");
   const [tab, setTab] = useState<"overview" | "po_pr" | "payment" | "vendors">("overview");
 
 
@@ -304,6 +306,10 @@ export default function HRDashboard() {
             className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "customer" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
             Customer Excellence <span className={`ml-1 ${track === "customer" ? "opacity-80" : "text-muted-foreground"}`}>· 4</span>
           </button>
+          <button onClick={() => setTrack("resources")}
+            className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "resources" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+            Resources &amp; Fleet
+          </button>
         </div>
 
 
@@ -426,6 +432,7 @@ export default function HRDashboard() {
           </div>
         )}
         {track === "customer" && <CustomerExcellence />}
+        {track === "resources" && <ResourcesFleet fleetRaw={data?.fleetRaw ?? []} />}
       </div>
 
 

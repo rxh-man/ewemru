@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
       "'MSP - Practises'!A1:AA1000",
       "'NOC - Vendor Challenges'!A1:Z1000",
       "'CS'!A1:Z1000",
+      "'Fleet & Resources Summary'!A1:Z300",
     ];
     const qs = new URLSearchParams();
     ranges.forEach((r) => qs.append("ranges", r));
@@ -89,7 +90,7 @@ Deno.serve(async (req) => {
       });
     }
     const data = await r.json();
-    const [po, pay, ven, urg, mspV, mspP, nocC, cs] = data.valueRanges ?? [];
+    const [po, pay, ven, urg, mspV, mspP, nocC, cs, fleet] = data.valueRanges ?? [];
     const payload: CachePayload = {
       poPr: toObjects(po?.values ?? []),
       paymentRelease: toObjects(pay?.values ?? []),
@@ -99,6 +100,7 @@ Deno.serve(async (req) => {
       mspPractises: toObjects(mspP?.values ?? []),
       nocChallenges: toObjects(nocC?.values ?? []),
       cs: toObjects(cs?.values ?? []),
+      fleetRaw: (fleet?.values ?? []) as string[][],
       fetchedAt: new Date().toISOString(),
     };
     cache = { at: Date.now(), payload };

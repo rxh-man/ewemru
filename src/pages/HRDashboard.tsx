@@ -306,6 +306,10 @@ export default function HRDashboard() {
             className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "customer" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
             Customer Excellence <span className={`ml-1 ${track === "customer" ? "opacity-80" : "text-muted-foreground"}`}>· 4</span>
           </button>
+          <button onClick={() => setTrack("resources")}
+            className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "resources" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+            Resources &amp; Fleet
+          </button>
         </div>
 
 

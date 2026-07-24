@@ -125,18 +125,22 @@ export function ResourcesFleet({ fleetRaw }: { fleetRaw: string[][] }) {
   const filtered = useMemo(() => rows.filter((r) => {
     if (filter === "resource" && r.section !== "outsourcing") return false;
     if (filter === "fleet" && r.section !== "fleet") return false;
-    if (projectFilter && !r.project.toLowerCase().includes(projectFilter.toLowerCase())) return false;
+    if (projectFilter) {
+      const q = projectFilter.toLowerCase();
+      const hay = `${r.project} ${r.vendor} ${r.type} ${r.bcNo} ${r.comments}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     return true;
   }), [rows, filter, projectFilter]);
 
-  const totalResources = rows.filter((r) => r.section === "outsourcing").reduce((a, b) => a + b.count, 0);
-  const totalFleet = rows.filter((r) => r.section === "fleet").reduce((a, b) => a + b.count, 0);
+  const totalResources = filtered.filter((r) => r.section === "outsourcing").reduce((a, b) => a + b.count, 0);
+  const totalFleet = filtered.filter((r) => r.section === "fleet").reduce((a, b) => a + b.count, 0);
   const targetEmind = transformR.reduce((a, b) => a + b.count, 0);
   const fleetTargetShared = transformF.reduce((a, b) => a + b.count, 0);
 
   const byProject = useMemo(() => {
     const m = new Map<string, { resource: number; fleet: number }>();
-    for (const r of rows) {
+    for (const r of filtered) {
       const key = r.project || "—";
       const cur = m.get(key) || { resource: 0, fleet: 0 };
       if (r.section === "outsourcing") cur.resource += r.count;
@@ -145,27 +149,27 @@ export function ResourcesFleet({ fleetRaw }: { fleetRaw: string[][] }) {
     }
     return [...m.entries()].map(([name, v]) => ({ name, ...v, total: v.resource + v.fleet }))
       .sort((a, b) => b.total - a.total);
-  }, [rows]);
+  }, [filtered]);
 
   const byVendor = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of rows) m.set(r.vendor || "—", (m.get(r.vendor || "—") || 0) + r.count);
+    for (const r of filtered) m.set(r.vendor || "—", (m.get(r.vendor || "—") || 0) + r.count);
     return [...m.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [rows]);
+  }, [filtered]);
 
   const byPriority = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of rows) {
+    for (const r of filtered) {
       const k = r.priority || "—";
       m.set(k, (m.get(k) || 0) + r.count);
     }
     return [...m.entries()].map(([name, value]) => ({ name, value }));
-  }, [rows]);
+  }, [filtered]);
 
-  const expiring = useMemo(() => rows
+  const expiring = useMemo(() => filtered
     .map((r) => ({ ...r, end: parseDate(r.poEnd), dLeft: daysUntil(parseDate(r.poEnd)) }))
     .filter((r) => r.dLeft !== null)
-    .sort((a, b) => (a.dLeft as number) - (b.dLeft as number)), [rows]);
+    .sort((a, b) => (a.dLeft as number) - (b.dLeft as number)), [filtered]);
 
   return (
     <div className="space-y-5">

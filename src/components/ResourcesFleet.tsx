@@ -176,7 +176,7 @@ export function ResourcesFleet({ fleetRaw }: { fleetRaw: string[][] }) {
       {/* Hero */}
       <div className="rounded-xl overflow-hidden border border-border">
         <div className="bg-gradient-to-br from-[#7f1d1d] via-[#991b1b] to-[#dc2626] text-white p-6">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80">CBO Level · Live from sheet</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80">Head of Delivery & Operations Highlights</div>
           <h2 className="text-2xl font-semibold mt-1">Resources &amp; Fleet</h2>
           <p className="text-xs opacity-80 mt-1 max-w-2xl">Outsourced resources and fleet units across IOT projects, transformation targets to eMind and Shared Service fleet.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">

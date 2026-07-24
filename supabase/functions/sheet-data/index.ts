@@ -25,6 +25,7 @@ function toObjects(values: string[][]): Record<string, string>[] {
 type CachePayload = {
   poPr: unknown; paymentRelease: unknown; vendors: unknown; urgent: unknown;
   mspVendors: unknown; mspPractises: unknown; nocChallenges: unknown; cs: unknown;
+  fleetRaw: string[][];
   fetchedAt: string;
 };
 let cache: { at: number; payload: CachePayload } | null = null;
@@ -33,7 +34,7 @@ const CACHE_MS = 5 * 60_000;
 function emptyPayload(): CachePayload {
   return {
     poPr: [], paymentRelease: [], vendors: [], urgent: [],
-    mspVendors: [], mspPractises: [], nocChallenges: [], cs: [],
+    mspVendors: [], mspPractises: [], nocChallenges: [], cs: [], fleetRaw: [],
     fetchedAt: new Date().toISOString(),
   };
 }

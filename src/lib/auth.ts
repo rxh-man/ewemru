@@ -4,6 +4,12 @@ export interface Session { role: Role; username: string }
 export const HR_PROFILES: Record<string, { name: string; title: string; photo: string }> = {
   marina: { name: "Marina Emad", title: "Contracts & Procurement", photo: "marina" },
   asaad: { name: "Asaad Tawfik", title: "Head of Delivery and Operations", photo: "asaad" },
+  kavita: { name: "Kavita", title: "Success Manager", photo: "kavita" },
+};
+
+// Feature scoping for HR users. When omitted, user has full access.
+export const HR_ACCESS: Record<string, { tracks: Array<"field" | "msp" | "noc" | "gnoc" | "customer" | "resources">; innovation: boolean; urgent: boolean }> = {
+  kavita: { tracks: ["msp"], innovation: true, urgent: false },
 };
 
 const KEY = "mru_session";
@@ -14,6 +20,7 @@ const USERS: Record<string, { password: string; role: Role }> = {
   engineer: { password: "demo123", role: "ft" },
   marina: { password: "123999", role: "hr" },
   asaad: { password: "786321", role: "hr" },
+  kavita: { password: "123000", role: "hr" },
 };
 
 export function login(username: string, password: string): Session | null {

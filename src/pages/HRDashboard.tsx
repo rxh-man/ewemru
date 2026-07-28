@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getSession, type Session } from "@/lib/auth";
+import { getSession, type Session, HR_ACCESS } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

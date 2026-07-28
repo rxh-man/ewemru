@@ -279,14 +279,18 @@ export default function HRDashboard() {
 
 
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => setUrgentOpen(true)}
-              className="h-9 px-4 rounded-md bg-[#dc2626] text-white text-xs font-semibold hover:opacity-90">
-              Top Urgent PO / PRs
-            </button>
-            <button onClick={() => navigate("/innovation")}
-              className="h-9 px-4 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90">
-              Innovation Tools
-            </button>
+            {canUrgent && (
+              <button onClick={() => setUrgentOpen(true)}
+                className="h-9 px-4 rounded-md bg-[#dc2626] text-white text-xs font-semibold hover:opacity-90">
+                Top Urgent PO / PRs
+              </button>
+            )}
+            {canInnovation && (
+              <button onClick={() => navigate("/innovation")}
+                className="h-9 px-4 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90">
+                Innovation Tools
+              </button>
+            )}
             <button onClick={load} disabled={loading}
               className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 disabled:opacity-60">
               {loading ? "Refreshing…" : "Refresh"}
@@ -296,32 +300,51 @@ export default function HRDashboard() {
 
         {error && <div className="border border-destructive/40 bg-destructive/5 text-destructive text-xs rounded-md p-3">{error}</div>}
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tracks</span>
-          <div className="inline-flex border border-border rounded-md overflow-hidden bg-white">
-            {([
-              { k: "field", l: "Field", count: (data?.poPr.length ?? 0) + (data?.paymentRelease.length ?? 0) },
-              { k: "msp", l: "MSP", count: data?.mspVendors.length ?? 0 },
-              { k: "noc", l: "NOC", count: data?.nocChallenges.length ?? 0 },
-              { k: "gnoc", l: "E2E GNOC", count: 0 },
-            ] as const).map((t) => (
-              <button key={t.k} onClick={() => setTrack(t.k)}
-                className={`px-4 h-9 text-xs font-semibold border-r border-border last:border-r-0 transition ${track === t.k ? "bg-[#dc2626] text-white" : "text-[#111] hover:bg-secondary"}`}>
-                {t.l} <span className={`ml-1 ${track === t.k ? "opacity-80" : "text-muted-foreground"}`}>· {t.count}</span>
-              </button>
-            ))}
-          </div>
-          <div className="hidden md:block h-8 w-px bg-border mx-3" />
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Program</span>
-          <button onClick={() => setTrack("customer")}
-            className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "customer" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
-            Customer Excellence <span className={`ml-1 ${track === "customer" ? "opacity-80" : "text-muted-foreground"}`}>· 4</span>
-          </button>
-          <button onClick={() => setTrack("resources")}
-            className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "resources" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
-            Resources &amp; Fleet
-          </button>
-        </div>
+        {(() => {
+          const allowed = allowedTracks;
+          const showTrack = (k: string) => !allowed || allowed.includes(k as typeof track);
+          const trackTiles = ([
+            { k: "field", l: "Field", count: (data?.poPr.length ?? 0) + (data?.paymentRelease.length ?? 0) },
+            { k: "msp", l: "MSP", count: data?.mspVendors.length ?? 0 },
+            { k: "noc", l: "NOC", count: data?.nocChallenges.length ?? 0 },
+            { k: "gnoc", l: "E2E GNOC", count: 0 },
+          ] as const).filter(t => showTrack(t.k));
+          const showCustomer = showTrack("customer");
+          const showResources = showTrack("resources");
+          if (trackTiles.length === 0 && !showCustomer && !showResources) return null;
+          return (
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tracks</span>
+              {trackTiles.length > 0 && (
+                <div className="inline-flex border border-border rounded-md overflow-hidden bg-white">
+                  {trackTiles.map((t) => (
+                    <button key={t.k} onClick={() => setTrack(t.k)}
+                      className={`px-4 h-9 text-xs font-semibold border-r border-border last:border-r-0 transition ${track === t.k ? "bg-[#dc2626] text-white" : "text-[#111] hover:bg-secondary"}`}>
+                      {t.l} <span className={`ml-1 ${track === t.k ? "opacity-80" : "text-muted-foreground"}`}>· {t.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {(showCustomer || showResources) && <div className="hidden md:block h-8 w-px bg-border mx-3" />}
+              {(showCustomer || showResources) && (
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Program</span>
+              )}
+              {showCustomer && (
+                <button onClick={() => setTrack("customer")}
+                  className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "customer" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+                  Customer Excellence <span className={`ml-1 ${track === "customer" ? "opacity-80" : "text-muted-foreground"}`}>· 4</span>
+                </button>
+              )}
+              {showResources && (
+                <button onClick={() => setTrack("resources")}
+                  className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "resources" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+                  Resources &amp; Fleet
+                </button>
+              )}
+            </div>
+          );
+        })()}
+
 
 
         {track === "field" && <>

@@ -87,7 +87,13 @@ export default function HRDashboard() {
   const [data, setData] = useState<SheetData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [track, setTrack] = useState<"field" | "msp" | "noc" | "gnoc" | "customer" | "resources">("field");
+  const access = session ? HR_ACCESS[session.username] : undefined;
+  const allowedTracks = access?.tracks;
+  const canUrgent = access ? access.urgent : true;
+  const canInnovation = access ? access.innovation : true;
+  const [track, setTrack] = useState<"field" | "msp" | "noc" | "gnoc" | "customer" | "resources">(
+    allowedTracks && allowedTracks.length > 0 ? allowedTracks[0] : "field"
+  );
   const [tab, setTab] = useState<"overview" | "po_pr" | "payment" | "vendors">("overview");
 
 

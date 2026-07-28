@@ -929,20 +929,40 @@ function SheetTable({ rows, columns, onOwner, onProject }: { rows: Row[]; column
 /* ------------------------- MSP ------------------------- */
 function MspPanel({ vendors, practises }: { vendors: Row[]; practises: Row[] }) {
   const [openVendor, setOpenVendor] = useState<Row | null>(null);
-  const rag = groupCount(vendors, (r) => r["RAG Status"] || "—");
-  const byType = groupCount(vendors.filter((r) => (r["Field / Support Type"] || "").trim()), (r) => r["Field / Support Type"] || "—");
-  const byContract = groupCount(vendors.filter((r) => (r["Contract Type"] || "").trim()), (r) => r["Contract Type"] || "—");
-  const totalVendors = vendors.length;
-  const activeContracts = vendors.filter((r) => (r["Start Date"] || "").trim() && !isExpired(r)).length;
-  const expiredContracts = vendors.filter((r) => isExpired(r)).length;
+  const [openCust, setOpenCust] = useState<{ tech: string; rows: Row[] } | null>(null);
+  const [techFilter, setTechFilter] = useState<string>("");
+  const [custSearch, setCustSearch] = useState("");
+
+  // Two tables live in this sheet side-by-side. Split them.
+  const vendorRows = vendors.filter((r) => (r["Vendor Name"] || "").trim());
+  const customerRows = vendors.filter((r) => (r["Customer"] || "").trim() || (r["Technology"] || "").trim());
+
+  const rag = groupCount(vendorRows, (r) => r["RAG Status"] || "—");
+  const byContract = groupCount(vendorRows.filter((r) => (r["Contract Type"] || "").trim()), (r) => r["Contract Type"] || "—");
+  const totalVendors = vendorRows.length;
+  const activeContracts = vendorRows.filter((r) => (r["Start Date"] || "").trim() && !isExpired(r)).length;
+  const expiredContracts = vendorRows.filter((r) => isExpired(r)).length;
+
+  const byTech = groupCount(customerRows, (r) => r["Technology"] || "—").sort((a, b) => b.value - a.value);
+  const totalCustomers = new Set(customerRows.map((r) => r["Customer"]).filter(Boolean)).size;
+  const totalTech = byTech.length;
+
+  const filteredCustomers = customerRows.filter((r) => {
+    if (techFilter && (r["Technology"] || "") !== techFilter) return false;
+    if (custSearch && !`${r["Customer"]} ${r["Technology"]}`.toLowerCase().includes(custSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  const TECH_COLORS = ["#dc2626", "#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e", "#14b8a6", "#0ea5e9", "#6366f1", "#a855f7", "#ec4899", "#78716c", "#0f172a", "#334155", "#7c2d12", "#365314"];
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <KPI label="MSP Vendors" value={totalVendors} tone="dark" />
         <KPI label="Active Contracts" value={activeContracts} tone="green" />
         <KPI label="Expired / At Risk" value={expiredContracts} tone="red" />
-        <KPI label="Practises Covered" value={practises.length} tone="amber" />
+        <KPI label="Customers Managed" value={totalCustomers} tone="amber" />
+        <KPI label="Technologies" value={totalTech} tone="dark" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -962,22 +982,76 @@ function MspPanel({ vendors, practises }: { vendors: Row[]; practises: Row[] }) 
           </div>
         </ChartCard>
 
-        <ChartCard title="By Support Type">
-          <MiniList rows={byType} empty="Not yet classified" />
-        </ChartCard>
-
         <ChartCard title="By Contract Type">
           <MiniList rows={byContract} empty="Not yet classified" />
         </ChartCard>
+
+        <ChartCard title="Practises Covered">
+          <ul className="py-1 space-y-1">
+            {practises.map((p, i) => (
+              <li key={i} className="flex items-center gap-2 px-1 py-1">
+                <span className="w-5 h-5 rounded-full bg-[#fef2f2] text-[#dc2626] text-[10px] font-semibold flex items-center justify-center">{i + 1}</span>
+                <span className="text-xs text-[#111]">{p["Practises"] || p["Practices"] || Object.values(p)[1] || "—"}</span>
+              </li>
+            ))}
+            {!practises.length && <div className="text-xs text-muted-foreground p-2">No practises.</div>}
+          </ul>
+        </ChartCard>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 border border-border rounded-lg overflow-hidden bg-white">
+      {/* Customer × Technology footprint */}
+      <div className="border border-border rounded-lg overflow-hidden bg-white">
+        <div className="px-4 py-2.5 border-b border-border bg-secondary/40 flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="text-sm font-semibold text-[#111]">Customer Footprint by Technology</h3>
+            <p className="text-[11px] text-muted-foreground">{customerRows.length} customer engagements across {totalTech} technologies</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              value={custSearch}
+              onChange={(e) => setCustSearch(e.target.value)}
+              placeholder="Search customer or tech…"
+              className="h-8 px-2 text-xs rounded-md border border-border bg-white w-52"
+            />
+            {techFilter && (
+              <button onClick={() => setTechFilter("")} className="h-8 px-2 text-xs rounded-md bg-[#dc2626] text-white">
+                Clear: {techFilter} ×
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          {byTech.map((t, i) => {
+            const active = techFilter === t.name;
+            const rowsForTech = customerRows.filter((r) => r["Technology"] === t.name);
+            return (
+              <button
+                key={t.name}
+                onClick={() => setOpenCust({ tech: t.name, rows: rowsForTech })}
+                onDoubleClick={() => setTechFilter(active ? "" : t.name)}
+                className={`text-left rounded-md border p-2.5 transition ${active ? "border-[#dc2626] bg-[#fef2f2]" : "border-border bg-white hover:border-[#dc2626]/40"}`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 rounded-full" style={{ background: TECH_COLORS[i % TECH_COLORS.length] }} />
+                  <span className="text-[11px] text-muted-foreground truncate flex-1">{t.name}</span>
+                </div>
+                <div className="text-lg font-semibold text-[#111] tabular-nums leading-none">{t.value}</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">customers</div>
+              </button>
+            );
+          })}
+          {!byTech.length && <div className="col-span-full text-xs text-muted-foreground py-6 text-center">No customer records.</div>}
+        </div>
+      </div>
+
+      {/* Two tables side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="border border-border rounded-lg overflow-hidden bg-white">
           <div className="px-4 py-2 border-b border-border bg-secondary/40 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-[#111]">MSP Vendors</h3>
-            <span className="text-xs text-muted-foreground">{vendors.length} total</span>
+            <span className="text-xs text-muted-foreground">{vendorRows.length} total</span>
           </div>
-          <div className="max-h-[480px] overflow-y-auto">
+          <div className="max-h-[520px] overflow-y-auto">
             <table className="w-full text-xs">
               <thead className="bg-white sticky top-0 border-b border-border">
                 <tr className="text-left">
@@ -988,7 +1062,7 @@ function MspPanel({ vendors, practises }: { vendors: Row[]; practises: Row[] }) 
                 </tr>
               </thead>
               <tbody>
-                {vendors.map((v, i) => (
+                {vendorRows.map((v, i) => (
                   <tr key={i} onClick={() => setOpenVendor(v)}
                     className="border-t border-border cursor-pointer hover:bg-[#fef2f2] transition">
                     <td className="px-3 py-2 font-medium text-[#111]">{v["Vendor Name"] || "—"}</td>
@@ -997,25 +1071,45 @@ function MspPanel({ vendors, practises }: { vendors: Row[]; practises: Row[] }) 
                     <td className="px-3 py-2"><StatusDot value={v["RAG Status"] || ""} /></td>
                   </tr>
                 ))}
-                {!vendors.length && <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">No vendors.</td></tr>}
+                {!vendorRows.length && <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">No vendors.</td></tr>}
               </tbody>
             </table>
           </div>
         </div>
 
         <div className="border border-border rounded-lg overflow-hidden bg-white">
-          <div className="px-4 py-2 border-b border-border bg-secondary/40">
-            <h3 className="text-sm font-semibold text-[#111]">Practises</h3>
+          <div className="px-4 py-2 border-b border-border bg-secondary/40 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-[#111]">Customers × Technology</h3>
+            <span className="text-xs text-muted-foreground">{filteredCustomers.length} of {customerRows.length}</span>
           </div>
-          <ul className="p-2 max-h-[480px] overflow-y-auto">
-            {practises.map((p, i) => (
-              <li key={i} className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary/40">
-                <span className="w-6 h-6 rounded-full bg-[#fef2f2] text-[#dc2626] text-[10px] font-semibold flex items-center justify-center">{i + 1}</span>
-                <span className="text-xs text-[#111]">{p["Practises"] || p["Practices"] || Object.values(p)[1] || "—"}</span>
-              </li>
-            ))}
-            {!practises.length && <div className="text-xs text-muted-foreground p-3">No practises.</div>}
-          </ul>
+          <div className="max-h-[520px] overflow-y-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-white sticky top-0 border-b border-border">
+                <tr className="text-left">
+                  <th className="px-3 py-2 font-semibold w-10">#</th>
+                  <th className="px-3 py-2 font-semibold">Customer</th>
+                  <th className="px-3 py-2 font-semibold">Technology</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCustomers.map((c, i) => (
+                  <tr key={i} className="border-t border-border hover:bg-[#fef2f2] transition">
+                    <td className="px-3 py-2 text-muted-foreground tabular-nums">{c["S.No"] || i + 1}</td>
+                    <td className="px-3 py-2 font-medium text-[#111]">{c["Customer"] || "—"}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        onClick={() => setTechFilter(c["Technology"] || "")}
+                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-[#111] cursor-pointer hover:bg-[#fef2f2]"
+                      >
+                        {c["Technology"] || "—"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {!filteredCustomers.length && <tr><td colSpan={3} className="px-3 py-8 text-center text-muted-foreground">No matches.</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -1027,7 +1121,7 @@ function MspPanel({ vendors, practises }: { vendors: Row[]; practises: Row[] }) 
           </DialogHeader>
           <dl className="grid grid-cols-1 gap-2 text-xs">
             {openVendor && Object.entries(openVendor)
-              .filter(([k, v]) => k && !k.startsWith("col_") && (v || "").trim())
+              .filter(([k, v]) => k && !k.startsWith("col_") && k !== "S.No" && k !== "Customer" && k !== "Technology" && (v || "").trim())
               .map(([k, v]) => (
                 <div key={k} className="flex gap-3 border-b border-border pb-1.5">
                   <dt className="text-muted-foreground w-40 shrink-0">{k}</dt>
@@ -1035,6 +1129,33 @@ function MspPanel({ vendors, practises }: { vendors: Row[]; practises: Row[] }) 
                 </div>
               ))}
           </dl>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!openCust} onOpenChange={(o) => !o && setOpenCust(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{openCust?.tech}</DialogTitle>
+            <DialogDescription>{openCust?.rows.length} customers on this technology</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto border border-border rounded-md">
+            <table className="w-full text-xs">
+              <thead className="bg-secondary/40 sticky top-0">
+                <tr className="text-left">
+                  <th className="px-3 py-2 font-semibold w-10">#</th>
+                  <th className="px-3 py-2 font-semibold">Customer</th>
+                </tr>
+              </thead>
+              <tbody>
+                {openCust?.rows.map((r, i) => (
+                  <tr key={i} className="border-t border-border">
+                    <td className="px-3 py-2 text-muted-foreground tabular-nums">{i + 1}</td>
+                    <td className="px-3 py-2 text-[#111]">{r["Customer"]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

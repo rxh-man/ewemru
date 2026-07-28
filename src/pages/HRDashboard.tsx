@@ -116,6 +116,11 @@ export default function HRDashboard() {
     const s = getSession();
     if (!s || s.role !== "hr") { navigate("/hr-login"); return; }
     setSession(s);
+    const a = HR_ACCESS[s.username];
+    if (a && a.tracks.length > 0 && !a.tracks.includes(track)) {
+      setTrack(a.tracks[0]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   async function load() {

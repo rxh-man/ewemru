@@ -26,9 +26,16 @@ export function AppShell({ session, children }: { session: Session; children: Re
               const profile = HR_PROFILES[session.username];
               if (!profile) return null;
               const photo = HR_PHOTOS[profile.photo];
+              const initials = profile.name.split(/\s+/).map(p => p[0]).join("").slice(0, 2).toUpperCase();
               return (
                 <div className="flex items-center gap-2">
-                  <img src={photo} alt={profile.name} className="h-8 w-8 rounded-full object-cover border border-border" />
+                  {photo ? (
+                    <img src={photo} alt={profile.name} className="h-8 w-8 rounded-full object-cover border border-border" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full border border-border bg-[#dc2626] text-white flex items-center justify-center text-[11px] font-semibold">
+                      {initials}
+                    </div>
+                  )}
                   <div className="hidden sm:flex flex-col leading-tight">
                     <span className="text-xs font-medium text-[#111]">{profile.name}</span>
                     <span className="text-[10px] text-muted-foreground">{profile.title}</span>

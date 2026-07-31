@@ -452,21 +452,23 @@ export default function HRDashboard() {
         )}
 
         {tab === "po_pr" && <SheetTable rows={filtered.poPr} columns={["#", "Initiator (HR)", "Project Name", "Vendor Name", "Description", "Old System", "New System", "PR In System", "PR Number", "Action Category", "Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "po_pr" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "po_pr" })} />}
-        {tab === "payment" && <SheetTable rows={filtered.payment} columns={["#", "System", "Project Name", "Vendor Name", "Issue", "Comment", "Action Category", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} />}
+        {tab === "payment" && <Stale><SheetTable rows={filtered.payment} columns={["#", "System", "Project Name", "Vendor Name", "Issue", "Comment", "Action Category", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} /></Stale>}
 
-        {tab === "vendors" && <SheetTable rows={filtered.vendors} columns={["#", "Vendor Name", "Project Name", "Field / Support Type", "Contract Type", "Start Date", "End Date", "Contract Owner", "RAG Status"]} onProject={(v) => openDrill({ kind: "project", value: v })} />}
+        {tab === "vendors" && <Stale><SheetTable rows={filtered.vendors} columns={["#", "Vendor Name", "Project Name", "Field / Support Type", "Contract Type", "Start Date", "End Date", "Contract Owner", "RAG Status"]} onProject={(v) => openDrill({ kind: "project", value: v })} /></Stale>}
         </>}
 
         {track === "msp" && <MspPanel vendors={data?.mspVendors ?? []} practises={data?.mspPractises ?? []} />}
-        {track === "noc" && <NocPanel challenges={data?.nocChallenges ?? []} />}
+        {track === "noc" && <Stale><NocPanel challenges={data?.nocChallenges ?? []} /></Stale>}
         {track === "gnoc" && (
-          <div className="border border-dashed border-border rounded-lg p-12 text-center bg-white">
-            <div className="text-sm font-semibold text-[#111]">E2E GNOC</div>
-            <p className="text-xs text-muted-foreground mt-1">Awaiting sheet — this view will populate automatically once the GNOC sheet is added.</p>
-          </div>
+          <Stale>
+            <div className="border border-dashed border-border rounded-lg p-12 text-center bg-white">
+              <div className="text-sm font-semibold text-[#111]">E2E GNOC</div>
+              <p className="text-xs text-muted-foreground mt-1">Awaiting sheet — this view will populate automatically once the GNOC sheet is added.</p>
+            </div>
+          </Stale>
         )}
-        {track === "customer" && <CustomerExcellence />}
-        {track === "resources" && <ResourcesFleet fleetRaw={data?.fleetRaw ?? []} />}
+        {track === "customer" && <Stale><CustomerExcellence /></Stale>}
+        {track === "resources" && <Stale><ResourcesFleet fleetRaw={data?.fleetRaw ?? []} /></Stale>}
       </div>
 
 

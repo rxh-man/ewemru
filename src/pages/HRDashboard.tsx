@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getSession, type Session, HR_ACCESS } from "@/lib/auth";
+import { getSession, type Session, getAccess } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -81,13 +81,30 @@ function isExpired(r: Row): boolean {
 
 type DrillFilter = { kind: "owner" | "project" | "vendor" | "status" | "category"; value: string; source?: "po_pr" | "payment" | "all" };
 
+function Stale({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start gap-2 border border-amber-300 bg-amber-50 rounded-md px-3 py-2">
+        <span className="mt-0.5 h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+        <div>
+          <p className="text-xs font-semibold text-amber-900">Data not updated since last 12 days</p>
+          <p className="text-[11px] text-amber-800/80">This view is kept blurred until the source sheet is refreshed. Only Field PO &amp; PR and MSP sheets are current.</p>
+        </div>
+      </div>
+      <div className="relative">
+        <div className="blur-sm select-none pointer-events-none opacity-70" aria-hidden>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function HRDashboard() {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [data, setData] = useState<SheetData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const access = session ? HR_ACCESS[session.username] : undefined;
+  const access = session ? getAccess(session.username) : undefined;
   const allowedTracks = access?.tracks;
   const canUrgent = access ? access.urgent : true;
   const canInnovation = access ? access.innovation : true;
@@ -116,7 +133,7 @@ export default function HRDashboard() {
     const s = getSession();
     if (!s || s.role !== "hr") { navigate("/hr-login"); return; }
     setSession(s);
-    const a = HR_ACCESS[s.username];
+    const a = getAccess(s.username);
     if (a && a.tracks.length > 0 && !a.tracks.includes(track)) {
       setTrack(a.tracks[0]);
     }
@@ -452,21 +469,23 @@ export default function HRDashboard() {
         )}
 
         {tab === "po_pr" && <SheetTable rows={filtered.poPr} columns={["#", "Initiator (HR)", "Project Name", "Vendor Name", "Description", "Old System", "New System", "PR In System", "PR Number", "Action Category", "Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "po_pr" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "po_pr" })} />}
-        {tab === "payment" && <SheetTable rows={filtered.payment} columns={["#", "System", "Project Name", "Vendor Name", "Issue", "Comment", "Action Category", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} />}
+        {tab === "payment" && <Stale><SheetTable rows={filtered.payment} columns={["#", "System", "Project Name", "Vendor Name", "Issue", "Comment", "Action Category", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} /></Stale>}
 
-        {tab === "vendors" && <SheetTable rows={filtered.vendors} columns={["#", "Vendor Name", "Project Name", "Field / Support Type", "Contract Type", "Start Date", "End Date", "Contract Owner", "RAG Status"]} onProject={(v) => openDrill({ kind: "project", value: v })} />}
+        {tab === "vendors" && <Stale><SheetTable rows={filtered.vendors} columns={["#", "Vendor Name", "Project Name", "Field / Support Type", "Contract Type", "Start Date", "End Date", "Contract Owner", "RAG Status"]} onProject={(v) => openDrill({ kind: "project", value: v })} /></Stale>}
         </>}
 
         {track === "msp" && <MspPanel vendors={data?.mspVendors ?? []} practises={data?.mspPractises ?? []} />}
-        {track === "noc" && <NocPanel challenges={data?.nocChallenges ?? []} />}
+        {track === "noc" && <Stale><NocPanel challenges={data?.nocChallenges ?? []} /></Stale>}
         {track === "gnoc" && (
-          <div className="border border-dashed border-border rounded-lg p-12 text-center bg-white">
-            <div className="text-sm font-semibold text-[#111]">E2E GNOC</div>
-            <p className="text-xs text-muted-foreground mt-1">Awaiting sheet — this view will populate automatically once the GNOC sheet is added.</p>
-          </div>
+          <Stale>
+            <div className="border border-dashed border-border rounded-lg p-12 text-center bg-white">
+              <div className="text-sm font-semibold text-[#111]">E2E GNOC</div>
+              <p className="text-xs text-muted-foreground mt-1">Awaiting sheet — this view will populate automatically once the GNOC sheet is added.</p>
+            </div>
+          </Stale>
         )}
-        {track === "customer" && <CustomerExcellence />}
-        {track === "resources" && <ResourcesFleet fleetRaw={data?.fleetRaw ?? []} />}
+        {track === "customer" && <Stale><CustomerExcellence /></Stale>}
+        {track === "resources" && <Stale><ResourcesFleet fleetRaw={data?.fleetRaw ?? []} /></Stale>}
       </div>
 
 

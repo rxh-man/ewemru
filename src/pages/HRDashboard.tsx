@@ -44,7 +44,8 @@ function groupCount<T>(items: T[], keyFn: (t: T) => string | string[]): { name: 
     const k = keyFn(it);
     const keys = Array.isArray(k) ? k : [k];
     for (const key of keys) {
-      const clean = (key || "—").trim() || "—";
+      const clean = (key || "").trim();
+      if (!clean || /^(—|-|n\/?a|nil|none|null|tbd|0)$/i.test(clean)) continue;
       m.set(clean, (m.get(clean) ?? 0) + 1);
     }
   }

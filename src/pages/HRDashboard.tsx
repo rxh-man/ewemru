@@ -164,6 +164,7 @@ export default function HRDashboard() {
     };
     const match = (r: Row) => {
       if (!meaningful(r)) return false;
+      if (fProject && !(r["Project Name"] || "").toLowerCase().includes(fProject.toLowerCase())) return false;
       if (fVendor && !(r["Vendor Name"] || "").toLowerCase().includes(fVendor.toLowerCase())) return false;
       if (fOwner && !(r.Owner || "").toLowerCase().includes(fOwner.toLowerCase())) return false;
       if (fStatus && !(r.Status || "").toLowerCase().includes(fStatus.toLowerCase())) return false;

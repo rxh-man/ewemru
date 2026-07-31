@@ -53,9 +53,23 @@ function groupCount<T>(items: T[], keyFn: (t: T) => string | string[]): { name: 
 }
 function isPending(r: Row): boolean {
   const status = (r.Status || "").toLowerCase();
-  const blocker = (r.Blockers || "").toLowerCase();
-  if (blocker.includes("block")) return true;
+  const blocker = (r.Blockers || "").toLowerCase().trim();
+  if (/^(green|closed|completed|done)$/.test(status.trim())) return false;
+  if (blocker && !/^(completed|done|closed|no blocker|n\/?a|nil|none)$/.test(blocker)) return true;
   return ["red", "amber", "yellow", "pending", "open", "in progress"].some((k) => status.includes(k));
+}
+
+// The PO & PR sheet headers changed; normalise them to the keys the UI uses.
+function normalizePoPr(rows: Row[]): Row[] {
+  return rows.map((r) => ({
+    ...r,
+    "#": r["#"] || r.No || "",
+    "Vendor Name": r["Vendor Name"] || r.Vendor || "",
+    Owner: r.Owner || r["Action Owner"] || "",
+    "Initiator (HR)": r["Initiator (HR)"] || r.Requester || "",
+    "Action Category": r["Action Category"] || r.category || "",
+    "PR Number": r["PR Number"] || r["PR In System"] || "",
+  }));
 }
 function parseDate(s: string): Date | null {
   if (!s) return null;

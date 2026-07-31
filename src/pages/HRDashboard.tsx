@@ -160,7 +160,8 @@ export default function HRDashboard() {
     try {
       const { data: d, error } = await supabase.functions.invoke("sheet-data");
       if (error) throw error;
-      setData(d as SheetData);
+      const sd = d as SheetData;
+      setData({ ...sd, poPr: normalizePoPr((sd.poPr ?? []) as Row[]) });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Failed to load sheet";
       setError(msg); toast.error(msg);

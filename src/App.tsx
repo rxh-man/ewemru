@@ -7,6 +7,7 @@ import Admin from "./pages/Admin";
 import Surveyor from "./pages/Surveyor";
 import FieldTech from "./pages/FieldTech";
 import Innovation from "./pages/Innovation";
+import UserAdmin from "./pages/UserAdmin";
 
 export default function App() {
   return (

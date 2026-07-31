@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getSession, type Session, HR_ACCESS } from "@/lib/auth";
+import { getSession, type Session, getAccess } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -104,7 +104,7 @@ export default function HRDashboard() {
   const [data, setData] = useState<SheetData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const access = session ? HR_ACCESS[session.username] : undefined;
+  const access = session ? getAccess(session.username) : undefined;
   const allowedTracks = access?.tracks;
   const canUrgent = access ? access.urgent : true;
   const canInnovation = access ? access.innovation : true;
@@ -133,7 +133,7 @@ export default function HRDashboard() {
     const s = getSession();
     if (!s || s.role !== "hr") { navigate("/hr-login"); return; }
     setSession(s);
-    const a = HR_ACCESS[s.username];
+    const a = getAccess(s.username);
     if (a && a.tracks.length > 0 && !a.tracks.includes(track)) {
       setTrack(a.tracks[0]);
     }

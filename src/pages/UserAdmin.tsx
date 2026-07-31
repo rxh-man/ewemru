@@ -39,7 +39,7 @@ export default function UserAdmin() {
     const err = createUser(username, {
       password,
       role: "hr",
-      profile: { name: name.trim() || username.trim(), title: title.trim() || "PO Portal User", photo: "" },
+      profile: { name: name.trim() || username.trim(), title: title.trim() || "Delivery & Operations User", photo: "" },
       access: { tracks, innovation, urgent },
     });
     if (err) { toast.error(err); return; }
@@ -63,7 +63,7 @@ export default function UserAdmin() {
       <div className="space-y-5">
         <div>
           <h1 className="text-xl font-semibold text-[#111]">User Management</h1>
-          <p className="text-xs text-muted-foreground mt-1">Create PO Portal logins and scope their access.</p>
+          <p className="text-xs text-muted-foreground mt-1">Create Delivery & Operations logins and scope their access.</p>
         </div>
 
         <form onSubmit={submit} className="border border-border rounded-lg p-4 bg-white space-y-3">

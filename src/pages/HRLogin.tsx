@@ -28,7 +28,7 @@ export default function HRLogin() {
         <div className="hidden lg:flex flex-col justify-between bg-[#111] text-white p-12">
           <div className="flex items-center gap-2">
             <img src={eandLogo} alt="e&" className="h-8 w-auto invert" />
-            <span className="text-sm font-semibold">PO Portal</span>
+            <span className="text-sm font-semibold">Delivery & Operations</span>
           </div>
           <div>
             <h2 className="text-3xl font-semibold leading-tight max-w-md">Contract & Procurement</h2>
@@ -42,7 +42,7 @@ export default function HRLogin() {
           <div className="w-full max-w-sm">
             <div className="lg:hidden flex items-center gap-2 mb-6">
               <img src={eandLogo} alt="e&" className="h-7 w-auto" />
-              <span className="text-sm font-semibold text-[#111]">PO Portal</span>
+              <span className="text-sm font-semibold text-[#111]">Delivery & Operations</span>
             </div>
             <h1 className="text-2xl font-semibold text-[#111]">Sign in</h1>
             <p className="text-sm text-muted-foreground mt-1">HR access to the MR Tracker dashboard.</p>

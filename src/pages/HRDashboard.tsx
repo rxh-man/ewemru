@@ -44,7 +44,8 @@ function groupCount<T>(items: T[], keyFn: (t: T) => string | string[]): { name: 
     const k = keyFn(it);
     const keys = Array.isArray(k) ? k : [k];
     for (const key of keys) {
-      const clean = (key || "—").trim() || "—";
+      const clean = (key || "").trim();
+      if (!clean || /^(—|-|n\/?a|nil|none|null|tbd|0)$/i.test(clean)) continue;
       m.set(clean, (m.get(clean) ?? 0) + 1);
     }
   }
@@ -52,9 +53,23 @@ function groupCount<T>(items: T[], keyFn: (t: T) => string | string[]): { name: 
 }
 function isPending(r: Row): boolean {
   const status = (r.Status || "").toLowerCase();
-  const blocker = (r.Blockers || "").toLowerCase();
-  if (blocker.includes("block")) return true;
+  const blocker = (r.Blockers || "").toLowerCase().trim();
+  if (/^(green|closed|completed|done)$/.test(status.trim())) return false;
+  if (blocker && !/^(completed|done|closed|no blocker|n\/?a|nil|none)$/.test(blocker)) return true;
   return ["red", "amber", "yellow", "pending", "open", "in progress"].some((k) => status.includes(k));
+}
+
+// The PO & PR sheet headers changed; normalise them to the keys the UI uses.
+function normalizePoPr(rows: Row[]): Row[] {
+  return rows.map((r) => ({
+    ...r,
+    "#": r["#"] || r.No || "",
+    "Vendor Name": r["Vendor Name"] || r.Vendor || "",
+    Owner: r.Owner || r["Action Owner"] || "",
+    "Initiator (HR)": r["Initiator (HR)"] || r.Requester || "",
+    "Action Category": r["Action Category"] || r.category || "",
+    "PR Number": r["PR Number"] || r["PR In System"] || "",
+  }));
 }
 function parseDate(s: string): Date | null {
   if (!s) return null;
@@ -145,7 +160,8 @@ export default function HRDashboard() {
     try {
       const { data: d, error } = await supabase.functions.invoke("sheet-data");
       if (error) throw error;
-      setData(d as SheetData);
+      const sd = d as SheetData;
+      setData({ ...sd, poPr: normalizePoPr((sd.poPr ?? []) as Row[]) });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Failed to load sheet";
       setError(msg); toast.error(msg);
@@ -156,7 +172,13 @@ export default function HRDashboard() {
   const filtered = useMemo(() => {
     if (!data) return { poPr: [] as Row[], payment: [] as Row[], vendors: [] as Row[] };
     const q = search.trim().toLowerCase();
+    const meaningful = (r: Row) => {
+      const vals = Object.entries(r).filter(([k]) => k !== "#").map(([, v]) => (v || "").trim()).filter(Boolean);
+      if (!vals.length) return false;
+      return !!((r["Project Name"] || "").trim() || (r["Vendor Name"] || "").trim() || vals.length > 1);
+    };
     const match = (r: Row) => {
+      if (!meaningful(r)) return false;
       if (fProject && !(r["Project Name"] || "").toLowerCase().includes(fProject.toLowerCase())) return false;
       if (fVendor && !(r["Vendor Name"] || "").toLowerCase().includes(fVendor.toLowerCase())) return false;
       if (fOwner && !(r.Owner || "").toLowerCase().includes(fOwner.toLowerCase())) return false;
@@ -468,7 +490,7 @@ export default function HRDashboard() {
           </div>
         )}
 
-        {tab === "po_pr" && <SheetTable rows={filtered.poPr} columns={["#", "Initiator (HR)", "Project Name", "Vendor Name", "Description", "Old System", "New System", "PR In System", "PR Number", "Action Category", "Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "po_pr" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "po_pr" })} />}
+        {tab === "po_pr" && <SheetTable rows={filtered.poPr} columns={["#", "Initiator (HR)", "Project Name", "Vendor Name", "Description", "BC No", "RFQ", "PR In System", "PO In System", "Amount", "Action Category", "Owner", "Status", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "po_pr" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "po_pr" })} />}
         {tab === "payment" && <Stale><SheetTable rows={filtered.payment} columns={["#", "System", "Project Name", "Vendor Name", "Issue", "Comment", "Action Category", "Owner", "Next Step", "Next Step Owner", "Status", "Remarks", "Blockers"]} onOwner={(v) => openDrill({ kind: "owner", value: v, source: "payment" })} onProject={(v) => openDrill({ kind: "project", value: v, source: "payment" })} /></Stale>}
 
         {tab === "vendors" && <Stale><SheetTable rows={filtered.vendors} columns={["#", "Vendor Name", "Project Name", "Field / Support Type", "Contract Type", "Start Date", "End Date", "Contract Owner", "RAG Status"]} onProject={(v) => openDrill({ kind: "project", value: v })} /></Stale>}
@@ -484,8 +506,8 @@ export default function HRDashboard() {
             </div>
           </Stale>
         )}
-        {track === "customer" && <Stale><CustomerExcellence /></Stale>}
-        {track === "resources" && <Stale><ResourcesFleet fleetRaw={data?.fleetRaw ?? []} /></Stale>}
+        {track === "customer" && <CustomerExcellence />}
+        {track === "resources" && <ResourcesFleet fleetRaw={data?.fleetRaw ?? []} />}
       </div>
 
 

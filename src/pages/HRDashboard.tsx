@@ -157,8 +157,13 @@ export default function HRDashboard() {
   const filtered = useMemo(() => {
     if (!data) return { poPr: [] as Row[], payment: [] as Row[], vendors: [] as Row[] };
     const q = search.trim().toLowerCase();
+    const meaningful = (r: Row) => {
+      const vals = Object.entries(r).filter(([k]) => k !== "#").map(([, v]) => (v || "").trim()).filter(Boolean);
+      if (!vals.length) return false;
+      return !!((r["Project Name"] || "").trim() || (r["Vendor Name"] || "").trim() || vals.length > 1);
+    };
     const match = (r: Row) => {
-      if (fProject && !(r["Project Name"] || "").toLowerCase().includes(fProject.toLowerCase())) return false;
+      if (!meaningful(r)) return false;
       if (fVendor && !(r["Vendor Name"] || "").toLowerCase().includes(fVendor.toLowerCase())) return false;
       if (fOwner && !(r.Owner || "").toLowerCase().includes(fOwner.toLowerCase())) return false;
       if (fStatus && !(r.Status || "").toLowerCase().includes(fStatus.toLowerCase())) return false;

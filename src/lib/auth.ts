@@ -36,7 +36,7 @@ const BASE_USERS: Record<string, UserRecord> = {
   kavita: {
     password: "123000", role: "hr",
     profile: { name: "Kavita", title: "Success Manager", photo: "kavita" },
-    access: { tracks: ["msp"], innovation: true, urgent: false },
+    access: { tracks: ["msp", "field", "customer", "resources"], innovation: true, urgent: false },
   },
   ahmed: {
     password: "123000", role: "hr",

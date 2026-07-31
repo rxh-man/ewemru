@@ -81,6 +81,23 @@ function isExpired(r: Row): boolean {
 
 type DrillFilter = { kind: "owner" | "project" | "vendor" | "status" | "category"; value: string; source?: "po_pr" | "payment" | "all" };
 
+function Stale({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start gap-2 border border-amber-300 bg-amber-50 rounded-md px-3 py-2">
+        <span className="mt-0.5 h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+        <div>
+          <p className="text-xs font-semibold text-amber-900">Data not updated since last 12 days</p>
+          <p className="text-[11px] text-amber-800/80">This view is kept blurred until the source sheet is refreshed. Only Field PO &amp; PR and MSP sheets are current.</p>
+        </div>
+      </div>
+      <div className="relative">
+        <div className="blur-sm select-none pointer-events-none opacity-70" aria-hidden>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function HRDashboard() {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);

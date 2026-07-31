@@ -121,7 +121,6 @@ export default function HRDashboard() {
   const [error, setError] = useState<string | null>(null);
   const access = session ? getAccess(session.username) : undefined;
   const allowedTracks = access?.tracks;
-  const canUrgent = access ? access.urgent : true;
   const canInnovation = access ? access.innovation : true;
   const [track, setTrack] = useState<"field" | "msp" | "noc" | "gnoc" | "customer" | "resources">(
     allowedTracks && allowedTracks.length > 0 ? allowedTracks[0] : "field"
@@ -142,7 +141,7 @@ export default function HRDashboard() {
   const [emailBody, setEmailBody] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const [urgentOpen, setUrgentOpen] = useState(false);
+  
 
   useEffect(() => {
     const s = getSession();
@@ -318,12 +317,6 @@ export default function HRDashboard() {
 
 
           <div className="flex gap-2 flex-wrap">
-            {canUrgent && (
-              <button onClick={() => setUrgentOpen(true)}
-                className="h-9 px-4 rounded-md bg-[#dc2626] text-white text-xs font-semibold hover:opacity-90">
-                Top Urgent PO / PRs
-              </button>
-            )}
             {canInnovation && (
               <button onClick={() => navigate("/innovation")}
                 className="h-9 px-4 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90">
@@ -602,130 +595,7 @@ export default function HRDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Top Urgent PO / PRs — minimal view of the "Urgent PO/PR" sheet */}
-      <Dialog open={urgentOpen} onOpenChange={setUrgentOpen}>
-        <DialogContent className="max-w-[1100px] max-h-[92vh] overflow-hidden flex flex-col p-0">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-            <div>
-              <DialogTitle className="text-base">Top Urgent PO / PRs</DialogTitle>
-              <DialogDescription className="text-xs">
-                Live from sheet <span className="font-medium text-[#111]">Urgent PO/PR</span>
-                {data?.urgent ? ` · ${data.urgent.length} item${data.urgent.length === 1 ? "" : "s"}` : ""}
-              </DialogDescription>
-            </div>
-            <button onClick={() => setUrgentOpen(false)} className="h-8 px-3 text-xs border border-input rounded-md bg-white hover:bg-secondary">Close</button>
-          </div>
-          <div className="overflow-y-auto flex-1 p-5 bg-white">
-            <UrgentList rows={data?.urgent ?? []} />
-          </div>
-        </DialogContent>
-      </Dialog>
     </AppShell>
-  );
-}
-
-function UrgentList({ rows }: { rows: Row[] }) {
-  const [openProject, setOpenProject] = useState<string | null>(null);
-
-  if (!rows.length) {
-    return <div className="text-center py-12 text-xs text-muted-foreground">No urgent items in the sheet.</div>;
-  }
-
-  // Group by Project Name
-  const byProject = new Map<string, Row[]>();
-  for (const r of rows) {
-    const p = (r["Project Name"] || "Unassigned").trim() || "Unassigned";
-    if (!byProject.has(p)) byProject.set(p, []);
-    byProject.get(p)!.push(r);
-  }
-  const projects = [...byProject.entries()]
-    .map(([name, items]) => ({ name, items }))
-    .sort((a, b) => b.items.length - a.items.length);
-
-  if (openProject) {
-    const items = byProject.get(openProject) || [];
-    const cols = Object.keys(items[0] || {}).filter((k) => k && !k.startsWith("col_"));
-    return (
-      <div className="space-y-3">
-        <button onClick={() => setOpenProject(null)}
-          className="text-xs text-[#dc2626] hover:underline font-medium">← Back to summary</button>
-        <div>
-          <h3 className="text-sm font-semibold text-[#111]">{openProject}</h3>
-          <p className="text-xs text-muted-foreground">{items.length} urgent item{items.length === 1 ? "" : "s"}</p>
-        </div>
-        <div className="space-y-2">
-          {items.map((r, i) => {
-            const title = r["PR Number"] || r["PO Number"] || r["Vendor Name"] || r["Description"] || `Item ${i + 1}`;
-            const vendor = r["Vendor Name"] || r["Vendor"] || "";
-            const status = r["Status"] || "";
-            const statusColor = STATUS_COLORS[status] || "#6b7280";
-            return (
-              <div key={i} className="border border-border rounded-lg bg-white">
-                <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-border">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-muted-foreground">#{i + 1}</span>
-                      <h4 className="text-sm font-semibold text-[#111] truncate">{title}</h4>
-                    </div>
-                    {vendor && <p className="text-xs text-muted-foreground mt-0.5 truncate">{vendor}</p>}
-                  </div>
-                  {status && (
-                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
-                      style={{ backgroundColor: statusColor }}>{status}</span>
-                  )}
-                </div>
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 px-4 py-3">
-                  {cols
-                    .filter((k) => k !== "Project Name" && k !== "Vendor Name" && k !== "Vendor" && k !== "Status")
-                    .filter((k) => (r[k] || "").trim() !== "")
-                    .map((k) => (
-                      <div key={k} className="text-xs flex gap-2 min-w-0">
-                        <dt className="text-muted-foreground shrink-0">{k}:</dt>
-                        <dd className="text-[#111] break-words">{r[k]}</dd>
-                      </div>
-                    ))}
-                </dl>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <div>
-        <h3 className="text-sm font-semibold text-[#111]">Summary by Project</h3>
-        <p className="text-xs text-muted-foreground">{projects.length} project{projects.length === 1 ? "" : "s"} · {rows.length} urgent item{rows.length === 1 ? "" : "s"} · Click a project for details</p>
-      </div>
-      <div className="border border-border rounded-lg overflow-hidden divide-y divide-border">
-        {projects.map((p) => {
-          const statuses = groupCount(p.items, (r) => r.Status || "—");
-          return (
-            <button key={p.name} onClick={() => setOpenProject(p.name)}
-              className="w-full flex items-center justify-between gap-4 px-4 py-3 text-left hover:bg-[#fef2f2] transition">
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-[#111] truncate">{p.name}</div>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  {statuses.map((s) => (
-                    <span key={s.name} className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
-                      style={{ backgroundColor: STATUS_COLORS[s.name] || "#6b7280" }}>
-                      {s.name} · {s.value}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="shrink-0 text-right">
-                <div className="text-lg font-bold text-[#dc2626] tabular-nums leading-none">{p.items.length}</div>
-                <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5">items</div>
-              </div>
-              <span className="shrink-0 text-muted-foreground text-lg leading-none">›</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 

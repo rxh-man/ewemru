@@ -485,8 +485,8 @@ export default function HRDashboard() {
             </div>
           </Stale>
         )}
-        {track === "customer" && <Stale><CustomerExcellence /></Stale>}
-        {track === "resources" && <Stale><ResourcesFleet fleetRaw={data?.fleetRaw ?? []} /></Stale>}
+        {track === "customer" && <CustomerExcellence />}
+        {track === "resources" && <ResourcesFleet fleetRaw={data?.fleetRaw ?? []} />}
       </div>
 
 

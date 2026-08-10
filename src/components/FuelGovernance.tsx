@@ -227,7 +227,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       <div className="border border-border rounded-lg bg-white overflow-hidden">
         <div className="px-4 py-2 border-b border-border flex items-center justify-between">
           <span className="text-xs font-semibold text-[#111]">Employee-wise Fuel Reimbursement</span>
-          <span className="text-[10px] text-muted-foreground">Litres = km ÷ {MILEAGE} · Payable = litres × AED {FUEL_PRICE}</span>
+          <span className="text-[10px] text-muted-foreground">Litres = km ÷ {MILEAGE} · Payable = litres × AED {SUPER_98_PRICE} (Super 98)</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">

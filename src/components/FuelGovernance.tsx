@@ -7,9 +7,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 
-const FUEL_PRICE = 3.49; // AED per litre — UAE, August 2026
+const SUPER_98_PRICE = 3.49; // AED per litre — UAE, August 2026
+const SPECIAL_95_PRICE = 3.29; // AED per litre — UAE, August 2026
 const MILEAGE = 11; // km per litre (fleet standard)
-const RED = ["#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#f87171"];
+// e& themed red spectrum — deep crimson to brand red
+const RED = ["#4a0505", "#7a0a0a", "#a30f0f", "#c41212", "#e60000", "#ff4d4d"];
 
 type Row = Record<string, string>;
 

@@ -67,11 +67,26 @@ function KPI({ label, value, sub }: { label: string; value: string; sub?: string
   );
 }
 
+function toDate(s: string): Date | null {
+  const t = (s || "").trim();
+  if (!t) return null;
+  // supports "8/5/2026" and "2026-08-05"
+  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const d = m ? new Date(+m[3], +m[1] - 1, +m[2]) : new Date(t);
+  return isNaN(d.getTime()) ? null : d;
+}
+function iso(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function FuelGovernance({ rows }: { rows: Row[] }) {
   const [q, setQ] = useState("");
   const [detail, setDetail] = useState<string | null>(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
 
-  const trips: Trip[] = useMemo(() => {
+  const allTrips: Trip[] = useMemo(() => {
     return rows.map((r) => {
       const rawId = r["Employee ID"] ?? "";
       const { id, name } = splitId(rawId);
@@ -87,6 +102,34 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       };
     }).filter((t) => t.id && t.id !== "Unknown");
   }, [rows]);
+
+  const trips = useMemo(() => {
+    if (!from && !to) return allTrips;
+    const f = from ? new Date(from + "T00:00:00") : null;
+    const t2 = to ? new Date(to + "T23:59:59") : null;
+    return allTrips.filter((t) => {
+      const d = toDate(t.date);
+      if (!d) return false;
+      if (f && d < f) return false;
+      if (t2 && d > t2) return false;
+      return true;
+    });
+  }, [allTrips, from, to]);
+
+  const preset = (days: number | "month" | "all") => {
+    const now = new Date();
+    if (days === "all") { setFrom(""); setTo(""); return; }
+    if (days === "month") {
+      setFrom(iso(new Date(now.getFullYear(), now.getMonth(), 1)));
+      setTo(iso(now));
+      return;
+    }
+    const start = new Date(now);
+    start.setDate(start.getDate() - days + 1);
+    setFrom(iso(start));
+    setTo(iso(now));
+  };
+
 
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -140,6 +183,78 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
 
   const active = employees.find((e) => e.id === detail);
 
+  const selectedRows = filtered.filter((e) => selected[e.id]);
+  const approvalRows = selectedRows.length ? selectedRows : filtered;
+
+  async function downloadApproval() {
+    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const RED_C = rgb(0.86, 0.15, 0.15);
+    const DARK = rgb(0.07, 0.07, 0.07);
+    const period = from || to ? `${from || "start"} to ${to || "today"}` : "All dates";
+
+    let page = doc.addPage([595, 842]);
+    let y = 0;
+    const newPage = (first: boolean) => {
+      if (!first) page = doc.addPage([595, 842]);
+      page.drawRectangle({ x: 0, y: 762, width: 595, height: 80, color: rgb(0.29, 0.02, 0.02) });
+      page.drawText("e&", { x: 40, y: 800, size: 26, font: bold, color: RED_C });
+      page.drawText("Fuel Governance — Mileage Reimbursement Approval", { x: 90, y: 806, size: 13, font: bold, color: rgb(1, 1, 1) });
+      page.drawText(`Period: ${period}   |   Super 98 AED ${SUPER_98_PRICE.toFixed(2)}/L   |   Mileage ${MILEAGE} km/L`,
+        { x: 90, y: 788, size: 8, font, color: rgb(0.9, 0.9, 0.9) });
+      y = 730;
+      page.drawRectangle({ x: 40, y: y - 4, width: 515, height: 20, color: rgb(0.96, 0.93, 0.93) });
+      const heads: [string, number][] = [["Employee ID", 44], ["Name", 130], ["Trips", 280], ["Total KM", 325], ["Litres", 395], ["Payable (AED)", 455]];
+      heads.forEach(([h, x]) => page.drawText(h, { x, y: y + 2, size: 8, font: bold, color: DARK }));
+      y -= 18;
+    };
+    newPage(true);
+
+    for (const e of approvalRows) {
+      if (y < 150) newPage(false);
+      const cells: [string, number][] = [
+        [e.id, 44], [(e.name || "—").slice(0, 28), 130], [String(e.tripCount), 280],
+        [km(e.totalKm), 325], [km(e.litres), 395], [aed(e.amount), 455],
+      ];
+      cells.forEach(([t, x]) => page.drawText(t, { x, y: y + 2, size: 8, font, color: DARK }));
+      page.drawLine({ start: { x: 40, y: y - 3 }, end: { x: 555, y: y - 3 }, thickness: 0.4, color: rgb(0.87, 0.87, 0.87) });
+      y -= 16;
+    }
+
+    if (y < 190) newPage(false);
+    y -= 8;
+    const tKm = approvalRows.reduce((s, e) => s + e.totalKm, 0);
+    const tL = approvalRows.reduce((s, e) => s + e.litres, 0);
+    const tA = approvalRows.reduce((s, e) => s + e.amount, 0);
+    page.drawRectangle({ x: 40, y: y - 4, width: 515, height: 20, color: rgb(0.96, 0.93, 0.93) });
+    page.drawText(`Total — ${approvalRows.length} employees`, { x: 44, y: y + 2, size: 8, font: bold, color: DARK });
+    page.drawText(km(tKm), { x: 325, y: y + 2, size: 8, font: bold, color: DARK });
+    page.drawText(km(tL), { x: 395, y: y + 2, size: 8, font: bold, color: DARK });
+    page.drawText(`AED ${aed(tA)}`, { x: 455, y: y + 2, size: 8, font: bold, color: RED_C });
+
+    y -= 70;
+    page.drawText("Approval", { x: 40, y, size: 10, font: bold, color: RED_C });
+    y -= 40;
+    [["Prepared by", 40], ["Reviewed by", 220], ["Approved by", 400]].forEach(([label, x]) => {
+      page.drawLine({ start: { x: x as number, y }, end: { x: (x as number) + 140, y }, thickness: 0.8, color: DARK });
+      page.drawText(String(label), { x: x as number, y: y - 12, size: 8, font, color: DARK });
+      page.drawText("Name / Signature / Date", { x: x as number, y: y - 24, size: 7, font, color: rgb(0.45, 0.45, 0.45) });
+    });
+    page.drawText(`Generated ${new Date().toLocaleString("en-AE")} · Delivery & Operations`,
+      { x: 40, y: 40, size: 7, font, color: rgb(0.5, 0.5, 0.5) });
+
+    const bytes = await doc.save();
+    const url = URL.createObjectURL(new Blob([bytes as unknown as BlobPart], { type: "application/pdf" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Fuel-Approval-${from || "all"}_${to || "all"}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+
   if (rows.length === 0) {
     return (
       <div className="border border-border rounded-lg bg-white p-6 text-center text-xs text-muted-foreground">
@@ -172,6 +287,21 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       <div className="flex items-center gap-2 flex-wrap">
         <input placeholder="Search employee or ID…" value={q} onChange={(e) => setQ(e.target.value)}
           className="h-9 px-3 text-sm border border-input rounded-md bg-white w-full sm:w-72" />
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
+            className="h-9 px-2 text-xs border border-input rounded-md bg-white" />
+          <span className="text-[11px] text-muted-foreground">to</span>
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+            className="h-9 px-2 text-xs border border-input rounded-md bg-white" />
+          {([["All", "all"], ["7d", 7], ["30d", 30], ["This month", "month"]] as [string, number | "month" | "all"][]).map(([label, v]) => (
+            <button key={label} onClick={() => preset(v)}
+              className="h-9 px-2.5 text-[11px] font-medium rounded-md border border-border bg-white hover:bg-secondary">{label}</button>
+          ))}
+        </div>
+        <button onClick={downloadApproval}
+          className="h-9 px-3 rounded-md bg-[#dc2626] text-white text-[11px] font-semibold hover:opacity-90">
+          Download Approval PDF{selectedRows.length ? ` (${selectedRows.length})` : ""}
+        </button>
         <span className="text-[11px] text-muted-foreground">{filtered.length} of {employees.length} employees</span>
       </div>
 
@@ -233,7 +363,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
           <table className="w-full text-xs">
             <thead className="bg-secondary text-muted-foreground">
               <tr>
-                {["Employee ID", "Name", "Trips", "Total KM", "Avg KM/Trip", "Litres", "Payable (AED)", "Review", ""].map((h) => (
+                {["", "Employee ID", "Name", "Trips", "Total KM", "Avg KM/Trip", "Litres", "Payable (AED)", "Review", ""].map((h) => (
                   <th key={h} className="text-left font-medium px-3 py-2 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -241,6 +371,10 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
             <tbody>
               {filtered.map((e) => (
                 <tr key={e.id} className="border-t border-border hover:bg-secondary/50">
+                  <td className="px-3 py-2">
+                    <input type="checkbox" checked={!!selected[e.id]}
+                      onChange={(ev) => setSelected((s) => ({ ...s, [e.id]: ev.target.checked }))} />
+                  </td>
                   <td className="px-3 py-2 font-medium text-[#111]">{e.id}</td>
                   <td className="px-3 py-2">{e.name || "—"}</td>
                   <td className="px-3 py-2">{e.tripCount}</td>
@@ -257,7 +391,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border bg-secondary/60 font-semibold text-[#111]">
-                <td className="px-3 py-2" colSpan={3}>Total · {filtered.length} employees</td>
+                <td className="px-3 py-2" colSpan={4}>Total · {filtered.length} employees</td>
                 <td className="px-3 py-2">{km(filtered.reduce((s, e) => s + e.totalKm, 0))} km</td>
                 <td className="px-3 py-2">—</td>
                 <td className="px-3 py-2">{km(filtered.reduce((s, e) => s + e.litres, 0))} L</td>

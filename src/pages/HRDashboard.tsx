@@ -314,7 +314,7 @@ export default function HRDashboard() {
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-xl font-semibold text-[#111]">Contract & Procurement</h1>
+            <h1 className="text-xl font-semibold text-[#111]">{track === "fuel" ? "Fuel Governance" : "Contract & Procurement"}</h1>
           </div>
 
 

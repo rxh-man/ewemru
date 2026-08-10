@@ -293,7 +293,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
                   <td className="px-2 py-1.5">{t.site || "—"}</td>
                   <td className="px-2 py-1.5 text-muted-foreground">{t.raw || "—"}</td>
                   <td className="px-2 py-1.5">{t.km !== null ? `${km(t.km)} km` : <span className="text-amber-700">review</span>}</td>
-                  <td className="px-2 py-1.5">{t.km !== null ? `AED ${aed((t.km / MILEAGE) * FUEL_PRICE)}` : "—"}</td>
+                  <td className="px-2 py-1.5">{t.km !== null ? `AED ${aed((t.km / MILEAGE) * SUPER_98_PRICE)}` : "—"}</td>
                   <td className="px-2 py-1.5">
                     {t.link
                       ? <a href={t.link} target="_blank" rel="noopener noreferrer" className="text-[#dc2626] hover:underline">Open map proof</a>

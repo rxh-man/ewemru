@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import eandLogo from "@/assets/eand.png";
+import { FuelAssistant } from "@/components/FuelAssistant";
+
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
   LineChart, Line, CartesianGrid,

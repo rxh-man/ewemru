@@ -331,7 +331,10 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
         <span className="text-[11px] text-muted-foreground">{filtered.length} of {employees.length} employees</span>
       </div>
 
+      <FuelAssistant dataset={aiDataset} />
+
       {/* Charts */}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="border border-border rounded-lg bg-white p-3">
           <p className="text-xs font-semibold text-[#111] mb-2">Distance Travelled by Employee (km)</p>

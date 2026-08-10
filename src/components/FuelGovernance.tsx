@@ -246,7 +246,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       { x: 40, y: 40, size: 7, font, color: rgb(0.5, 0.5, 0.5) });
 
     const bytes = await doc.save();
-    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    const url = URL.createObjectURL(new Blob([bytes as unknown as BlobPart], { type: "application/pdf" }));
     const a = document.createElement("a");
     a.href = url;
     a.download = `Fuel-Approval-${from || "all"}_${to || "all"}.pdf`;
@@ -287,6 +287,21 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       <div className="flex items-center gap-2 flex-wrap">
         <input placeholder="Search employee or ID…" value={q} onChange={(e) => setQ(e.target.value)}
           className="h-9 px-3 text-sm border border-input rounded-md bg-white w-full sm:w-72" />
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
+            className="h-9 px-2 text-xs border border-input rounded-md bg-white" />
+          <span className="text-[11px] text-muted-foreground">to</span>
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+            className="h-9 px-2 text-xs border border-input rounded-md bg-white" />
+          {([["All", "all"], ["7d", 7], ["30d", 30], ["This month", "month"]] as [string, number | "month" | "all"][]).map(([label, v]) => (
+            <button key={label} onClick={() => preset(v)}
+              className="h-9 px-2.5 text-[11px] font-medium rounded-md border border-border bg-white hover:bg-secondary">{label}</button>
+          ))}
+        </div>
+        <button onClick={downloadApproval}
+          className="h-9 px-3 rounded-md bg-[#dc2626] text-white text-[11px] font-semibold hover:opacity-90">
+          Download Approval PDF{selectedRows.length ? ` (${selectedRows.length})` : ""}
+        </button>
         <span className="text-[11px] text-muted-foreground">{filtered.length} of {employees.length} employees</span>
       </div>
 
@@ -348,7 +363,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
           <table className="w-full text-xs">
             <thead className="bg-secondary text-muted-foreground">
               <tr>
-                {["Employee ID", "Name", "Trips", "Total KM", "Avg KM/Trip", "Litres", "Payable (AED)", "Review", ""].map((h) => (
+                {["", "Employee ID", "Name", "Trips", "Total KM", "Avg KM/Trip", "Litres", "Payable (AED)", "Review", ""].map((h) => (
                   <th key={h} className="text-left font-medium px-3 py-2 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -356,6 +371,10 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
             <tbody>
               {filtered.map((e) => (
                 <tr key={e.id} className="border-t border-border hover:bg-secondary/50">
+                  <td className="px-3 py-2">
+                    <input type="checkbox" checked={!!selected[e.id]}
+                      onChange={(ev) => setSelected((s) => ({ ...s, [e.id]: ev.target.checked }))} />
+                  </td>
                   <td className="px-3 py-2 font-medium text-[#111]">{e.id}</td>
                   <td className="px-3 py-2">{e.name || "—"}</td>
                   <td className="px-3 py-2">{e.tripCount}</td>
@@ -372,7 +391,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border bg-secondary/60 font-semibold text-[#111]">
-                <td className="px-3 py-2" colSpan={3}>Total · {filtered.length} employees</td>
+                <td className="px-3 py-2" colSpan={4}>Total · {filtered.length} employees</td>
                 <td className="px-3 py-2">{km(filtered.reduce((s, e) => s + e.totalKm, 0))} km</td>
                 <td className="px-3 py-2">—</td>
                 <td className="px-3 py-2">{km(filtered.reduce((s, e) => s + e.litres, 0))} L</td>

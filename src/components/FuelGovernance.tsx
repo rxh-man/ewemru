@@ -189,6 +189,25 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
   const selectedRows = filtered.filter((e) => selected[e.id]);
   const approvalRows = selectedRows.length ? selectedRows : filtered;
 
+  const aiDataset = useMemo(() => ({
+    pricePerLitre: SUPER_98_PRICE,
+    special95: SPECIAL_95_PRICE,
+    kmPerLitre: MILEAGE,
+    period: { from: from || "start", to: to || "latest" },
+    totals: { employees: employees.length, totalKm: Math.round(totalKm * 10) / 10, litres: Math.round(totalLitres * 10) / 10, payableAed: Math.round(totalAmount * 100) / 100, trips: trips.length, needReview: flaggedCount },
+    employees: employees.map((e) => ({
+      id: e.id, name: e.name, trips: e.tripCount,
+      totalKm: Math.round(e.totalKm * 10) / 10,
+      avgKmPerTrip: Math.round(e.avgKm * 10) / 10,
+      litres: Math.round(e.litres * 10) / 10,
+      payableAed: Math.round(e.amount * 100) / 100,
+      needReview: e.flagged,
+      tripLog: e.trips.map((t) => ({ date: t.date, site: t.site, logged: t.raw, km: t.km, hasProof: !!t.link })),
+    })),
+    dailyKm: byDate,
+  }), [employees, trips, byDate, from, to, totalKm, totalLitres, totalAmount, flaggedCount]);
+
+
   async function downloadApproval() {
     const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
     const doc = await PDFDocument.create();

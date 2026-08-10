@@ -67,11 +67,26 @@ function KPI({ label, value, sub }: { label: string; value: string; sub?: string
   );
 }
 
+function toDate(s: string): Date | null {
+  const t = (s || "").trim();
+  if (!t) return null;
+  // supports "8/5/2026" and "2026-08-05"
+  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const d = m ? new Date(+m[3], +m[1] - 1, +m[2]) : new Date(t);
+  return isNaN(d.getTime()) ? null : d;
+}
+function iso(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function FuelGovernance({ rows }: { rows: Row[] }) {
   const [q, setQ] = useState("");
   const [detail, setDetail] = useState<string | null>(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
 
-  const trips: Trip[] = useMemo(() => {
+  const allTrips: Trip[] = useMemo(() => {
     return rows.map((r) => {
       const rawId = r["Employee ID"] ?? "";
       const { id, name } = splitId(rawId);
@@ -87,6 +102,34 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       };
     }).filter((t) => t.id && t.id !== "Unknown");
   }, [rows]);
+
+  const trips = useMemo(() => {
+    if (!from && !to) return allTrips;
+    const f = from ? new Date(from + "T00:00:00") : null;
+    const t2 = to ? new Date(to + "T23:59:59") : null;
+    return allTrips.filter((t) => {
+      const d = toDate(t.date);
+      if (!d) return false;
+      if (f && d < f) return false;
+      if (t2 && d > t2) return false;
+      return true;
+    });
+  }, [allTrips, from, to]);
+
+  const preset = (days: number | "month" | "all") => {
+    const now = new Date();
+    if (days === "all") { setFrom(""); setTo(""); return; }
+    if (days === "month") {
+      setFrom(iso(new Date(now.getFullYear(), now.getMonth(), 1)));
+      setTo(iso(now));
+      return;
+    }
+    const start = new Date(now);
+    start.setDate(start.getDate() - days + 1);
+    setFrom(iso(start));
+    setTo(iso(now));
+  };
+
 
   const nameById = useMemo(() => {
     const m = new Map<string, string>();

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import eandLogo from "@/assets/eand.png";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
   LineChart, Line, CartesianGrid,
@@ -189,6 +190,9 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
   async function downloadApproval() {
     const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
     const doc = await PDFDocument.create();
+    const logoBytes = await fetch(eandLogo).then((r) => r.arrayBuffer());
+    const logo = await doc.embedPng(logoBytes);
+    const logoDims = logo.scale(48 / logo.height);
     const font = await doc.embedFont(StandardFonts.Helvetica);
     const bold = await doc.embedFont(StandardFonts.HelveticaBold);
     const RED_C = rgb(0.86, 0.15, 0.15);
@@ -200,10 +204,11 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
     const newPage = (first: boolean) => {
       if (!first) page = doc.addPage([595, 842]);
       page.drawRectangle({ x: 0, y: 762, width: 595, height: 80, color: rgb(0.29, 0.02, 0.02) });
-      page.drawText("e&", { x: 40, y: 800, size: 26, font: bold, color: RED_C });
-      page.drawText("Fuel Governance — Mileage Reimbursement Approval", { x: 90, y: 806, size: 13, font: bold, color: rgb(1, 1, 1) });
+      page.drawImage(logo, { x: 40, y: 778, width: logoDims.width, height: logoDims.height });
+      const tx = 40 + logoDims.width + 18;
+      page.drawText("Fuel Governance / Mileage Reimbursement Approval", { x: tx, y: 806, size: 13, font: bold, color: rgb(1, 1, 1) });
       page.drawText(`Period: ${period}   |   Super 98 AED ${SUPER_98_PRICE.toFixed(2)}/L   |   Mileage ${MILEAGE} km/L`,
-        { x: 90, y: 788, size: 8, font, color: rgb(0.9, 0.9, 0.9) });
+        { x: tx, y: 788, size: 8, font, color: rgb(0.9, 0.9, 0.9) });
       y = 730;
       page.drawRectangle({ x: 40, y: y - 4, width: 515, height: 20, color: rgb(0.96, 0.93, 0.93) });
       const heads: [string, number][] = [["Employee ID", 44], ["Name", 130], ["Trips", 280], ["Total KM", 325], ["Litres", 395], ["Payable (AED)", 455]];
@@ -215,7 +220,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
     for (const e of approvalRows) {
       if (y < 150) newPage(false);
       const cells: [string, number][] = [
-        [e.id, 44], [(e.name || "—").slice(0, 28), 130], [String(e.tripCount), 280],
+        [e.id, 44], [(e.name || "-").slice(0, 28), 130], [String(e.tripCount), 280],
         [km(e.totalKm), 325], [km(e.litres), 395], [aed(e.amount), 455],
       ];
       cells.forEach(([t, x]) => page.drawText(t, { x, y: y + 2, size: 8, font, color: DARK }));
@@ -229,7 +234,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
     const tL = approvalRows.reduce((s, e) => s + e.litres, 0);
     const tA = approvalRows.reduce((s, e) => s + e.amount, 0);
     page.drawRectangle({ x: 40, y: y - 4, width: 515, height: 20, color: rgb(0.96, 0.93, 0.93) });
-    page.drawText(`Total — ${approvalRows.length} employees`, { x: 44, y: y + 2, size: 8, font: bold, color: DARK });
+    page.drawText(`Total: ${approvalRows.length} employees`, { x: 44, y: y + 2, size: 8, font: bold, color: DARK });
     page.drawText(km(tKm), { x: 325, y: y + 2, size: 8, font: bold, color: DARK });
     page.drawText(km(tL), { x: 395, y: y + 2, size: 8, font: bold, color: DARK });
     page.drawText(`AED ${aed(tA)}`, { x: 455, y: y + 2, size: 8, font: bold, color: RED_C });
@@ -242,7 +247,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       page.drawText(String(label), { x: x as number, y: y - 12, size: 8, font, color: DARK });
       page.drawText("Name / Signature / Date", { x: x as number, y: y - 24, size: 7, font, color: rgb(0.45, 0.45, 0.45) });
     });
-    page.drawText(`Generated ${new Date().toLocaleString("en-AE")} · Delivery & Operations`,
+    page.drawText(`Generated ${new Date().toLocaleString("en-AE")} | Delivery & Operations`,
       { x: 40, y: 40, size: 7, font, color: rgb(0.5, 0.5, 0.5) });
 
     const bytes = await doc.save();

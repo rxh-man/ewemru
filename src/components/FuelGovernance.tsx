@@ -123,7 +123,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
 
   const totalKm = employees.reduce((s, e) => s + e.totalKm, 0);
   const totalLitres = totalKm / MILEAGE;
-  const totalAmount = totalLitres * FUEL_PRICE;
+  const totalAmount = totalLitres * SUPER_98_PRICE;
   const flaggedCount = trips.filter((t) => t.flagged).length;
 
   const topChart = filtered.slice(0, 12).map((e) => ({ name: e.name || e.id, km: Math.round(e.totalKm * 10) / 10, amount: Math.round(e.amount) }));

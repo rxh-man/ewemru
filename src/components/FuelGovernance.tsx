@@ -107,7 +107,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       const litres = totalKm / MILEAGE;
       return {
         ...e,
-        totalKm, litres, amount: litres * FUEL_PRICE,
+        totalKm, litres, amount: litres * SUPER_98_PRICE,
         tripCount: e.trips.length,
         flagged: e.trips.filter((t) => t.flagged).length,
         avgKm: valid.length ? totalKm / valid.length : 0,

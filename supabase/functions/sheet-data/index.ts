@@ -25,6 +25,7 @@ function toObjects(values: string[][]): Record<string, string>[] {
 type CachePayload = {
   poPr: unknown; paymentRelease: unknown; vendors: unknown; urgent: unknown;
   mspVendors: unknown; mspPractises: unknown; nocChallenges: unknown; cs: unknown;
+  fuel: unknown;
   fleetRaw: string[][];
   fetchedAt: string;
 };
@@ -34,7 +35,7 @@ const CACHE_MS = 5 * 60_000;
 function emptyPayload(): CachePayload {
   return {
     poPr: [], paymentRelease: [], vendors: [], urgent: [],
-    mspVendors: [], mspPractises: [], nocChallenges: [], cs: [], fleetRaw: [],
+    mspVendors: [], mspPractises: [], nocChallenges: [], cs: [], fuel: [], fleetRaw: [],
     fetchedAt: new Date().toISOString(),
   };
 }
@@ -60,6 +61,7 @@ Deno.serve(async (req) => {
       "'NOC - Vendor Challenges'!A1:Z1000",
       "'CS'!A1:Z1000",
       "'Fleet & Resources Summary'!A1:Z300",
+      "'EW-FUEL-GOV'!A1:Z5000",
     ];
     const qs = new URLSearchParams();
     ranges.forEach((r) => qs.append("ranges", r));
@@ -90,7 +92,7 @@ Deno.serve(async (req) => {
       });
     }
     const data = await r.json();
-    const [po, pay, ven, urg, mspV, mspP, nocC, cs, fleet] = data.valueRanges ?? [];
+    const [po, pay, ven, urg, mspV, mspP, nocC, cs, fleet, fuel] = data.valueRanges ?? [];
     const payload: CachePayload = {
       poPr: toObjects(po?.values ?? []),
       paymentRelease: toObjects(pay?.values ?? []),
@@ -100,6 +102,7 @@ Deno.serve(async (req) => {
       mspPractises: toObjects(mspP?.values ?? []),
       nocChallenges: toObjects(nocC?.values ?? []),
       cs: toObjects(cs?.values ?? []),
+      fuel: toObjects(fuel?.values ?? []),
       fleetRaw: (fleet?.values ?? []) as string[][],
       fetchedAt: new Date().toISOString(),
     };

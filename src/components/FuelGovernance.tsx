@@ -151,19 +151,19 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
   return (
     <div className="space-y-4">
       {/* Hero */}
-      <div className="rounded-xl overflow-hidden border border-border bg-gradient-to-br from-[#7f1d1d] via-[#b91c1c] to-[#111] p-5">
+      <div className="rounded-xl overflow-hidden border border-border bg-gradient-to-br from-[#4a0505] via-[#a30f0f] to-[#111] p-5">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h2 className="text-lg font-semibold text-white">Fuel Governance</h2>
             <p className="text-[11px] text-white/70 mt-0.5">
-              Employee-wise mileage reimbursement · Petrol AED {FUEL_PRICE.toFixed(2)}/litre (UAE, Aug 2026) · Fleet mileage {MILEAGE} km/litre
+              Employee-wise mileage reimbursement · Super 98 AED {SUPER_98_PRICE.toFixed(2)}/L · Special 95 AED {SPECIAL_95_PRICE.toFixed(2)}/L (UAE, Aug 2026) · Fleet mileage {MILEAGE} km/L
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 w-full lg:w-auto">
             <KPI label="Employees" value={String(employees.length)} />
             <KPI label="Total Distance" value={`${km(totalKm)} km`} />
             <KPI label="Fuel Used" value={`${km(totalLitres)} L`} sub={`@ ${MILEAGE} km/L`} />
-            <KPI label="Payable" value={`AED ${aed(totalAmount)}`} sub={`@ AED ${FUEL_PRICE}/L`} />
+            <KPI label="Payable" value={`AED ${aed(totalAmount)}`} sub={`Super 98 @ AED ${SUPER_98_PRICE}/L`} />
             <KPI label="Trips Logged" value={String(trips.length)} sub={flaggedCount ? `${flaggedCount} need review` : "all readings valid"} />
           </div>
         </div>

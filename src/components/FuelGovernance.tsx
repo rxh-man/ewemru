@@ -183,6 +183,78 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
 
   const active = employees.find((e) => e.id === detail);
 
+  const selectedRows = filtered.filter((e) => selected[e.id]);
+  const approvalRows = selectedRows.length ? selectedRows : filtered;
+
+  async function downloadApproval() {
+    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const RED_C = rgb(0.86, 0.15, 0.15);
+    const DARK = rgb(0.07, 0.07, 0.07);
+    const period = from || to ? `${from || "start"} to ${to || "today"}` : "All dates";
+
+    let page = doc.addPage([595, 842]);
+    let y = 0;
+    const newPage = (first: boolean) => {
+      if (!first) page = doc.addPage([595, 842]);
+      page.drawRectangle({ x: 0, y: 762, width: 595, height: 80, color: rgb(0.29, 0.02, 0.02) });
+      page.drawText("e&", { x: 40, y: 800, size: 26, font: bold, color: RED_C });
+      page.drawText("Fuel Governance — Mileage Reimbursement Approval", { x: 90, y: 806, size: 13, font: bold, color: rgb(1, 1, 1) });
+      page.drawText(`Period: ${period}   |   Super 98 AED ${SUPER_98_PRICE.toFixed(2)}/L   |   Mileage ${MILEAGE} km/L`,
+        { x: 90, y: 788, size: 8, font, color: rgb(0.9, 0.9, 0.9) });
+      y = 730;
+      page.drawRectangle({ x: 40, y: y - 4, width: 515, height: 20, color: rgb(0.96, 0.93, 0.93) });
+      const heads: [string, number][] = [["Employee ID", 44], ["Name", 130], ["Trips", 280], ["Total KM", 325], ["Litres", 395], ["Payable (AED)", 455]];
+      heads.forEach(([h, x]) => page.drawText(h, { x, y: y + 2, size: 8, font: bold, color: DARK }));
+      y -= 18;
+    };
+    newPage(true);
+
+    for (const e of approvalRows) {
+      if (y < 150) newPage(false);
+      const cells: [string, number][] = [
+        [e.id, 44], [(e.name || "—").slice(0, 28), 130], [String(e.tripCount), 280],
+        [km(e.totalKm), 325], [km(e.litres), 395], [aed(e.amount), 455],
+      ];
+      cells.forEach(([t, x]) => page.drawText(t, { x, y: y + 2, size: 8, font, color: DARK }));
+      page.drawLine({ start: { x: 40, y: y - 3 }, end: { x: 555, y: y - 3 }, thickness: 0.4, color: rgb(0.87, 0.87, 0.87) });
+      y -= 16;
+    }
+
+    if (y < 190) newPage(false);
+    y -= 8;
+    const tKm = approvalRows.reduce((s, e) => s + e.totalKm, 0);
+    const tL = approvalRows.reduce((s, e) => s + e.litres, 0);
+    const tA = approvalRows.reduce((s, e) => s + e.amount, 0);
+    page.drawRectangle({ x: 40, y: y - 4, width: 515, height: 20, color: rgb(0.96, 0.93, 0.93) });
+    page.drawText(`Total — ${approvalRows.length} employees`, { x: 44, y: y + 2, size: 8, font: bold, color: DARK });
+    page.drawText(km(tKm), { x: 325, y: y + 2, size: 8, font: bold, color: DARK });
+    page.drawText(km(tL), { x: 395, y: y + 2, size: 8, font: bold, color: DARK });
+    page.drawText(`AED ${aed(tA)}`, { x: 455, y: y + 2, size: 8, font: bold, color: RED_C });
+
+    y -= 70;
+    page.drawText("Approval", { x: 40, y, size: 10, font: bold, color: RED_C });
+    y -= 40;
+    [["Prepared by", 40], ["Reviewed by", 220], ["Approved by", 400]].forEach(([label, x]) => {
+      page.drawLine({ start: { x: x as number, y }, end: { x: (x as number) + 140, y }, thickness: 0.8, color: DARK });
+      page.drawText(String(label), { x: x as number, y: y - 12, size: 8, font, color: DARK });
+      page.drawText("Name / Signature / Date", { x: x as number, y: y - 24, size: 7, font, color: rgb(0.45, 0.45, 0.45) });
+    });
+    page.drawText(`Generated ${new Date().toLocaleString("en-AE")} · Delivery & Operations`,
+      { x: 40, y: 40, size: 7, font, color: rgb(0.5, 0.5, 0.5) });
+
+    const bytes = await doc.save();
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Fuel-Approval-${from || "all"}_${to || "all"}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+
   if (rows.length === 0) {
     return (
       <div className="border border-border rounded-lg bg-white p-6 text-center text-xs text-muted-foreground">

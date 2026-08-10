@@ -7,9 +7,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 
-const FUEL_PRICE = 3.49; // AED per litre — UAE, August 2026
+const SUPER_98_PRICE = 3.49; // AED per litre — UAE, August 2026
+const SPECIAL_95_PRICE = 3.29; // AED per litre — UAE, August 2026
 const MILEAGE = 11; // km per litre (fleet standard)
-const RED = ["#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#f87171"];
+// e& themed red spectrum — deep crimson to brand red
+const RED = ["#4a0505", "#7a0a0a", "#a30f0f", "#c41212", "#e60000", "#ff4d4d"];
 
 type Row = Record<string, string>;
 
@@ -105,7 +107,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       const litres = totalKm / MILEAGE;
       return {
         ...e,
-        totalKm, litres, amount: litres * FUEL_PRICE,
+        totalKm, litres, amount: litres * SUPER_98_PRICE,
         tripCount: e.trips.length,
         flagged: e.trips.filter((t) => t.flagged).length,
         avgKm: valid.length ? totalKm / valid.length : 0,
@@ -121,7 +123,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
 
   const totalKm = employees.reduce((s, e) => s + e.totalKm, 0);
   const totalLitres = totalKm / MILEAGE;
-  const totalAmount = totalLitres * FUEL_PRICE;
+  const totalAmount = totalLitres * SUPER_98_PRICE;
   const flaggedCount = trips.filter((t) => t.flagged).length;
 
   const topChart = filtered.slice(0, 12).map((e) => ({ name: e.name || e.id, km: Math.round(e.totalKm * 10) / 10, amount: Math.round(e.amount) }));
@@ -149,19 +151,19 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
   return (
     <div className="space-y-4">
       {/* Hero */}
-      <div className="rounded-xl overflow-hidden border border-border bg-gradient-to-br from-[#7f1d1d] via-[#b91c1c] to-[#111] p-5">
+      <div className="rounded-xl overflow-hidden border border-border bg-gradient-to-br from-[#4a0505] via-[#a30f0f] to-[#111] p-5">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h2 className="text-lg font-semibold text-white">Fuel Governance</h2>
             <p className="text-[11px] text-white/70 mt-0.5">
-              Employee-wise mileage reimbursement · Petrol AED {FUEL_PRICE.toFixed(2)}/litre (UAE, Aug 2026) · Fleet mileage {MILEAGE} km/litre
+              Employee-wise mileage reimbursement · Super 98 AED {SUPER_98_PRICE.toFixed(2)}/L · Special 95 AED {SPECIAL_95_PRICE.toFixed(2)}/L (UAE, Aug 2026) · Fleet mileage {MILEAGE} km/L
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 w-full lg:w-auto">
             <KPI label="Employees" value={String(employees.length)} />
             <KPI label="Total Distance" value={`${km(totalKm)} km`} />
             <KPI label="Fuel Used" value={`${km(totalLitres)} L`} sub={`@ ${MILEAGE} km/L`} />
-            <KPI label="Payable" value={`AED ${aed(totalAmount)}`} sub={`@ AED ${FUEL_PRICE}/L`} />
+            <KPI label="Payable" value={`AED ${aed(totalAmount)}`} sub={`Super 98 @ AED ${SUPER_98_PRICE}/L`} />
             <KPI label="Trips Logged" value={String(trips.length)} sub={flaggedCount ? `${flaggedCount} need review` : "all readings valid"} />
           </div>
         </div>
@@ -225,7 +227,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       <div className="border border-border rounded-lg bg-white overflow-hidden">
         <div className="px-4 py-2 border-b border-border flex items-center justify-between">
           <span className="text-xs font-semibold text-[#111]">Employee-wise Fuel Reimbursement</span>
-          <span className="text-[10px] text-muted-foreground">Litres = km ÷ {MILEAGE} · Payable = litres × AED {FUEL_PRICE}</span>
+          <span className="text-[10px] text-muted-foreground">Litres = km ÷ {MILEAGE} · Payable = litres × AED {SUPER_98_PRICE} (Super 98)</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -291,7 +293,7 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
                   <td className="px-2 py-1.5">{t.site || "—"}</td>
                   <td className="px-2 py-1.5 text-muted-foreground">{t.raw || "—"}</td>
                   <td className="px-2 py-1.5">{t.km !== null ? `${km(t.km)} km` : <span className="text-amber-700">review</span>}</td>
-                  <td className="px-2 py-1.5">{t.km !== null ? `AED ${aed((t.km / MILEAGE) * FUEL_PRICE)}` : "—"}</td>
+                  <td className="px-2 py-1.5">{t.km !== null ? `AED ${aed((t.km / MILEAGE) * SUPER_98_PRICE)}` : "—"}</td>
                   <td className="px-2 py-1.5">
                     {t.link
                       ? <a href={t.link} target="_blank" rel="noopener noreferrer" className="text-[#dc2626] hover:underline">Open map proof</a>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import eandLogo from "@/assets/eand.png";
 import { FuelAssistant } from "@/components/FuelAssistant";
+import { FuelForecast } from "@/components/FuelForecast";
 
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,

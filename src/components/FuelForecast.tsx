@@ -249,6 +249,9 @@ export function FuelForecast({
               ))}
             </div>
 
+            {fc.note && <p className="text-[11px] text-muted-foreground">{fc.note}</p>}
+
+
             <ResponsiveContainer width="100%" height={240}>
               <ComposedChart data={fc.points} margin={{ left: 0, right: 16, top: 14, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#eee" />

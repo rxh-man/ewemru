@@ -17,6 +17,7 @@ interface Forecast {
   trendPct: number;
   confidence: number;
   perEmployee: { name: string; amount: number }[];
+  note?: string;
 }
 
 const STAGES = [

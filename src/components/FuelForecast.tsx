@@ -85,6 +85,57 @@ function buildForecast(history: MonthPoint[], price: number, mileage: number, em
   };
 }
 
+/** Month-to-date pace projection: remaining days of the current month at the blended daily trend. */
+function buildMonthEnd(history: MonthPoint[], price: number, mileage: number, employees: { name: string; amount: number }[]): Forecast | null {
+  const now = new Date();
+  const cmKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const idx = history.findIndex((h) => h.month === cmKey);
+  const cur = idx >= 0 ? history[idx] : null;
+  const prior = idx >= 0 ? history.slice(0, idx) : history;
+  if (!cur && prior.length === 0) return null;
+
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const elapsed = Math.min(now.getDate(), daysInMonth);
+  const remaining = daysInMonth - elapsed;
+  const mtdKm = cur?.km ?? 0;
+  const mtdDaily = elapsed ? mtdKm / elapsed : 0;
+
+  // historical daily rate, recent months weighted heavier
+  let sw = 0, sv = 0;
+  prior.forEach((h, i) => {
+    const [y, m] = h.month.split("-").map(Number);
+    const dim = new Date(y, m, 0).getDate();
+    const w = 1 + i * 0.5;
+    sw += w; sv += w * (h.km / dim);
+  });
+  const histDaily = sw ? sv / sw : mtdDaily;
+  const dailyRate = mtdDaily && histDaily ? mtdDaily * 0.65 + histDaily * 0.35 : (mtdDaily || histDaily);
+  const projected = mtdKm + dailyRate * remaining;
+  const band = Math.max(dailyRate * remaining * 0.18, projected * 0.05);
+
+  const lastFull = prior.length ? prior[prior.length - 1].km : projected;
+  const trendPct = lastFull ? ((projected - lastFull) / lastFull) * 100 : 0;
+  const confidence = Math.max(58, Math.min(97, 97 - (remaining / daysInMonth) * 30 - (prior.length ? 0 : 8)));
+
+  const label = `${cmKey} month end`;
+  const points: Forecast["points"] = prior.map((h) => ({ month: h.month, actual: Math.round(h.km), forecast: null }));
+  points.push({ month: `${cmKey} MTD`, actual: Math.round(mtdKm), forecast: Math.round(mtdKm), low: Math.round(mtdKm), high: Math.round(mtdKm) });
+  points.push({
+    month: label, actual: null, forecast: Math.round(projected),
+    low: Math.round(Math.max(mtdKm, projected - band)), high: Math.round(projected + band),
+  });
+
+  const scale = mtdKm ? projected / mtdKm : 1;
+  return {
+    points, nextMonth: label,
+    nextKm: projected, nextLitres: projected / mileage, nextAmount: (projected / mileage) * price,
+    low: ((projected - band) / mileage) * price, high: ((projected + band) / mileage) * price,
+    trendPct, confidence,
+    perEmployee: employees.slice(0, 6).map((e) => ({ name: e.name, amount: e.amount * scale })),
+    note: `${elapsed} of ${daysInMonth} days logged (${nfmt(mtdKm)} km MTD) - ${remaining} days projected at ${nfmt(dailyRate)} km/day`,
+  };
+}
+
 export function FuelForecast({
   history, price, mileage, employees, dataset,
 }: {
@@ -98,9 +149,12 @@ export function FuelForecast({
   const [stage, setStage] = useState(0);
   const [fc, setFc] = useState<Forecast | null>(null);
   const [narrative, setNarrative] = useState("");
+  const [horizon, setHorizon] = useState<"month_end" | "next_month">("month_end");
+
+  const canRun = horizon === "month_end" ? history.length >= 1 : history.length >= 2;
 
   async function run() {
-    if (history.length < 2) return;
+    if (!canRun) return;
     setState("running");
     setNarrative("");
     setFc(null);
@@ -108,7 +162,10 @@ export function FuelForecast({
       setStage(i);
       await new Promise((r) => setTimeout(r, 420));
     }
-    const model = buildForecast(history, price, mileage, employees);
+    const model = horizon === "month_end"
+      ? buildMonthEnd(history, price, mileage, employees)
+      : buildForecast(history, price, mileage, employees);
+    if (!model) { setState("idle"); return; }
     setFc(model);
     setState("done");
     try {
@@ -116,7 +173,7 @@ export function FuelForecast({
         body: {
           messages: [{
             role: "user",
-            content: `Using the monthly history ${JSON.stringify(history)} and the model forecast for ${model.nextMonth} of ${Math.round(model.nextKm)} km / AED ${model.nextAmount.toFixed(0)}, write 3 short bullets: expected monthly fuel spend, what is driving the trend, and one cost-control action. Keep it under 70 words, no preamble.`,
+            content: `Using the monthly history ${JSON.stringify(history)} and the model forecast for ${model.nextMonth} of ${Math.round(model.nextKm)} km / AED ${model.nextAmount.toFixed(0)}${model.note ? ` (${model.note})` : ""}, write 3 short bullets: expected fuel spend for that period, what is driving the trend, and one cost-control action. Keep it under 70 words, no preamble.`,
           }],
           dataset,
         },
@@ -125,6 +182,7 @@ export function FuelForecast({
       if (reply) setNarrative(reply.trim());
     } catch { /* forecast still valid without narrative */ }
   }
+
 
   return (
     <div className="border border-border rounded-lg bg-white overflow-hidden">

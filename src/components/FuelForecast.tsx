@@ -17,6 +17,7 @@ interface Forecast {
   trendPct: number;
   confidence: number;
   perEmployee: { name: string; amount: number }[];
+  note?: string;
 }
 
 const STAGES = [
@@ -85,6 +86,57 @@ function buildForecast(history: MonthPoint[], price: number, mileage: number, em
   };
 }
 
+/** Month-to-date pace projection: remaining days of the current month at the blended daily trend. */
+function buildMonthEnd(history: MonthPoint[], price: number, mileage: number, employees: { name: string; amount: number }[]): Forecast | null {
+  const now = new Date();
+  const cmKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const idx = history.findIndex((h) => h.month === cmKey);
+  const cur = idx >= 0 ? history[idx] : null;
+  const prior = idx >= 0 ? history.slice(0, idx) : history;
+  if (!cur && prior.length === 0) return null;
+
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const elapsed = Math.min(now.getDate(), daysInMonth);
+  const remaining = daysInMonth - elapsed;
+  const mtdKm = cur?.km ?? 0;
+  const mtdDaily = elapsed ? mtdKm / elapsed : 0;
+
+  // historical daily rate, recent months weighted heavier
+  let sw = 0, sv = 0;
+  prior.forEach((h, i) => {
+    const [y, m] = h.month.split("-").map(Number);
+    const dim = new Date(y, m, 0).getDate();
+    const w = 1 + i * 0.5;
+    sw += w; sv += w * (h.km / dim);
+  });
+  const histDaily = sw ? sv / sw : mtdDaily;
+  const dailyRate = mtdDaily && histDaily ? mtdDaily * 0.65 + histDaily * 0.35 : (mtdDaily || histDaily);
+  const projected = mtdKm + dailyRate * remaining;
+  const band = Math.max(dailyRate * remaining * 0.18, projected * 0.05);
+
+  const lastFull = prior.length ? prior[prior.length - 1].km : projected;
+  const trendPct = lastFull ? ((projected - lastFull) / lastFull) * 100 : 0;
+  const confidence = Math.max(58, Math.min(97, 97 - (remaining / daysInMonth) * 30 - (prior.length ? 0 : 8)));
+
+  const label = `${cmKey} month end`;
+  const points: Forecast["points"] = prior.map((h) => ({ month: h.month, actual: Math.round(h.km), forecast: null }));
+  points.push({ month: `${cmKey} MTD`, actual: Math.round(mtdKm), forecast: Math.round(mtdKm), low: Math.round(mtdKm), high: Math.round(mtdKm) });
+  points.push({
+    month: label, actual: null, forecast: Math.round(projected),
+    low: Math.round(Math.max(mtdKm, projected - band)), high: Math.round(projected + band),
+  });
+
+  const scale = mtdKm ? projected / mtdKm : 1;
+  return {
+    points, nextMonth: label,
+    nextKm: projected, nextLitres: projected / mileage, nextAmount: (projected / mileage) * price,
+    low: ((projected - band) / mileage) * price, high: ((projected + band) / mileage) * price,
+    trendPct, confidence,
+    perEmployee: employees.slice(0, 6).map((e) => ({ name: e.name, amount: e.amount * scale })),
+    note: `${elapsed} of ${daysInMonth} days logged (${nfmt(mtdKm)} km MTD) - ${remaining} days projected at ${nfmt(dailyRate)} km/day`,
+  };
+}
+
 export function FuelForecast({
   history, price, mileage, employees, dataset,
 }: {
@@ -98,9 +150,12 @@ export function FuelForecast({
   const [stage, setStage] = useState(0);
   const [fc, setFc] = useState<Forecast | null>(null);
   const [narrative, setNarrative] = useState("");
+  const [horizon, setHorizon] = useState<"month_end" | "next_month">("month_end");
+
+  const canRun = horizon === "month_end" ? history.length >= 1 : history.length >= 2;
 
   async function run() {
-    if (history.length < 2) return;
+    if (!canRun) return;
     setState("running");
     setNarrative("");
     setFc(null);
@@ -108,7 +163,10 @@ export function FuelForecast({
       setStage(i);
       await new Promise((r) => setTimeout(r, 420));
     }
-    const model = buildForecast(history, price, mileage, employees);
+    const model = horizon === "month_end"
+      ? buildMonthEnd(history, price, mileage, employees)
+      : buildForecast(history, price, mileage, employees);
+    if (!model) { setState("idle"); return; }
     setFc(model);
     setState("done");
     try {
@@ -116,7 +174,7 @@ export function FuelForecast({
         body: {
           messages: [{
             role: "user",
-            content: `Using the monthly history ${JSON.stringify(history)} and the model forecast for ${model.nextMonth} of ${Math.round(model.nextKm)} km / AED ${model.nextAmount.toFixed(0)}, write 3 short bullets: expected monthly fuel spend, what is driving the trend, and one cost-control action. Keep it under 70 words, no preamble.`,
+            content: `Using the monthly history ${JSON.stringify(history)} and the model forecast for ${model.nextMonth} of ${Math.round(model.nextKm)} km / AED ${model.nextAmount.toFixed(0)}${model.note ? ` (${model.note})` : ""}, write 3 short bullets: expected fuel spend for that period, what is driving the trend, and one cost-control action. Keep it under 70 words, no preamble.`,
           }],
           dataset,
         },
@@ -126,29 +184,43 @@ export function FuelForecast({
     } catch { /* forecast still valid without narrative */ }
   }
 
+
   return (
     <div className="border border-border rounded-lg bg-white overflow-hidden">
       <div className="px-4 py-2.5 bg-gradient-to-r from-[#4a0505] to-[#c41212] flex items-center justify-between gap-3 flex-wrap">
         <div>
           <p className="text-xs font-semibold text-white">AI Fuel Expense Forecast</p>
-          <p className="text-[10px] text-white/70">Predicts next month's fuel spend from historical mileage patterns</p>
+          <p className="text-[10px] text-white/70">Projects fuel spend to month end or for next month from historical mileage trends</p>
         </div>
-        <button onClick={run} disabled={state === "running" || history.length < 2}
-          className="h-8 px-3 rounded-md bg-white text-[#a30f0f] text-[11px] font-semibold hover:opacity-90 disabled:opacity-50">
-          {state === "running" ? "Forecasting…" : state === "done" ? "Re-run forecast" : "Run AI forecast"}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {([["Till month end", "month_end"], ["Next month", "next_month"]] as [string, "month_end" | "next_month"][]).map(([label, v]) => (
+            <button key={v} onClick={() => { setHorizon(v); setState("idle"); setFc(null); }}
+              className={`h-8 px-2.5 rounded-md text-[11px] font-semibold border transition ${horizon === v ? "bg-white text-[#a30f0f] border-white" : "bg-white/10 text-white border-white/30 hover:bg-white/20"}`}>
+              {label}
+            </button>
+          ))}
+          <button onClick={run} disabled={state === "running" || !canRun}
+            className="h-8 px-3 rounded-md bg-[#111] text-white text-[11px] font-semibold hover:opacity-90 disabled:opacity-50">
+            {state === "running" ? "Forecasting…" : state === "done" ? "Re-run forecast" : "Run AI forecast"}
+          </button>
+        </div>
       </div>
 
       <div className="p-4">
-        {history.length < 2 && (
-          <p className="text-[11px] text-muted-foreground">Need at least two months of logged trips to forecast. Clear the date filter to use full history.</p>
-        )}
-
-        {state === "idle" && history.length >= 2 && (
+        {!canRun && (
           <p className="text-[11px] text-muted-foreground">
-            {history.length} months of history detected. Run the forecast to project next month's litres and payable amount with a confidence band.
+            {horizon === "month_end"
+              ? "No logged trips available to project this month. Clear the date filter to use full history."
+              : "Need at least two months of logged trips for a next-month forecast. Clear the date filter to use full history."}
           </p>
         )}
+
+        {state === "idle" && canRun && (
+          <p className="text-[11px] text-muted-foreground">
+            {history.length} month(s) of history detected. Run the forecast to project {horizon === "month_end" ? "the remainder of this month" : "next month"} in litres and payable amount with a confidence band.
+          </p>
+        )}
+
 
         {state === "running" && (
           <div className="space-y-1.5">
@@ -176,6 +248,9 @@ export function FuelForecast({
                 </div>
               ))}
             </div>
+
+            {fc.note && <p className="text-[11px] text-muted-foreground">{fc.note}</p>}
+
 
             <ResponsiveContainer width="100%" height={240}>
               <ComposedChart data={fc.points} margin={{ left: 0, right: 16, top: 14, bottom: 4 }}>

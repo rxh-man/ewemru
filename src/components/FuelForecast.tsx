@@ -190,24 +190,37 @@ export function FuelForecast({
       <div className="px-4 py-2.5 bg-gradient-to-r from-[#4a0505] to-[#c41212] flex items-center justify-between gap-3 flex-wrap">
         <div>
           <p className="text-xs font-semibold text-white">AI Fuel Expense Forecast</p>
-          <p className="text-[10px] text-white/70">Predicts next month's fuel spend from historical mileage patterns</p>
+          <p className="text-[10px] text-white/70">Projects fuel spend to month end or for next month from historical mileage trends</p>
         </div>
-        <button onClick={run} disabled={state === "running" || history.length < 2}
-          className="h-8 px-3 rounded-md bg-white text-[#a30f0f] text-[11px] font-semibold hover:opacity-90 disabled:opacity-50">
-          {state === "running" ? "Forecasting…" : state === "done" ? "Re-run forecast" : "Run AI forecast"}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {([["Till month end", "month_end"], ["Next month", "next_month"]] as [string, "month_end" | "next_month"][]).map(([label, v]) => (
+            <button key={v} onClick={() => { setHorizon(v); setState("idle"); setFc(null); }}
+              className={`h-8 px-2.5 rounded-md text-[11px] font-semibold border transition ${horizon === v ? "bg-white text-[#a30f0f] border-white" : "bg-white/10 text-white border-white/30 hover:bg-white/20"}`}>
+              {label}
+            </button>
+          ))}
+          <button onClick={run} disabled={state === "running" || !canRun}
+            className="h-8 px-3 rounded-md bg-[#111] text-white text-[11px] font-semibold hover:opacity-90 disabled:opacity-50">
+            {state === "running" ? "Forecasting…" : state === "done" ? "Re-run forecast" : "Run AI forecast"}
+          </button>
+        </div>
       </div>
 
       <div className="p-4">
-        {history.length < 2 && (
-          <p className="text-[11px] text-muted-foreground">Need at least two months of logged trips to forecast. Clear the date filter to use full history.</p>
-        )}
-
-        {state === "idle" && history.length >= 2 && (
+        {!canRun && (
           <p className="text-[11px] text-muted-foreground">
-            {history.length} months of history detected. Run the forecast to project next month's litres and payable amount with a confidence band.
+            {horizon === "month_end"
+              ? "No logged trips available to project this month. Clear the date filter to use full history."
+              : "Need at least two months of logged trips for a next-month forecast. Clear the date filter to use full history."}
           </p>
         )}
+
+        {state === "idle" && canRun && (
+          <p className="text-[11px] text-muted-foreground">
+            {history.length} month(s) of history detected. Run the forecast to project {horizon === "month_end" ? "the remainder of this month" : "next month"} in litres and payable amount with a confidence band.
+          </p>
+        )}
+
 
         {state === "running" && (
           <div className="space-y-1.5">

@@ -65,7 +65,8 @@ function buildForecast(history: MonthPoint[], price: number, mileage: number, em
   const trendPct = lastKm ? ((nextKm - lastKm) / lastKm) * 100 : 0;
   const confidence = Math.max(55, Math.min(96, 96 - (band / Math.max(nextKm, 1)) * 100 - Math.max(0, 4 - n) * 6));
 
-  const points = history.map((h) => ({ month: h.month, actual: Math.round(h.km), forecast: null as number | null }));
+  const points: Forecast["points"] = history.map((h) => ({ month: h.month, actual: Math.round(h.km), forecast: null }));
+
   const nm = nextMonthLabel(history[n - 1].month);
   // bridge the actual line into the forecast line
   points[n - 1] = { ...points[n - 1], forecast: Math.round(lastKm), low: Math.round(lastKm), high: Math.round(lastKm) };

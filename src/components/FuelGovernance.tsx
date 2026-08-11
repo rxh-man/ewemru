@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import eandLogo from "@/assets/eand.png";
 import { FuelAssistant } from "@/components/FuelAssistant";
+import { FuelForecast } from "@/components/FuelForecast";
 
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
@@ -184,10 +185,32 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
       .map(([date, v]) => ({ date, km: Math.round(v * 10) / 10 }));
   }, [trips]);
 
+  /** Monthly history from ALL trips (ignores the date filter) so the forecast always has full history. */
+  const monthly = useMemo(() => {
+    const m = new Map<string, { km: number; trips: number }>();
+    for (const t of allTrips) {
+      const d = toDate(t.date);
+      if (!d || t.km === null) continue;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const cur = m.get(key) ?? { km: 0, trips: 0 };
+      cur.km += t.km; cur.trips += 1;
+      m.set(key, cur);
+    }
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([month, v]) => ({
+        month,
+        km: Math.round(v.km * 10) / 10,
+        litres: Math.round((v.km / MILEAGE) * 10) / 10,
+        amount: Math.round((v.km / MILEAGE) * SUPER_98_PRICE * 100) / 100,
+        trips: v.trips,
+      }));
+  }, [allTrips]);
+
   const active = employees.find((e) => e.id === detail);
 
   const selectedRows = filtered.filter((e) => selected[e.id]);
   const approvalRows = selectedRows.length ? selectedRows : filtered;
+
 
   const aiDataset = useMemo(() => ({
     pricePerLitre: SUPER_98_PRICE,
@@ -331,7 +354,16 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
         <span className="text-[11px] text-muted-foreground">{filtered.length} of {employees.length} employees</span>
       </div>
 
+      <FuelForecast
+        history={monthly}
+        price={SUPER_98_PRICE}
+        mileage={MILEAGE}
+        employees={employees.map((e) => ({ name: e.name || e.id, amount: e.amount }))}
+        dataset={aiDataset}
+      />
+
       <FuelAssistant dataset={aiDataset} />
+
 
       {/* Charts */}
 

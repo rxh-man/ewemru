@@ -22,6 +22,11 @@ const BASE_USERS: Record<string, UserRecord> = {
     manageUsers: true,
     profile: { name: "Administrator", title: "Portal Administrator", photo: "" },
   },
+  admin1: {
+    password: "586786", role: "hr",
+    profile: { name: "Fuel Governance Admin", title: "Fuel Governance", photo: "" },
+    access: { tracks: ["fuel"], innovation: false, urgent: false },
+  },
   mruadmin: { password: "123999", role: "admin" },
   surveyor: { password: "123111", role: "surveyor" },
   engineer: { password: "demo123", role: "ft" },

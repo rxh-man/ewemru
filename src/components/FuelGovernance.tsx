@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import eandLogo from "@/assets/eand.png";
 import { FuelAssistant } from "@/components/FuelAssistant";
 import { FuelForecast } from "@/components/FuelForecast";
+import { FuelInsights } from "@/components/FuelInsights";
+import { FuelAlerts } from "@/components/FuelAlerts";
 
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
@@ -362,7 +364,17 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
         dataset={aiDataset}
       />
 
+      <FuelInsights
+        employees={employees}
+        price={SUPER_98_PRICE}
+        mileage={MILEAGE}
+        dataset={aiDataset}
+      />
+
+      <FuelAlerts employees={employees} dataset={aiDataset} />
+
       <FuelAssistant dataset={aiDataset} />
+
 
 
       {/* Charts */}

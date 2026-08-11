@@ -57,8 +57,9 @@ export function FuelAssistant({ dataset }: { dataset: unknown }) {
     <div className="border border-border rounded-lg bg-white overflow-hidden">
       <div className="px-4 py-2.5 bg-gradient-to-r from-[#4a0505] to-[#c41212] flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold text-white">Fuel Governance Assistant</p>
+          <p className="text-xs font-semibold text-white">Agentic & Conversational AI</p>
           <p className="text-[10px] text-white/70">Ask about duplicate readings, KM surges, payables or an employee</p>
+
         </div>
         {msgs.length > 0 && (
           <button onClick={() => setMsgs([])} className="text-[10px] text-white/80 hover:text-white underline">Clear</button>

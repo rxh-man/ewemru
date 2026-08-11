@@ -353,7 +353,16 @@ export function FuelGovernance({ rows }: { rows: Row[] }) {
         <span className="text-[11px] text-muted-foreground">{filtered.length} of {employees.length} employees</span>
       </div>
 
+      <FuelForecast
+        history={monthly}
+        price={SUPER_98_PRICE}
+        mileage={MILEAGE}
+        employees={employees.map((e) => ({ name: e.name || e.id, amount: e.amount }))}
+        dataset={aiDataset}
+      />
+
       <FuelAssistant dataset={aiDataset} />
+
 
       {/* Charts */}
 

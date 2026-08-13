@@ -1,7 +1,7 @@
 export type Role = "admin" | "surveyor" | "ft" | "hr";
 export interface Session { role: Role; username: string }
 
-export type TrackKey = "field" | "msp" | "noc" | "gnoc" | "customer" | "resources" | "fuel";
+export type TrackKey = "field" | "msp" | "noc" | "gnoc" | "customer" | "resources" | "fuel" | "emind";
 export interface Access { tracks: TrackKey[]; innovation: boolean; urgent: boolean }
 export interface Profile { name: string; title: string; photo: string }
 
@@ -13,7 +13,7 @@ export interface UserRecord {
   manageUsers?: boolean;
 }
 
-export const ALL_TRACKS: TrackKey[] = ["field", "msp", "noc", "gnoc", "customer", "resources", "fuel"];
+export const ALL_TRACKS: TrackKey[] = ["field", "msp", "noc", "gnoc", "customer", "resources", "fuel", "emind"];
 
 const BASE_USERS: Record<string, UserRecord> = {
   admin: {

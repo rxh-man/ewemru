@@ -14,6 +14,7 @@ import {
 import { CustomerExcellence } from "@/components/CustomerExcellence";
 import { ResourcesFleet } from "@/components/ResourcesFleet";
 import { FuelGovernance } from "@/components/FuelGovernance";
+import { EmindSection } from "@/components/EmindSection";
 
 
 
@@ -28,6 +29,8 @@ interface SheetData {
   nocChallenges: Row[];
   fuel: Row[];
   fleetRaw: string[][];
+  emindRaw: string[][];
+  fleetSheetRaw: string[][];
   fetchedAt: string;
 }
 
@@ -124,7 +127,7 @@ export default function HRDashboard() {
   const access = session ? getAccess(session.username) : undefined;
   const allowedTracks = access?.tracks;
   const canInnovation = access ? access.innovation : true;
-  const [track, setTrack] = useState<"field" | "msp" | "noc" | "gnoc" | "customer" | "resources" | "fuel">(
+  const [track, setTrack] = useState<"field" | "msp" | "noc" | "gnoc" | "customer" | "resources" | "fuel" | "emind">(
     allowedTracks && allowedTracks.length > 0 ? allowedTracks[0] : "field"
   );
   const [tab, setTab] = useState<"overview" | "po_pr" | "payment" | "vendors">("overview");
@@ -314,7 +317,7 @@ export default function HRDashboard() {
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-xl font-semibold text-[#111]">{track === "fuel" ? "Fuel Governance" : "Contract & Procurement"}</h1>
+            <h1 className="text-xl font-semibold text-[#111]">{track === "fuel" ? "Fuel Governance" : track === "emind" ? "eMind Section" : "Contract & Procurement"}</h1>
           </div>
 
 
@@ -346,7 +349,8 @@ export default function HRDashboard() {
           const showCustomer = showTrack("customer");
           const showResources = showTrack("resources");
           const showFuel = showTrack("fuel");
-          if (trackTiles.length === 0 && !showCustomer && !showResources && !showFuel) return null;
+          const showEmind = showTrack("emind");
+          if (trackTiles.length === 0 && !showCustomer && !showResources && !showFuel && !showEmind) return null;
           return (
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tracks</span>
@@ -360,8 +364,8 @@ export default function HRDashboard() {
                   ))}
                 </div>
               )}
-              {(showCustomer || showResources || showFuel) && <div className="hidden md:block h-8 w-px bg-border mx-3" />}
-              {(showCustomer || showResources || showFuel) && (
+              {(showCustomer || showResources || showFuel || showEmind) && <div className="hidden md:block h-8 w-px bg-border mx-3" />}
+              {(showCustomer || showResources || showFuel || showEmind) && (
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Program</span>
               )}
               {showCustomer && (
@@ -374,6 +378,12 @@ export default function HRDashboard() {
                 <button onClick={() => setTrack("resources")}
                   className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "resources" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
                   Resources &amp; Fleet
+                </button>
+              )}
+              {showEmind && (
+                <button onClick={() => setTrack("emind")}
+                  className={`px-4 h-9 rounded-md text-xs font-semibold border transition ${track === "emind" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+                  eMind Section
                 </button>
               )}
               {showFuel && (
@@ -511,6 +521,7 @@ export default function HRDashboard() {
         {track === "customer" && <CustomerExcellence />}
         {track === "resources" && <ResourcesFleet fleetRaw={data?.fleetRaw ?? []} />}
         {track === "fuel" && <FuelGovernance rows={data?.fuel ?? []} />}
+        {track === "emind" && <EmindSection emindRaw={data?.emindRaw ?? []} fleetSheetRaw={data?.fleetSheetRaw ?? []} />}
       </div>
 
 

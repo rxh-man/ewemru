@@ -149,9 +149,6 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
   const byResourceVendor = useMemo(() => tally("Resource Vendor"), [filteredFleet]);
   const byRole = useMemo(() => tally("Role", (s) => s.replace(/technition/i, "Technician")), [filteredFleet]);
 
-  const missingPlate = filteredFleet.filter((r) => /^yes$/i.test(r.Car || "") && !r["Plate No."]).length;
-  const missingId = filteredFleet.filter((r) => !r.ID).length;
-  const missingEmail = filteredFleet.filter((r) => !r.Email).length;
 
   const noData = emind.length === 0 && fleetRows.length === 0;
 

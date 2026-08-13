@@ -3,6 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
   PieChart, Pie, Legend,
 } from "recharts";
+import emindsLogoAsset from "@/assets/eminds-logo.png.asset.json";
 
 const RED = ["#dc2626", "#ef4444", "#b91c1c", "#f87171", "#7f1d1d", "#fca5a5", "#991b1b", "#fecaca"];
 

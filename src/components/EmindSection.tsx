@@ -343,31 +343,6 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
               </ResponsiveContainer>
             </Card>
 
-            <Card title="Fleet by Car Vendor" note="Where the vehicles are leased from">
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={byCarVendor} dataKey="value" nameKey="name" outerRadius={85} label={{ fontSize: 10 }}>
-                    {byCarVendor.map((_, i) => <Cell key={i} fill={RED[i % RED.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </Card>
-
-            <Card title="Fleet by Vehicle Model" note="Standardisation view">
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={byModel} layout="vertical" margin={{ left: 20, right: 40 }}>
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 10 }} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#dc2626">
-                    <LabelList dataKey="value" position="right" fontSize={11} />
-                    {byModel.map((_, i) => <Cell key={i} fill={RED[i % RED.length]} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
           </div>
 
           <Card title="Roles Mix" note="Field capability distribution">

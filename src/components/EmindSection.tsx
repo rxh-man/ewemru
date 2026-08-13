@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
   PieChart, Pie, Legend,
 } from "recharts";
-import emindsLogoAsset from "@/assets/eminds-logo.png.asset.json";
+import emindsLogo from "@/assets/eminds-logo.png";
 
 const RED = ["#dc2626", "#ef4444", "#b91c1c", "#f87171", "#7f1d1d", "#fca5a5", "#991b1b", "#fecaca"];
 
@@ -166,7 +166,7 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
                 Workforce build-up under eMind and the live fleet &amp; resources status, straight from the source sheets.
               </p>
             </div>
-            <img src={emindsLogoAsset.url} alt="eMinds logo" className="h-14 w-auto object-contain bg-white/95 rounded-lg px-3 py-2 shadow-sm" />
+            <img src={emindsLogo} alt="eMinds logo" className="h-14 w-auto object-contain bg-white/95 rounded-lg px-3 py-2 shadow-sm" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
             <Kpi label="Resources Required" value={workforce.required ?? "-"} sub="Total demand" />

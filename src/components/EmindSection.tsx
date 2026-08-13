@@ -313,7 +313,7 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
             <Stat label="Total Resources" value={filteredFleet.length} />
             <Stat label="With Vehicle" value={withCar} sub={`${coverage}% coverage`} tone="red" />
             <Stat label="Without Vehicle" value={withoutCar} />
-            <Stat label="Vehicle Vendors" value={byCarVendor.length} sub={byCarVendor[0］ ? "" : ""} />
+            <Stat label="Vehicle Vendors" value={byCarVendor.length} sub={byCarVendor[0]?.name ? `Top: ${byCarVendor[0].name}` : undefined} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

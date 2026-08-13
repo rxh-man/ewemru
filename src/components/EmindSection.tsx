@@ -133,7 +133,6 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
 
   const withCar = filteredFleet.filter((r) => /^yes$/i.test(r.Car || "")).length;
   const withoutCar = filteredFleet.length - withCar;
-  const coverage = filteredFleet.length ? Math.round((withCar / filteredFleet.length) * 100) : 0;
 
   function tally(key: string, mapper?: (s: string) => string) {
     const m = new Map<string, number>();
@@ -148,13 +147,8 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
 
   const byDept = useMemo(() => tally("Department"), [filteredFleet]);
   const byResourceVendor = useMemo(() => tally("Resource Vendor"), [filteredFleet]);
-  const byCarVendor = useMemo(() => tally("Car Vendor"), [filteredFleet]);
   const byRole = useMemo(() => tally("Role", (s) => s.replace(/technition/i, "Technician")), [filteredFleet]);
-  const byModel = useMemo(() => tally("Vehicle Model", (s) => s.replace(/mitshubishi/i, "Mitsubishi").replace(/\bsunny\b/i, "Sunny")), [filteredFleet]);
 
-  const missingPlate = filteredFleet.filter((r) => /^yes$/i.test(r.Car || "") && !r["Plate No."]).length;
-  const missingId = filteredFleet.filter((r) => !r.ID).length;
-  const missingEmail = filteredFleet.filter((r) => !r.Email).length;
 
   const noData = emind.length === 0 && fleetRows.length === 0;
 
@@ -311,9 +305,7 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Stat label="Total Resources" value={filteredFleet.length} />
-            <Stat label="With Vehicle" value={withCar} sub={`${coverage}% coverage`} tone="red" />
             <Stat label="Without Vehicle" value={withoutCar} />
-            <Stat label="Vehicle Vendors" value={byCarVendor.length} sub={byCarVendor[0]?.name ? `Top: ${byCarVendor[0].name}` : undefined} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -345,31 +337,6 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
               </ResponsiveContainer>
             </Card>
 
-            <Card title="Fleet by Car Vendor" note="Where the vehicles are leased from">
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={byCarVendor} dataKey="value" nameKey="name" outerRadius={85} label={{ fontSize: 10 }}>
-                    {byCarVendor.map((_, i) => <Cell key={i} fill={RED[i % RED.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </Card>
-
-            <Card title="Fleet by Vehicle Model" note="Standardisation view">
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={byModel} layout="vertical" margin={{ left: 20, right: 40 }}>
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 10 }} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#dc2626">
-                    <LabelList dataKey="value" position="right" fontSize={11} />
-                    {byModel.map((_, i) => <Cell key={i} fill={RED[i % RED.length]} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
           </div>
 
           <Card title="Roles Mix" note="Field capability distribution">
@@ -386,11 +353,6 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
             </ResponsiveContainer>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Stat label="Vehicles Missing Plate No." value={missingPlate} tone="red" sub="Data quality" />
-            <Stat label="Resources Missing Staff ID" value={missingId} sub="Data quality" />
-            <Stat label="Resources Missing Email" value={missingEmail} sub="Data quality" />
-          </div>
 
           <div className="rounded-lg border border-border bg-white">
             <div className="px-4 py-3 border-b border-border">

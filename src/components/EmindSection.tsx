@@ -133,7 +133,6 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
 
   const withCar = filteredFleet.filter((r) => /^yes$/i.test(r.Car || "")).length;
   const withoutCar = filteredFleet.length - withCar;
-  const coverage = filteredFleet.length ? Math.round((withCar / filteredFleet.length) * 100) : 0;
 
   function tally(key: string, mapper?: (s: string) => string) {
     const m = new Map<string, number>();

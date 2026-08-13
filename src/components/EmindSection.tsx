@@ -359,11 +359,6 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
             </ResponsiveContainer>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Stat label="Vehicles Missing Plate No." value={missingPlate} tone="red" sub="Data quality" />
-            <Stat label="Resources Missing Staff ID" value={missingId} sub="Data quality" />
-            <Stat label="Resources Missing Email" value={missingEmail} sub="Data quality" />
-          </div>
 
           <div className="rounded-lg border border-border bg-white">
             <div className="px-4 py-3 border-b border-border">

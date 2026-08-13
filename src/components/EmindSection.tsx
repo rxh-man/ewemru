@@ -158,11 +158,16 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
       {/* Hero */}
       <div className="rounded-xl overflow-hidden border border-border">
         <div className="bg-gradient-to-br from-[#7f1d1d] via-[#991b1b] to-[#dc2626] text-white p-6">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80">Delivery &amp; Operations · Executive View</div>
-          <h2 className="text-2xl font-semibold mt-1">eMind Section</h2>
-          <p className="text-xs opacity-80 mt-1 max-w-2xl">
-            Workforce build-up under eMind and the live fleet &amp; resources status, straight from the source sheets.
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80">Delivery &amp; Operations · Executive View</div>
+              <h2 className="text-2xl font-semibold mt-1">eMind Section</h2>
+              <p className="text-xs opacity-80 mt-1 max-w-2xl">
+                Workforce build-up under eMind and the live fleet &amp; resources status, straight from the source sheets.
+              </p>
+            </div>
+            <img src={emindsLogoAsset.url} alt="eMinds logo" className="h-14 w-auto object-contain bg-white/95 rounded-lg px-3 py-2 shadow-sm" />
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
             <Kpi label="Resources Required" value={workforce.required ?? "-"} sub="Total demand" />
             <Kpi label="Resources Planned" value={workforce.planned ?? "-"} sub={`In-house ${workforce.inHouse ?? "-"} | Outsourced ${workforce.outsourced ?? "-"}`} />

@@ -147,9 +147,7 @@ export function EmindSection({ emindRaw, fleetSheetRaw }: { emindRaw: string[][]
 
   const byDept = useMemo(() => tally("Department"), [filteredFleet]);
   const byResourceVendor = useMemo(() => tally("Resource Vendor"), [filteredFleet]);
-  const byCarVendor = useMemo(() => tally("Car Vendor"), [filteredFleet]);
   const byRole = useMemo(() => tally("Role", (s) => s.replace(/technition/i, "Technician")), [filteredFleet]);
-  const byModel = useMemo(() => tally("Vehicle Model", (s) => s.replace(/mitshubishi/i, "Mitsubishi").replace(/\bsunny\b/i, "Sunny")), [filteredFleet]);
 
   const missingPlate = filteredFleet.filter((r) => /^yes$/i.test(r.Car || "") && !r["Plate No."]).length;
   const missingId = filteredFleet.filter((r) => !r.ID).length;

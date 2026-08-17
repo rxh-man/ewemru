@@ -367,7 +367,11 @@ export default function FieldRoutes() {
                   </button>
                   <span className="text-[11px] font-medium text-[#111]">
                     {dayStops.length} visits · {routeKm.toFixed(0)} km
+                    {outlierCount > 0 && (
+                      <span className="ml-2 text-[#b45309]">· {outlierCount} off-route (check data)</span>
+                    )}
                   </span>
+
                 </div>
               </div>
             </div>

@@ -25,25 +25,30 @@ export default function HRLogin() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2">
-        <div className="hidden lg:flex flex-col justify-between bg-[#111] text-white p-12">
-          <div className="flex items-center gap-2">
+        <div className="relative hidden lg:flex flex-col justify-between text-white p-12 overflow-hidden">
+          <LoginVideo />
+          <div className="relative flex items-center gap-2">
             <img src={eandLogo} alt="e&" className="h-8 w-auto invert" />
             <span className="text-sm font-semibold">Delivery & Operations</span>
           </div>
-          <div>
+          <div className="relative">
             <h2 className="text-3xl font-semibold leading-tight max-w-md">Contract & Procurement</h2>
-            <p className="mt-3 text-sm text-white/70 max-w-md">Blockers, pending items, action owners and vendor status, always in sync.</p>
+            <p className="mt-3 text-sm text-white/80 max-w-md">Blockers, pending items, action owners and vendor status, always in sync.</p>
           </div>
-          <p className="text-xs text-white/50">Restricted access · D&O</p>
+          <p className="relative text-xs text-white/60">Restricted access · D&O</p>
 
         </div>
 
-        <div className="flex items-center justify-center p-6">
-          <div className="w-full max-w-sm">
+        <div className="relative flex items-center justify-center p-6">
+          <div className="lg:hidden absolute inset-0">
+            <LoginVideo overlay="soft" />
+          </div>
+          <div className="relative w-full max-w-sm">
             <div className="lg:hidden flex items-center gap-2 mb-6">
               <img src={eandLogo} alt="e&" className="h-7 w-auto" />
               <span className="text-sm font-semibold text-[#111]">Delivery & Operations</span>
             </div>
+
             <h1 className="text-2xl font-semibold text-[#111]">Sign in</h1>
             <p className="text-sm text-muted-foreground mt-1">HR access to the MR Tracker dashboard.</p>
             <form onSubmit={onSubmit} className="mt-6 space-y-3">

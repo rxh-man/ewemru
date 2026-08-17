@@ -175,6 +175,7 @@ export default function FieldRoutes() {
   const [loading, setLoading] = useState(true);
   const [day, setDay] = useState("");
   const [team, setTeam] = useState("all");
+  const [optimize, setOptimize] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -325,7 +326,15 @@ export default function FieldRoutes() {
                     {t}
                   </button>
                 ))}
-                <span className="ml-auto text-[11px] font-medium text-[#111]">{dayStops.length} visits this day</span>
+                <div className="ml-auto flex items-center gap-3">
+                  <button onClick={() => setOptimize((v) => !v)}
+                    className={`px-3 h-8 rounded-md text-xs font-medium border transition ${optimize ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+                    {optimize ? "Shortest path: on" : "Shortest path: off"}
+                  </button>
+                  <span className="text-[11px] font-medium text-[#111]">
+                    {dayStops.length} visits · {routeKm.toFixed(0)} km
+                  </span>
+                </div>
               </div>
             </div>
 

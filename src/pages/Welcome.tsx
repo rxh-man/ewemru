@@ -38,14 +38,15 @@ export default function Welcome() {
             <img
               src={photo}
               alt={profile.name}
-              className="h-24 w-24 rounded-lg object-cover border border-border shadow-sm mb-4 animate-[pop_400ms_ease-out]"
+              className="h-24 w-24 rounded-full object-cover border border-border shadow-sm mb-4 animate-[pop_400ms_ease-out]"
             />
           ) : (
-            <div className="h-24 w-24 rounded-lg border border-border bg-[#dc2626] text-white flex items-center justify-center text-2xl font-semibold mb-4 animate-[pop_400ms_ease-out]">
-              {initialsOf(profile.name)}
+            <div className="h-24 w-24 rounded-full border border-border bg-white flex items-center justify-center shadow-sm mb-4 animate-[pop_400ms_ease-out]">
+              <img src={eandLogo} alt="e&" className="h-10 w-auto" />
             </div>
           )
         )}
+
         <h1 className="text-3xl font-semibold text-[#111] tracking-tight">
           Welcome, {displayName}
         </h1>

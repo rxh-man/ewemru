@@ -97,6 +97,29 @@ function pathLength(list: Stop[]) {
   return d;
 }
 
+const OUTLIER_KM = 12;
+
+/** Split stops whose nearest neighbour is unreasonably far (likely bad coordinates). */
+function splitOutliers(list: Stop[]): { core: Stop[]; outliers: Stop[] } {
+  if (list.length < 4) return { core: list, outliers: [] };
+  const core: Stop[] = [];
+  const outliers: Stop[] = [];
+  list.forEach((s, i) => {
+    let min = Infinity;
+    for (let j = 0; j < list.length; j++) {
+      if (j === i) continue;
+      const d = haversine(s, list[j]);
+      if (d < min) min = d;
+      if (min <= OUTLIER_KM) break;
+    }
+    (min > OUTLIER_KM ? outliers : core).push(s);
+  });
+  if (!core.length) return { core: list, outliers: [] };
+  return { core, outliers };
+}
+
+
+
 /** Nearest-neighbour ordering + 2-opt refinement so consecutive stops are the closest ones. */
 function optimizeRoute(list: Stop[]): Stop[] {
   if (list.length < 3) return list;

@@ -478,19 +478,19 @@ export default function FieldRoutes() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* ── Map ─────────────────────────────────────── */}
-              <div className="lg:col-span-2 rounded-xl border border-border overflow-hidden bg-[#0b0b0f] shadow-sm">
-                <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
-                  <p className="text-[11px] font-semibold text-white/80 uppercase tracking-wider">
+              <div className="lg:col-span-2 rounded-xl border border-border overflow-hidden bg-white shadow-sm">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                  <p className="text-[11px] font-semibold text-[#111] uppercase tracking-wider">
                     Optimised field graph · {dayLabel(day)}
                   </p>
-                  <p className="text-[10px] text-white/45">
+                  <p className="text-[10px] text-muted-foreground">
                     {dayStops.length} nodes · {routeKm.toFixed(0)} km
-                    {outlierCount > 0 && <span className="text-[#fbbf24]"> · {outlierCount} flagged</span>}
+                    {outlierCount > 0 && <span className="text-[#b45309]"> · {outlierCount} flagged</span>}
                   </p>
                 </div>
-                <MapContainer center={[24.4, 55.13]} zoom={9} scrollWheelZoom style={{ height: 500, width: "100%", background: "#0b0b0f" }}>
-                  <TileLayer attribution="&copy; OpenStreetMap &copy; CARTO"
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+                <MapContainer center={[24.4, 55.13]} zoom={9} scrollWheelZoom style={{ height: 500, width: "100%", background: "#ffffff" }}>
+                  <TileLayer attribution="&copy; OpenStreetMap"
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                   <FitBounds points={points} />
                   {routes.map((r) => {
                     const linePts = r.stops.filter((s) => !r.outliers.includes(s)).map((s) => [s.lat, s.lng] as [number, number]);

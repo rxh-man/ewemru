@@ -16,7 +16,9 @@ export function AppShell({ session, children }: { session: Session; children: Re
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src={eandLogo} alt="e&" className="h-7 w-auto" />
-            <span className="text-sm font-semibold text-[#111]">{session.role === "hr" ? "Delivery & Operations" : "Etihad MRU Automation"}</span>
+            <span className="text-sm font-semibold text-[#111]">
+              {session.role === "hr" ? "Delivery & Operations" : session.role === "routes" ? "Field Visit Planning" : "Etihad MRU Automation"}
+            </span>
           </div>
           <div className="flex items-center gap-3">
             {canManageUsers(session.username) && (

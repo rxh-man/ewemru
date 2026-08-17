@@ -81,6 +81,58 @@ function FitBounds({ points }: { points: [number, number][] }) {
   return null;
 }
 
+function haversine(a: Stop, b: Stop) {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const la1 = (a.lat * Math.PI) / 180;
+  const la2 = (b.lat * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function pathLength(list: Stop[]) {
+  let d = 0;
+  for (let i = 1; i < list.length; i++) d += haversine(list[i - 1], list[i]);
+  return d;
+}
+
+/** Nearest-neighbour ordering + 2-opt refinement so consecutive stops are the closest ones. */
+function optimizeRoute(list: Stop[]): Stop[] {
+  if (list.length < 3) return list;
+  const remaining = list.slice(1);
+  const order = [list[0]];
+  while (remaining.length) {
+    const cur = order[order.length - 1];
+    let best = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < remaining.length; i++) {
+      const d = haversine(cur, remaining[i]);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    order.push(remaining.splice(best, 1)[0]);
+  }
+  // 2-opt (bounded passes to stay fast on large days)
+  const n = order.length;
+  const maxPasses = n > 300 ? 1 : 6;
+  for (let pass = 0; pass < maxPasses; pass++) {
+    let improved = false;
+    for (let i = 0; i < n - 2; i++) {
+      for (let k = i + 2; k < n; k++) {
+        const a = order[i], b = order[i + 1], c = order[k], d = order[k + 1];
+        const delta = haversine(a, c) + (d ? haversine(b, d) : 0) - haversine(a, b) - (d ? haversine(c, d) : 0);
+        if (delta < -1e-9) {
+          let x = i + 1, y = k;
+          while (x < y) { const t = order[x]; order[x] = order[y]; order[y] = t; x++; y--; }
+          improved = true;
+        }
+      }
+    }
+    if (!improved) break;
+  }
+  return order;
+}
+
 function parseWorkbook(buf: ArrayBuffer): Stop[] {
   const wb = XLSX.read(buf, { type: "array", cellDates: true });
   const sheetName = wb.SheetNames.find((n) => {
@@ -123,6 +175,7 @@ export default function FieldRoutes() {
   const [loading, setLoading] = useState(true);
   const [day, setDay] = useState("");
   const [team, setTeam] = useState("all");
+  const [optimize, setOptimize] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -168,8 +221,13 @@ export default function FieldRoutes() {
     dayStops.forEach((s) => byTeam.set(s.team, [...(byTeam.get(s.team) ?? []), s]));
     return Array.from(byTeam.entries())
       .sort((a, b) => teamKey(a[0]) - teamKey(b[0]))
-      .map(([t, list]) => ({ team: t, color: teamColor(t), stops: [...list].sort((a, b) => a.order - b.order) }));
-  }, [dayStops, teams]);
+      .map(([t, list]) => {
+        const seq = [...list].sort((a, b) => a.order - b.order);
+        return { team: t, color: teamColor(t), stops: optimize ? optimizeRoute(seq) : seq };
+      });
+  }, [dayStops, teams, optimize]);
+
+  const routeKm = useMemo(() => routes.reduce((sum, r) => sum + pathLength(r.stops), 0), [routes]);
 
   const points = useMemo(
     () => routes.flatMap((r) => r.stops.map((s) => [s.lat, s.lng] as [number, number])),
@@ -268,7 +326,15 @@ export default function FieldRoutes() {
                     {t}
                   </button>
                 ))}
-                <span className="ml-auto text-[11px] font-medium text-[#111]">{dayStops.length} visits this day</span>
+                <div className="ml-auto flex items-center gap-3">
+                  <button onClick={() => setOptimize((v) => !v)}
+                    className={`px-3 h-8 rounded-md text-xs font-medium border transition ${optimize ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+                    {optimize ? "Shortest path: on" : "Shortest path: off"}
+                  </button>
+                  <span className="text-[11px] font-medium text-[#111]">
+                    {dayStops.length} visits · {routeKm.toFixed(0)} km
+                  </span>
+                </div>
               </div>
             </div>
 

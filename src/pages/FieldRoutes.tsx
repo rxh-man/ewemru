@@ -383,25 +383,34 @@ export default function FieldRoutes() {
                 <FitBounds points={points} />
                 {routes.map((r) => (
                   <Fragment key={r.team}>
-                    <Polyline positions={r.stops.map((s) => [s.lat, s.lng] as [number, number])}
+                    <Polyline
+                      positions={r.stops.filter((s) => !r.outliers.includes(s)).map((s) => [s.lat, s.lng] as [number, number])}
                       pathOptions={{ color: r.color, weight: 3, opacity: 0.85 }} />
-                    {r.stops.map((s, i) => (
-                      <Marker key={`${s.team}-${s.serial}-${i}`} position={[s.lat, s.lng]} icon={numberedIcon(i + 1, r.color)}>
-                        <Popup>
-                          <div className="text-xs leading-5">
-                            <div className="font-semibold">{s.serial}</div>
-                            <div>{s.district}{s.subdistrict ? ` / ${s.subdistrict}` : ""}</div>
-                            <div>{s.city} · {s.region} · Plot {s.plot || "-"}</div>
-                            <div>{r.team} · Stop {i + 1} · {dayLabel(s.day)}</div>
-                            <div>{s.priority} · {s.status}</div>
-                          </div>
-                        </Popup>
-                      </Marker>
-                    ))}
+                    {r.stops.map((s, i) => {
+                      const flagged = r.outliers.includes(s);
+                      return (
+                        <Marker key={`${s.team}-${s.serial}-${i}`} position={[s.lat, s.lng]}
+                          icon={numberedIcon(i + 1, flagged ? "#b45309" : r.color)}>
+                          <Popup>
+                            <div className="text-xs leading-5">
+                              <div className="font-semibold">{s.serial}</div>
+                              <div>{s.district}{s.subdistrict ? ` / ${s.subdistrict}` : ""}</div>
+                              <div>{s.city} · {s.region} · Plot {s.plot || "-"}</div>
+                              <div>{r.team} · Stop {i + 1} · {dayLabel(s.day)}</div>
+                              <div>{s.priority} · {s.status}</div>
+                              {flagged && (
+                                <div className="mt-1 font-semibold text-[#b45309]">
+                                  Excluded from route path - check data for accuracy (coordinates far from cluster). Visit last if valid.
+                                </div>
+                              )}
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
+                    })}
                   </Fragment>
                 ))}
-              </MapContainer>
-            </div>
+
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {routes.map((r) => (

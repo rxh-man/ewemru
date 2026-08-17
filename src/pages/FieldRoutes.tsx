@@ -246,11 +246,22 @@ export default function FieldRoutes() {
       .sort((a, b) => teamKey(a[0]) - teamKey(b[0]))
       .map(([t, list]) => {
         const seq = [...list].sort((a, b) => a.order - b.order);
-        return { team: t, color: teamColor(t), stops: optimize ? optimizeRoute(seq) : seq };
+        if (!optimize) return { team: t, color: teamColor(t), stops: seq, outliers: [] as Stop[] };
+        const { core, outliers } = splitOutliers(seq);
+        const ordered = optimizeRoute(core);
+        // far / suspect points are pushed to the very end of the visit order
+        const tail = optimizeRoute(outliers);
+        return { team: t, color: teamColor(t), stops: [...ordered, ...tail], outliers: tail };
       });
   }, [dayStops, teams, optimize]);
 
-  const routeKm = useMemo(() => routes.reduce((sum, r) => sum + pathLength(r.stops), 0), [routes]);
+  const outlierCount = useMemo(() => routes.reduce((n, r) => n + r.outliers.length, 0), [routes]);
+
+  const routeKm = useMemo(
+    () => routes.reduce((sum, r) => sum + pathLength(r.stops.filter((s) => !r.outliers.includes(s))), 0),
+    [routes],
+  );
+
 
   const points = useMemo(
     () => routes.flatMap((r) => r.stops.map((s) => [s.lat, s.lng] as [number, number])),

@@ -268,6 +268,76 @@ export default function FieldRoutes() {
     [routes],
   );
 
+  /** Baseline (sheet order) distance for the same day, used to quantify the AI saving. */
+  const baselineKm = useMemo(() => {
+    const byTeam = new Map<string, Stop[]>();
+    dayStops.forEach((s) => byTeam.set(s.team, [...(byTeam.get(s.team) ?? []), s]));
+    return Array.from(byTeam.values()).reduce(
+      (sum, list) => sum + pathLength([...list].sort((a, b) => a.order - b.order)),
+      0,
+    );
+  }, [dayStops]);
+
+  const insights = useMemo(() => {
+    const visits = dayStops.length;
+    const saved = Math.max(0, baselineKm - routeKm);
+    const savedPct = baselineKm > 0 ? (saved / baselineKm) * 100 : 0;
+    const perTeam = routes.map((r) => r.stops.length);
+    const maxT = Math.max(1, ...perTeam);
+    const minT = Math.min(...(perTeam.length ? perTeam : [0]));
+    const balance = perTeam.length > 1 ? Math.round((minT / maxT) * 100) : 100;
+    const density = visits > 0 && routeKm > 0 ? visits / routeKm : 0;
+    const hours = routeKm / 45 + visits * 0.35; // drive time + avg 21 min per site
+    const fuelAed = (routeKm / 11) * 3.49;
+    const confidence = Math.max(
+      45,
+      Math.min(99, Math.round(96 - (outlierCount / Math.max(1, visits)) * 180)),
+    );
+    const topArea = (() => {
+      const m = new Map<string, number>();
+      dayStops.forEach((s) => {
+        const k = s.subdistrict || s.district || s.city || "Unspecified";
+        m.set(k, (m.get(k) ?? 0) + 1);
+      });
+      return Array.from(m.entries()).sort((a, b) => b[1] - a[1])[0];
+    })();
+    const priorityMix = (() => {
+      const m = new Map<string, number>();
+      dayStops.forEach((s) => m.set(s.priority || "Unset", (m.get(s.priority || "Unset") ?? 0) + 1));
+      return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    })();
+    return { visits, saved, savedPct, balance, density, hours, fuelAed, confidence, topArea, priorityMix, maxT, minT };
+  }, [dayStops, routes, routeKm, baselineKm, outlierCount]);
+
+  const narrative = useMemo(() => {
+    const out: { tone: "good" | "warn" | "info"; text: string }[] = [];
+    out.push({
+      tone: insights.savedPct >= 5 ? "good" : "info",
+      text: `Route engine re-sequenced ${insights.visits} visits across ${routes.length} team${routes.length === 1 ? "" : "s"}, cutting ${insights.saved.toFixed(0)} km (${insights.savedPct.toFixed(1)}%) versus the sheet order.`,
+    });
+    if (outlierCount > 0)
+      out.push({
+        tone: "warn",
+        text: `${outlierCount} coordinate${outlierCount === 1 ? "" : "s"} sit beyond ${OUTLIER_KM} km of any cluster — excluded from the path and queued last. Validate GPS accuracy before dispatch.`,
+      });
+    if (insights.balance < 70)
+      out.push({
+        tone: "warn",
+        text: `Workload is skewed: heaviest team carries ${insights.maxT} visits vs ${insights.minT} on the lightest (${insights.balance}% balance). Rebalancing would recover crew capacity.`,
+      });
+    else out.push({ tone: "good", text: `Crew load is balanced at ${insights.balance}% across teams — no reassignment needed.` });
+    if (insights.topArea)
+      out.push({
+        tone: "info",
+        text: `Highest density in ${insights.topArea[0]} with ${insights.topArea[1]} visits — ideal anchor cluster to start the day and reduce dead mileage.`,
+      });
+    out.push({
+      tone: "info",
+      text: `Projected field effort ${insights.hours.toFixed(1)} crew-hours and AED ${insights.fuelAed.toFixed(0)} fuel at 11 km/L · AED 3.49/L.`,
+    });
+    return out;
+  }, [insights, routes.length, outlierCount]);
+
   function downloadTemplate() {
     const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ...TEMPLATE_ROWS]);
     ws["!cols"] = TEMPLATE_HEADERS.map(() => ({ wch: 18 }));
@@ -301,36 +371,77 @@ export default function FieldRoutes() {
 
   if (!session) return null;
 
+
   return (
     <AppShell session={session}>
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold text-[#111]">Field Visit Route Planner</h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              AADC baseline plan preloaded · {stops.length.toLocaleString()} visits · {teams.length} teams · {days.length} planned days
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={downloadTemplate}
-              className="h-9 px-3 rounded-md border border-border bg-white text-xs font-medium text-[#111] hover:bg-secondary">
-              Download template
-            </button>
-            <button onClick={() => inputRef.current?.click()}
-              className="h-9 px-4 rounded-md bg-[#dc2626] text-white text-xs font-semibold hover:opacity-90">
-              Upload plan
-            </button>
-            <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
+      <div className="space-y-4">
+        {/* ── AI command-centre hero ───────────────────────────── */}
+        <div className="relative overflow-hidden rounded-2xl bg-[#0b0b0f] text-white">
+          <div className="absolute inset-0 opacity-[0.35]"
+            style={{ backgroundImage: "radial-gradient(circle at 15% 20%, #dc2626 0, transparent 42%), radial-gradient(circle at 85% 10%, #7f1d1d 0, transparent 45%)" }} />
+          <div className="absolute inset-0 opacity-[0.12]"
+            style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
+          <div className="relative p-5 md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inset-0 rounded-full bg-[#dc2626] animate-ping" />
+                    <span className="relative h-2 w-2 rounded-full bg-[#dc2626]" />
+                  </span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">
+                    Route Intelligence Engine · Live
+                  </span>
+                </div>
+                <h1 className="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
+                  Field Visit Route Planner
+                </h1>
+                <p className="mt-1 text-xs text-white/55 max-w-xl">
+                  Geospatial clustering · nearest-neighbour sequencing · 2-opt refinement · anomaly detection.
+                  {" "}{stops.length.toLocaleString()} visits · {teams.length} teams · {days.length} planned days.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={downloadTemplate}
+                  className="h-9 px-3 rounded-lg border border-white/20 bg-white/5 text-xs font-medium text-white hover:bg-white/10 transition">
+                  Template
+                </button>
+                <button onClick={() => inputRef.current?.click()}
+                  className="h-9 px-4 rounded-lg bg-[#dc2626] text-white text-xs font-semibold hover:brightness-110 transition shadow-[0_6px_24px_-6px_rgba(220,38,38,.9)]">
+                  Upload plan
+                </button>
+                <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
+              </div>
+            </div>
+
+            {stops.length > 0 && (
+              <div className="mt-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                {[
+                  { k: "Visits today", v: insights.visits.toLocaleString(), s: `${routes.length} active teams` },
+                  { k: "Optimised distance", v: `${routeKm.toFixed(0)} km`, s: `baseline ${baselineKm.toFixed(0)} km` },
+                  { k: "AI distance saved", v: `${insights.saved.toFixed(0)} km`, s: `${insights.savedPct.toFixed(1)}% shorter` },
+                  { k: "Crew effort", v: `${insights.hours.toFixed(1)} h`, s: "drive + on-site" },
+                  { k: "Fuel forecast", v: `AED ${insights.fuelAed.toFixed(0)}`, s: "11 km/L · 3.49/L" },
+                  { k: "Data confidence", v: `${insights.confidence}%`, s: `${outlierCount} anomalies` },
+                ].map((c) => (
+                  <div key={c.k} className="rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur px-3 py-2.5">
+                    <p className="text-[9px] uppercase tracking-wider text-white/45">{c.k}</p>
+                    <p className="text-lg font-semibold tabular-nums">{c.v}</p>
+                    <p className="text-[10px] text-white/40 truncate">{c.s}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {loading && !stops.length ? (
-          <div className="border border-border rounded-lg p-8 text-center bg-white text-sm text-muted-foreground">
-            Loading plan...
+          <div className="border border-border rounded-xl p-8 text-center bg-white text-sm text-muted-foreground">
+            Initialising route intelligence…
           </div>
         ) : !stops.length ? (
-          <div className="border border-dashed border-border rounded-lg p-8 text-center bg-white">
+          <div className="border border-dashed border-border rounded-xl p-8 text-center bg-white">
             <p className="text-sm font-medium text-[#111]">No plan loaded</p>
             <p className="text-xs text-muted-foreground mt-1">
               Columns: SERIALNUMBER, DISTRICT, SUBDISTRICT, CITYNAME, REGION, SECTOR, PLOT, Latitude, Longitude, Priority, Status, Planned - Date of Visit, Team No.
@@ -338,121 +449,189 @@ export default function FieldRoutes() {
           </div>
         ) : (
           <>
-            <div className="border border-border rounded-lg bg-white p-3 space-y-2">
-              <div className="flex items-center gap-2">
+            {/* ── Controls ─────────────────────────────────────── */}
+            <div className="rounded-xl border border-border bg-white p-3 space-y-2.5 shadow-sm">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground w-14">Day</span>
                 <select value={day} onChange={(e) => setDay(e.target.value)}
-                  className="h-9 px-2 text-xs border border-input rounded-md bg-white max-w-[240px]">
+                  className="h-9 px-2 text-xs border border-input rounded-lg bg-white max-w-[240px]">
                   {days.map((d) => <option key={d} value={d}>{dayLabel(d)}</option>)}
                 </select>
-                <span className="ml-auto text-[11px] text-muted-foreground truncate">{fileName}</span>
+                <button onClick={() => setOptimize((v) => !v)}
+                  className={`h-9 px-3 rounded-lg text-xs font-semibold border transition ${optimize ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+                  {optimize ? "AI sequencing: ON" : "AI sequencing: OFF"}
+                </button>
+                <span className="ml-auto text-[11px] text-muted-foreground truncate max-w-[220px]">{fileName}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground w-14">Team</span>
                 <button onClick={() => setTeam("all")}
-                  className={`px-3 h-8 rounded-md text-xs font-medium border transition ${team === "all" ? "bg-[#111] text-white border-[#111]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+                  className={`px-3 h-8 rounded-lg text-xs font-medium border transition ${team === "all" ? "bg-[#111] text-white border-[#111]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
                   All
                 </button>
                 {teams.map((t) => (
                   <button key={t} onClick={() => setTeam(t)}
-                    className={`px-3 h-8 rounded-md text-xs font-medium border transition flex items-center gap-1.5 ${team === t ? "bg-[#111] text-white border-[#111]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+                    className={`px-3 h-8 rounded-lg text-xs font-medium border transition flex items-center gap-1.5 ${team === t ? "bg-[#111] text-white border-[#111]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
                     <span className="h-2 w-2 rounded-full" style={{ background: teamColor(t) }} />
                     {t}
                   </button>
                 ))}
-                <div className="ml-auto flex items-center gap-3">
-                  <button onClick={() => setOptimize((v) => !v)}
-                    className={`px-3 h-8 rounded-md text-xs font-medium border transition ${optimize ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
-                    {optimize ? "Shortest path: on" : "Shortest path: off"}
-                  </button>
-                  <span className="text-[11px] font-medium text-[#111]">
-                    {dayStops.length} visits · {routeKm.toFixed(0)} km
-                    {outlierCount > 0 && (
-                      <span className="ml-2 text-[#b45309]">· {outlierCount} off-route (check data)</span>
-                    )}
-                  </span>
+              </div>
+            </div>
 
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* ── Map ─────────────────────────────────────── */}
+              <div className="lg:col-span-2 rounded-xl border border-border overflow-hidden bg-[#0b0b0f] shadow-sm">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+                  <p className="text-[11px] font-semibold text-white/80 uppercase tracking-wider">
+                    Optimised field graph · {dayLabel(day)}
+                  </p>
+                  <p className="text-[10px] text-white/45">
+                    {dayStops.length} nodes · {routeKm.toFixed(0)} km
+                    {outlierCount > 0 && <span className="text-[#fbbf24]"> · {outlierCount} flagged</span>}
+                  </p>
+                </div>
+                <MapContainer center={[24.4, 55.13]} zoom={9} scrollWheelZoom style={{ height: 500, width: "100%", background: "#0b0b0f" }}>
+                  <TileLayer attribution="&copy; OpenStreetMap &copy; CARTO"
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+                  <FitBounds points={points} />
+                  {routes.map((r) => {
+                    const linePts = r.stops.filter((s) => !r.outliers.includes(s)).map((s) => [s.lat, s.lng] as [number, number]);
+                    return (
+                      <Fragment key={r.team}>
+                        <Polyline positions={linePts} pathOptions={{ color: r.color, weight: 10, opacity: 0.18 }} />
+                        <Polyline positions={linePts} pathOptions={{ color: r.color, weight: 2.5, opacity: 0.95 }} />
+                        {r.stops.map((s, i) => {
+                          const flagged = r.outliers.includes(s);
+                          return (
+                            <Marker key={`${s.team}-${s.serial}-${i}`} position={[s.lat, s.lng]}
+                              icon={numberedIcon(i + 1, flagged ? "#f59e0b" : r.color)}>
+                              <Popup>
+                                <div className="text-xs leading-5">
+                                  <div className="font-semibold">{s.serial}</div>
+                                  <div>{s.district}{s.subdistrict ? ` / ${s.subdistrict}` : ""}</div>
+                                  <div>{s.city} · {s.region} · Plot {s.plot || "-"}</div>
+                                  <div>{r.team} · Stop {i + 1} · {dayLabel(s.day)}</div>
+                                  <div>{s.priority} · {s.status}</div>
+                                  {flagged && (
+                                    <div className="mt-1 font-semibold text-[#b45309]">
+                                      Excluded from route path - check data for accuracy (coordinates far from cluster). Visit last if valid.
+                                    </div>
+                                  )}
+                                </div>
+                              </Popup>
+                            </Marker>
+                          );
+                        })}
+                      </Fragment>
+                    );
+                  })}
+                </MapContainer>
+              </div>
+
+              {/* ── AI insight panel ────────────────────────── */}
+              <div className="rounded-xl border border-border bg-white shadow-sm flex flex-col overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-[#0b0b0f] text-white">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/50">Route AI · Analyst brief</p>
+                  <p className="text-sm font-semibold mt-0.5">Recommendations for {dayLabel(day)}</p>
+                </div>
+                <div className="p-3 grid grid-cols-2 gap-2 border-b border-border">
+                  {[
+                    { k: "Efficiency index", v: `${Math.min(100, Math.round(insights.savedPct * 4 + 55))}` },
+                    { k: "Crew balance", v: `${insights.balance}%` },
+                    { k: "Stops per km", v: insights.density.toFixed(2) },
+                    { k: "Anomalies", v: String(outlierCount) },
+                  ].map((m) => (
+                    <div key={m.k} className="rounded-lg border border-border bg-secondary/40 px-2.5 py-2">
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{m.k}</p>
+                      <p className="text-base font-semibold text-[#111] tabular-nums">{m.v}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-3 space-y-2 overflow-y-auto max-h-[300px]">
+                  {narrative.map((n, i) => (
+                    <div key={i}
+                      className={`rounded-lg border p-2.5 text-[11px] leading-5 ${
+                        n.tone === "warn"
+                          ? "border-amber-200 bg-amber-50 text-amber-900"
+                          : n.tone === "good"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                            : "border-border bg-white text-[#111]"
+                      }`}>
+                      <span className="font-semibold mr-1">
+                        {n.tone === "warn" ? "Risk" : n.tone === "good" ? "Gain" : "Signal"}
+                      </span>
+                      {n.text}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-auto px-3 py-2.5 border-t border-border">
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5">Priority mix</p>
+                  <div className="space-y-1.5">
+                    {insights.priorityMix.map(([p, n]) => (
+                      <div key={p} className="flex items-center gap-2">
+                        <span className="text-[10px] w-14 text-muted-foreground truncate">{p}</span>
+                        <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+                          <div className="h-full rounded-full bg-[#dc2626]"
+                            style={{ width: `${Math.round((n / Math.max(1, insights.visits)) * 100)}%` }} />
+                        </div>
+                        <span className="text-[10px] tabular-nums text-[#111] w-8 text-right">{n}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="border border-border rounded-lg overflow-hidden bg-white">
-              <MapContainer center={[24.4, 55.13]} zoom={9} scrollWheelZoom style={{ height: 460, width: "100%" }}>
-                <TileLayer attribution="&copy; OpenStreetMap contributors"
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <FitBounds points={points} />
-                {routes.map((r) => (
-                  <Fragment key={r.team}>
-                    <Polyline
-                      positions={r.stops.filter((s) => !r.outliers.includes(s)).map((s) => [s.lat, s.lng] as [number, number])}
-                      pathOptions={{ color: r.color, weight: 3, opacity: 0.85 }} />
-                    {r.stops.map((s, i) => {
-                      const flagged = r.outliers.includes(s);
-                      return (
-                        <Marker key={`${s.team}-${s.serial}-${i}`} position={[s.lat, s.lng]}
-                          icon={numberedIcon(i + 1, flagged ? "#b45309" : r.color)}>
-                          <Popup>
-                            <div className="text-xs leading-5">
-                              <div className="font-semibold">{s.serial}</div>
-                              <div>{s.district}{s.subdistrict ? ` / ${s.subdistrict}` : ""}</div>
-                              <div>{s.city} · {s.region} · Plot {s.plot || "-"}</div>
-                              <div>{r.team} · Stop {i + 1} · {dayLabel(s.day)}</div>
-                              <div>{s.priority} · {s.status}</div>
-                              {flagged && (
-                                <div className="mt-1 font-semibold text-[#b45309]">
-                                  Excluded from route path - check data for accuracy (coordinates far from cluster). Visit last if valid.
-                                </div>
-                              )}
-                            </div>
-                          </Popup>
-                        </Marker>
-                      );
-                    })}
-                  </Fragment>
-                ))}
-              </MapContainer>
-            </div>
-
-
+            {/* ── Team route cards ────────────────────────── */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {routes.map((r) => (
-                <div key={r.team} className="border border-border rounded-lg bg-white overflow-hidden">
-                  <div className="px-3 py-2 border-b border-border flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-[#111]">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: r.color }} />
-                      {r.team} · {dayLabel(day)} · {r.stops.length} visits
+              {routes.map((r) => {
+                const km = pathLength(r.stops.filter((s) => !r.outliers.includes(s)));
+                return (
+                  <div key={r.team} className="rounded-xl border border-border bg-white overflow-hidden shadow-sm">
+                    <div className="px-3 py-2.5 border-b border-border flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-[#111]">
+                        <span className="h-6 w-6 rounded-lg flex items-center justify-center text-[10px] text-white"
+                          style={{ background: r.color }}>
+                          {r.team.replace(/[^0-9]/g, "") || "T"}
+                        </span>
+                        <span>{r.team}</span>
+                        <span className="text-muted-foreground font-normal">
+                          {r.stops.length} visits · {km.toFixed(0)} km
+                          {r.outliers.length > 0 && <span className="text-[#b45309]"> · {r.outliers.length} flagged</span>}
+                        </span>
+                      </div>
+                      <a href={gmapsLink(r.stops)} target="_blank" rel="noreferrer"
+                        className="text-[11px] font-semibold text-[#dc2626] hover:underline whitespace-nowrap">
+                        Navigate →
+                      </a>
                     </div>
-                    <a href={gmapsLink(r.stops)} target="_blank" rel="noreferrer"
-                      className="text-[11px] font-medium text-[#dc2626] hover:underline whitespace-nowrap">
-                      Open in Google Maps
-                    </a>
+                    <div className="max-h-64 overflow-y-auto">
+                      <table className="w-full text-xs">
+                        <tbody>
+                          {r.stops.map((s, i) => (
+                            <tr key={`${s.serial}-${i}`}
+                              className={`border-t border-border ${r.outliers.includes(s) ? "bg-amber-50" : "hover:bg-secondary/50"}`}
+                              title={r.outliers.includes(s) ? "Check data for accuracy - excluded from optimised path, visit last" : undefined}>
+                              <td className="px-3 py-1.5 w-8 text-muted-foreground tabular-nums">{i + 1}</td>
+                              <td className="px-3 py-1.5 font-medium text-[#111] whitespace-nowrap">
+                                {s.serial}
+                                {r.outliers.includes(s) && (
+                                  <span className="ml-2 text-[10px] font-semibold text-[#b45309]">check data</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-1.5 text-muted-foreground">{s.subdistrict || s.district}</td>
+                              <td className="px-3 py-1.5 text-right text-muted-foreground whitespace-nowrap tabular-nums">
+                                {s.lat.toFixed(4)}, {s.lng.toFixed(4)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    <table className="w-full text-xs">
-                      <tbody>
-                        {r.stops.map((s, i) => (
-                          <tr key={`${s.serial}-${i}`}
-                            className={`border-t border-border ${r.outliers.includes(s) ? "bg-amber-50" : ""}`}
-                            title={r.outliers.includes(s) ? "Check data for accuracy - excluded from optimised path, visit last" : undefined}>
-                            <td className="px-3 py-1.5 w-8 text-muted-foreground">{i + 1}</td>
-                            <td className="px-3 py-1.5 font-medium text-[#111] whitespace-nowrap">
-                              {s.serial}
-                              {r.outliers.includes(s) && (
-                                <span className="ml-2 text-[10px] font-semibold text-[#b45309]">check data</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-1.5 text-muted-foreground">{s.subdistrict || s.district}</td>
-                            <td className="px-3 py-1.5 text-right text-muted-foreground whitespace-nowrap">
-                              {s.lat.toFixed(4)}, {s.lng.toFixed(4)}
-                            </td>
-                          </tr>
-                        ))}
-
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}

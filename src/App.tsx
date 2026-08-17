@@ -8,6 +8,7 @@ import Surveyor from "./pages/Surveyor";
 import FieldTech from "./pages/FieldTech";
 import Innovation from "./pages/Innovation";
 import UserAdmin from "./pages/UserAdmin";
+import FieldRoutes from "./pages/FieldRoutes";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/ft" element={<FieldTech />} />
         <Route path="/innovation" element={<Innovation />} />
         <Route path="/users" element={<UserAdmin />} />
+        <Route path="/routes" element={<FieldRoutes />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>

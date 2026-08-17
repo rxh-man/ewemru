@@ -416,14 +416,11 @@ export default function FieldRoutes() {
             </div>
 
             {stops.length > 0 && (
-              <div className="mt-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+              <div className="mt-5 grid grid-cols-2 md:grid-cols-3 gap-2">
                 {[
                   { k: "Visits today", v: insights.visits.toLocaleString(), s: `${routes.length} active teams` },
-                  { k: "Optimised distance", v: `${routeKm.toFixed(0)} km`, s: `baseline ${baselineKm.toFixed(0)} km` },
                   { k: "AI distance saved", v: `${insights.saved.toFixed(0)} km`, s: `${insights.savedPct.toFixed(1)}% shorter` },
-                  { k: "Crew effort", v: `${insights.hours.toFixed(1)} h`, s: "drive + on-site" },
-                  { k: "Fuel forecast", v: `AED ${insights.fuelAed.toFixed(0)}`, s: "11 km/L · 3.49/L" },
-                  { k: "Data confidence", v: `${insights.confidence}%`, s: `${outlierCount} anomalies` },
+                  { k: "Off-route flags", v: `${outlierCount}`, s: "check data accuracy" },
                 ].map((c) => (
                   <div key={c.k} className="rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur px-3 py-2.5">
                     <p className="text-[9px] uppercase tracking-wider text-white/45">{c.k}</p>

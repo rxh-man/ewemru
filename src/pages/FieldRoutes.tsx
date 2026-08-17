@@ -431,15 +431,23 @@ export default function FieldRoutes() {
                     <table className="w-full text-xs">
                       <tbody>
                         {r.stops.map((s, i) => (
-                          <tr key={`${s.serial}-${i}`} className="border-t border-border">
+                          <tr key={`${s.serial}-${i}`}
+                            className={`border-t border-border ${r.outliers.includes(s) ? "bg-amber-50" : ""}`}
+                            title={r.outliers.includes(s) ? "Check data for accuracy - excluded from optimised path, visit last" : undefined}>
                             <td className="px-3 py-1.5 w-8 text-muted-foreground">{i + 1}</td>
-                            <td className="px-3 py-1.5 font-medium text-[#111] whitespace-nowrap">{s.serial}</td>
+                            <td className="px-3 py-1.5 font-medium text-[#111] whitespace-nowrap">
+                              {s.serial}
+                              {r.outliers.includes(s) && (
+                                <span className="ml-2 text-[10px] font-semibold text-[#b45309]">check data</span>
+                              )}
+                            </td>
                             <td className="px-3 py-1.5 text-muted-foreground">{s.subdistrict || s.district}</td>
                             <td className="px-3 py-1.5 text-right text-muted-foreground whitespace-nowrap">
                               {s.lat.toFixed(4)}, {s.lng.toFixed(4)}
                             </td>
                           </tr>
                         ))}
+
                       </tbody>
                     </table>
                   </div>

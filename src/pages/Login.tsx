@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login, getSession, homeFor } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
+import { LoginVideo } from "@/components/LoginVideo";
+
 
 export default function Login() {
   const navigate = useNavigate();
@@ -23,14 +25,16 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-4">
-      <div className="w-full max-w-sm">
+    <div className="relative min-h-screen flex items-center justify-center px-4">
+      <LoginVideo />
+      <div className="relative w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
-          <img src={eandLogo} alt="e&" className="h-14 w-auto mb-4" />
-          <h1 className="text-xl font-semibold text-[#111]">Delivery & Operations</h1>
-          <p className="text-sm text-muted-foreground mt-1">Innovation</p>
+          <img src={eandLogo} alt="e&" className="h-14 w-auto mb-4 invert" />
+          <h1 className="text-xl font-semibold text-white">Delivery & Operations</h1>
+          <p className="text-sm text-white/70 mt-1">Innovation</p>
         </div>
-        <form onSubmit={onSubmit} className="space-y-3 border border-border rounded-lg p-5">
+        <form onSubmit={onSubmit} className="space-y-3 border border-white/15 rounded-lg p-5 bg-white/95 backdrop-blur">
+
           <div>
             <label className="text-xs font-medium text-[#111]">Username</label>
             <input autoFocus value={u} onChange={(e) => setU(e.target.value)}

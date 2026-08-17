@@ -97,6 +97,29 @@ function pathLength(list: Stop[]) {
   return d;
 }
 
+const OUTLIER_KM = 12;
+
+/** Split stops whose nearest neighbour is unreasonably far (likely bad coordinates). */
+function splitOutliers(list: Stop[]): { core: Stop[]; outliers: Stop[] } {
+  if (list.length < 4) return { core: list, outliers: [] };
+  const core: Stop[] = [];
+  const outliers: Stop[] = [];
+  list.forEach((s, i) => {
+    let min = Infinity;
+    for (let j = 0; j < list.length; j++) {
+      if (j === i) continue;
+      const d = haversine(s, list[j]);
+      if (d < min) min = d;
+      if (min <= OUTLIER_KM) break;
+    }
+    (min > OUTLIER_KM ? outliers : core).push(s);
+  });
+  if (!core.length) return { core: list, outliers: [] };
+  return { core, outliers };
+}
+
+
+
 /** Nearest-neighbour ordering + 2-opt refinement so consecutive stops are the closest ones. */
 function optimizeRoute(list: Stop[]): Stop[] {
   if (list.length < 3) return list;
@@ -223,11 +246,22 @@ export default function FieldRoutes() {
       .sort((a, b) => teamKey(a[0]) - teamKey(b[0]))
       .map(([t, list]) => {
         const seq = [...list].sort((a, b) => a.order - b.order);
-        return { team: t, color: teamColor(t), stops: optimize ? optimizeRoute(seq) : seq };
+        if (!optimize) return { team: t, color: teamColor(t), stops: seq, outliers: [] as Stop[] };
+        const { core, outliers } = splitOutliers(seq);
+        const ordered = optimizeRoute(core);
+        // far / suspect points are pushed to the very end of the visit order
+        const tail = optimizeRoute(outliers);
+        return { team: t, color: teamColor(t), stops: [...ordered, ...tail], outliers: tail };
       });
   }, [dayStops, teams, optimize]);
 
-  const routeKm = useMemo(() => routes.reduce((sum, r) => sum + pathLength(r.stops), 0), [routes]);
+  const outlierCount = useMemo(() => routes.reduce((n, r) => n + r.outliers.length, 0), [routes]);
+
+  const routeKm = useMemo(
+    () => routes.reduce((sum, r) => sum + pathLength(r.stops.filter((s) => !r.outliers.includes(s))), 0),
+    [routes],
+  );
+
 
   const points = useMemo(
     () => routes.flatMap((r) => r.stops.map((s) => [s.lat, s.lng] as [number, number])),
@@ -333,7 +367,11 @@ export default function FieldRoutes() {
                   </button>
                   <span className="text-[11px] font-medium text-[#111]">
                     {dayStops.length} visits · {routeKm.toFixed(0)} km
+                    {outlierCount > 0 && (
+                      <span className="ml-2 text-[#b45309]">· {outlierCount} off-route (check data)</span>
+                    )}
                   </span>
+
                 </div>
               </div>
             </div>
@@ -345,25 +383,36 @@ export default function FieldRoutes() {
                 <FitBounds points={points} />
                 {routes.map((r) => (
                   <Fragment key={r.team}>
-                    <Polyline positions={r.stops.map((s) => [s.lat, s.lng] as [number, number])}
+                    <Polyline
+                      positions={r.stops.filter((s) => !r.outliers.includes(s)).map((s) => [s.lat, s.lng] as [number, number])}
                       pathOptions={{ color: r.color, weight: 3, opacity: 0.85 }} />
-                    {r.stops.map((s, i) => (
-                      <Marker key={`${s.team}-${s.serial}-${i}`} position={[s.lat, s.lng]} icon={numberedIcon(i + 1, r.color)}>
-                        <Popup>
-                          <div className="text-xs leading-5">
-                            <div className="font-semibold">{s.serial}</div>
-                            <div>{s.district}{s.subdistrict ? ` / ${s.subdistrict}` : ""}</div>
-                            <div>{s.city} · {s.region} · Plot {s.plot || "-"}</div>
-                            <div>{r.team} · Stop {i + 1} · {dayLabel(s.day)}</div>
-                            <div>{s.priority} · {s.status}</div>
-                          </div>
-                        </Popup>
-                      </Marker>
-                    ))}
+                    {r.stops.map((s, i) => {
+                      const flagged = r.outliers.includes(s);
+                      return (
+                        <Marker key={`${s.team}-${s.serial}-${i}`} position={[s.lat, s.lng]}
+                          icon={numberedIcon(i + 1, flagged ? "#b45309" : r.color)}>
+                          <Popup>
+                            <div className="text-xs leading-5">
+                              <div className="font-semibold">{s.serial}</div>
+                              <div>{s.district}{s.subdistrict ? ` / ${s.subdistrict}` : ""}</div>
+                              <div>{s.city} · {s.region} · Plot {s.plot || "-"}</div>
+                              <div>{r.team} · Stop {i + 1} · {dayLabel(s.day)}</div>
+                              <div>{s.priority} · {s.status}</div>
+                              {flagged && (
+                                <div className="mt-1 font-semibold text-[#b45309]">
+                                  Excluded from route path - check data for accuracy (coordinates far from cluster). Visit last if valid.
+                                </div>
+                              )}
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
+                    })}
                   </Fragment>
                 ))}
               </MapContainer>
             </div>
+
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {routes.map((r) => (
@@ -382,15 +431,23 @@ export default function FieldRoutes() {
                     <table className="w-full text-xs">
                       <tbody>
                         {r.stops.map((s, i) => (
-                          <tr key={`${s.serial}-${i}`} className="border-t border-border">
+                          <tr key={`${s.serial}-${i}`}
+                            className={`border-t border-border ${r.outliers.includes(s) ? "bg-amber-50" : ""}`}
+                            title={r.outliers.includes(s) ? "Check data for accuracy - excluded from optimised path, visit last" : undefined}>
                             <td className="px-3 py-1.5 w-8 text-muted-foreground">{i + 1}</td>
-                            <td className="px-3 py-1.5 font-medium text-[#111] whitespace-nowrap">{s.serial}</td>
+                            <td className="px-3 py-1.5 font-medium text-[#111] whitespace-nowrap">
+                              {s.serial}
+                              {r.outliers.includes(s) && (
+                                <span className="ml-2 text-[10px] font-semibold text-[#b45309]">check data</span>
+                              )}
+                            </td>
                             <td className="px-3 py-1.5 text-muted-foreground">{s.subdistrict || s.district}</td>
                             <td className="px-3 py-1.5 text-right text-muted-foreground whitespace-nowrap">
                               {s.lat.toFixed(4)}, {s.lng.toFixed(4)}
                             </td>
                           </tr>
                         ))}
+
                       </tbody>
                     </table>
                   </div>

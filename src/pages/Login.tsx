@@ -27,8 +27,8 @@ export default function Login() {
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <img src={eandLogo} alt="e&" className="h-14 w-auto mb-4" />
-          <h1 className="text-xl font-semibold text-[#111]">Etihad MRU Automation</h1>
-          <p className="text-sm text-muted-foreground mt-1">Field verifier sign in</p>
+          <h1 className="text-xl font-semibold text-[#111]">Delivery & Operations</h1>
+          <p className="text-sm text-muted-foreground mt-1">Innovation</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-3 border border-border rounded-lg p-5">
           <div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSession, type Session } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
@@ -211,7 +211,7 @@ export default function FieldRoutes() {
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 <FitBounds points={points} />
                 {routes.map((r) => (
-                  <div key={r.team}>
+                  <Fragment key={r.team}>
                     <Polyline positions={r.stops.map((s) => [s.lat, s.lng] as [number, number])}
                       pathOptions={{ color: r.color, weight: 3, opacity: 0.85 }} />
                     {r.stops.map((s, i) => (
@@ -227,7 +227,7 @@ export default function FieldRoutes() {
                         </Popup>
                       </Marker>
                     ))}
-                  </div>
+                  </Fragment>
                 ))}
               </MapContainer>
             </div>

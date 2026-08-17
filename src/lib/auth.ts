@@ -1,4 +1,4 @@
-export type Role = "admin" | "surveyor" | "ft" | "hr";
+export type Role = "admin" | "surveyor" | "ft" | "hr" | "routes";
 export interface Session { role: Role; username: string }
 
 export type TrackKey = "field" | "msp" | "noc" | "gnoc" | "customer" | "resources" | "fuel" | "emind";
@@ -26,6 +26,10 @@ const BASE_USERS: Record<string, UserRecord> = {
     password: "586786", role: "hr",
     profile: { name: "Fuel Governance Admin", title: "Fuel Governance", photo: "" },
     access: { tracks: ["fuel"], innovation: false, urgent: false },
+  },
+  field: {
+    password: "900000", role: "routes",
+    profile: { name: "Field Routing", title: "Field Team Route Planning", photo: "" },
   },
   mruadmin: { password: "123999", role: "admin" },
   surveyor: { password: "123111", role: "surveyor" },
@@ -141,6 +145,7 @@ export function logout() {
 }
 
 export function homeFor(role: Role): string {
+  if (role === "routes") return "/routes";
   if (role === "admin") return "/admin";
   if (role === "surveyor") return "/surveyor";
   if (role === "hr") return "/hr";

@@ -268,6 +268,76 @@ export default function FieldRoutes() {
     [routes],
   );
 
+  /** Baseline (sheet order) distance for the same day, used to quantify the AI saving. */
+  const baselineKm = useMemo(() => {
+    const byTeam = new Map<string, Stop[]>();
+    dayStops.forEach((s) => byTeam.set(s.team, [...(byTeam.get(s.team) ?? []), s]));
+    return Array.from(byTeam.values()).reduce(
+      (sum, list) => sum + pathLength([...list].sort((a, b) => a.order - b.order)),
+      0,
+    );
+  }, [dayStops]);
+
+  const insights = useMemo(() => {
+    const visits = dayStops.length;
+    const saved = Math.max(0, baselineKm - routeKm);
+    const savedPct = baselineKm > 0 ? (saved / baselineKm) * 100 : 0;
+    const perTeam = routes.map((r) => r.stops.length);
+    const maxT = Math.max(1, ...perTeam);
+    const minT = Math.min(...(perTeam.length ? perTeam : [0]));
+    const balance = perTeam.length > 1 ? Math.round((minT / maxT) * 100) : 100;
+    const density = visits > 0 && routeKm > 0 ? visits / routeKm : 0;
+    const hours = routeKm / 45 + visits * 0.35; // drive time + avg 21 min per site
+    const fuelAed = (routeKm / 11) * 3.49;
+    const confidence = Math.max(
+      45,
+      Math.min(99, Math.round(96 - (outlierCount / Math.max(1, visits)) * 180)),
+    );
+    const topArea = (() => {
+      const m = new Map<string, number>();
+      dayStops.forEach((s) => {
+        const k = s.subdistrict || s.district || s.city || "Unspecified";
+        m.set(k, (m.get(k) ?? 0) + 1);
+      });
+      return Array.from(m.entries()).sort((a, b) => b[1] - a[1])[0];
+    })();
+    const priorityMix = (() => {
+      const m = new Map<string, number>();
+      dayStops.forEach((s) => m.set(s.priority || "Unset", (m.get(s.priority || "Unset") ?? 0) + 1));
+      return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    })();
+    return { visits, saved, savedPct, balance, density, hours, fuelAed, confidence, topArea, priorityMix, maxT, minT };
+  }, [dayStops, routes, routeKm, baselineKm, outlierCount]);
+
+  const narrative = useMemo(() => {
+    const out: { tone: "good" | "warn" | "info"; text: string }[] = [];
+    out.push({
+      tone: insights.savedPct >= 5 ? "good" : "info",
+      text: `Route engine re-sequenced ${insights.visits} visits across ${routes.length} team${routes.length === 1 ? "" : "s"}, cutting ${insights.saved.toFixed(0)} km (${insights.savedPct.toFixed(1)}%) versus the sheet order.`,
+    });
+    if (outlierCount > 0)
+      out.push({
+        tone: "warn",
+        text: `${outlierCount} coordinate${outlierCount === 1 ? "" : "s"} sit beyond ${OUTLIER_KM} km of any cluster — excluded from the path and queued last. Validate GPS accuracy before dispatch.`,
+      });
+    if (insights.balance < 70)
+      out.push({
+        tone: "warn",
+        text: `Workload is skewed: heaviest team carries ${insights.maxT} visits vs ${insights.minT} on the lightest (${insights.balance}% balance). Rebalancing would recover crew capacity.`,
+      });
+    else out.push({ tone: "good", text: `Crew load is balanced at ${insights.balance}% across teams — no reassignment needed.` });
+    if (insights.topArea)
+      out.push({
+        tone: "info",
+        text: `Highest density in ${insights.topArea[0]} with ${insights.topArea[1]} visits — ideal anchor cluster to start the day and reduce dead mileage.`,
+      });
+    out.push({
+      tone: "info",
+      text: `Projected field effort ${insights.hours.toFixed(1)} crew-hours and AED ${insights.fuelAed.toFixed(0)} fuel at 11 km/L · AED 3.49/L.`,
+    });
+    return out;
+  }, [insights, routes.length, outlierCount]);
+
   function downloadTemplate() {
     const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ...TEMPLATE_ROWS]);
     ws["!cols"] = TEMPLATE_HEADERS.map(() => ({ wch: 18 }));
@@ -300,6 +370,7 @@ export default function FieldRoutes() {
   }
 
   if (!session) return null;
+
 
   return (
     <AppShell session={session}>

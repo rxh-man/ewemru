@@ -21,7 +21,7 @@ export default function RmaForms() {
     setActive(def);
     setStep(0);
     setRows([{}, {}, {}]);
-    const init: RmaValues = {};
+    const init: RmaValues = { company: "e& Enterprise" };
     def.sections.forEach((s) => {
       if (s.kind === "grid" || s.kind === "table")
         s.fields.forEach((f) => {
@@ -221,6 +221,7 @@ function Field({ field, value, onChange }: { field: RmaField; value: string; onC
     <span className="block text-xs font-semibold text-[#111] mb-1.5">
       {field.label}
       {field.required && <span className="text-[#dc2626]"> *</span>}
+      {field.readonly && <span className="ml-2 text-[10px] font-normal text-muted-foreground">(fixed)</span>}
     </span>
   );
 
@@ -233,7 +234,8 @@ function Field({ field, value, onChange }: { field: RmaField; value: string; onC
             <button
               key={o}
               onClick={() => onChange(value === o ? "" : o)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+              disabled={field.readonly}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:opacity-60 disabled:cursor-not-allowed ${
                 value === o
                   ? "border-[#dc2626] bg-[#dc2626] text-white"
                   : "border-border bg-white text-[#111] hover:border-[#dc2626]"
@@ -257,7 +259,8 @@ function Field({ field, value, onChange }: { field: RmaField; value: string; onC
           rows={4}
           maxLength={600}
           placeholder={field.placeholder}
-          className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-[#dc2626]"
+          disabled={field.readonly}
+          className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-[#dc2626] disabled:bg-gray-50 disabled:text-muted-foreground disabled:cursor-not-allowed"
         />
       ) : (
         <input
@@ -266,7 +269,8 @@ function Field({ field, value, onChange }: { field: RmaField; value: string; onC
           onChange={(e) => onChange(e.target.value)}
           maxLength={160}
           placeholder={field.placeholder}
-          className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-[#dc2626]"
+          disabled={field.readonly}
+          className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-[#dc2626] disabled:bg-gray-50 disabled:text-muted-foreground disabled:cursor-not-allowed"
         />
       )}
     </label>

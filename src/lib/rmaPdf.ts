@@ -61,8 +61,8 @@ class Doc {
     if (this.y - h < M + 14) this.newPage();
   }
 
-  sectionHead(title: string) {
-    this.ensure(24);
+  sectionHead(title: string, blockH = 40) {
+    this.ensure(24 + Math.min(blockH, 90));
     this.y -= 2;
     this.page.drawText(title.toUpperCase(), { x: M, y: this.y - 8, size: 8.5, font: this.bold, color: BLACK });
     this.y -= 11;
@@ -321,7 +321,16 @@ export async function buildRmaPdf(def: RmaFormDef, values: RmaValues, traceRows:
   const d = new Doc(pdf, font, bold, logo, def.docTitle, def.vendor);
 
   for (const sec of def.sections) {
-    d.sectionHead(sec.title);
+    const anySec = sec as any;
+    const blockH =
+      anySec.kind === "table"
+        ? 13 + Math.ceil((anySec.fields?.length || 0) / (anySec.cols || 1)) * 14
+        : anySec.kind === "grid"
+          ? Math.ceil((anySec.fields?.length || 0) / (anySec.cols || 1)) * 26
+          : anySec.kind === "trace"
+            ? 14 + Math.max(1, traceRows.length) * 16
+            : (anySec.items?.length || 0) * 10;
+    d.sectionHead(sec.title, blockH);
     if (sec.kind === "grid") d.grid(sec.fields, values, sec.cols);
     else if (sec.kind === "table") d.table(sec.fields, values, sec.cols);
     else if (sec.kind === "trace") d.trace(sec.columns, traceRows);

@@ -106,11 +106,17 @@ class Doc {
     const p = this.page;
     p.drawRectangle({ x, y: yTop - h, width: w, height: h, borderColor: LINE, borderWidth: 0.6 });
     const lbl = this.fit(label + (required ? " *" : ""), this.bold, 6.5, w - 8);
-    p.drawText(lbl, { x: x + 4, y: yTop - 9, size: 6.5, font: this.bold, color: required ? RED : GREY });
-    const lines = this.wrap(value === "" ? "" : value || "—", this.font, 8, w - 8, Math.max(1, Math.floor((h - 14) / 10)));
+    p.drawText(lbl, { x: x + 4, y: yTop - 9, size: 6.5, font: this.bold, color: GREY });
+    const maxLines = Math.max(1, Math.floor((h - 13) / 9.5));
+    const lines = this.wrap((value || "").trim(), this.font, 8, w - 8, maxLines);
     lines.forEach((ln, i) => {
-      p.drawText(ln, { x: x + 4, y: yTop - 20 - i * 9.5, size: 8, font: this.font, color: BLACK });
+      p.drawText(ln, { x: x + 4, y: yTop - 19.5 - i * 9.5, size: 8, font: this.font, color: BLACK });
     });
+  }
+
+  /** Lines needed for a value inside a cell of width w */
+  private linesNeeded(value: string, w: number) {
+    return Math.max(1, this.wrap((value || "").trim(), this.font, 8, w - 8, 6).length || 1);
   }
 
   grid(fields: RmaField[], values: RmaValues, cols: number) {
@@ -128,16 +134,18 @@ class Doc {
       } else {
         for (let c = 0; c < cols && i < fields.length && fields[i].type !== "textarea"; c++) row.push(fields[i++]);
       }
-      const h = full ? 40 : row.some((r) => (values[r.key] || "").length > 34) ? 32 : 23;
+      const w = full ? W : cw;
+      const needed = Math.max(...row.map((r) => this.linesNeeded(values[r.key], w)), full ? 2 : 1);
+      const h = Math.max(23, 14 + needed * 9.5);
       this.ensure(h + 3);
       const top = this.y;
       row.forEach((rf, idx) => {
-        const w = full ? W : cw;
         this.cell(M + idx * (cw + gap), w, top, h, rf.label, values[rf.key], rf.required);
       });
       this.y -= h + 3;
     }
   }
+
 
   table(fields: RmaField[], values: RmaValues, cols: 1 | 2) {
     const gap = 8;

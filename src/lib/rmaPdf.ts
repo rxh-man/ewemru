@@ -61,8 +61,18 @@ class Doc {
     if (this.y - h < M + 14) this.newPage();
   }
 
-  sectionHead(title: string, blockH = 40) {
-    this.ensure(24 + Math.min(blockH, A4[1] - M * 2 - 60));
+  pendingHead: string | null = null;
+
+  sectionHead(title: string) {
+    this.pendingHead = title;
+  }
+
+  /** Draw the queued section title, keeping it on the same page as its block */
+  private flushHead(blockH: number) {
+    const title = this.pendingHead;
+    if (!title) return;
+    this.pendingHead = null;
+    this.ensure(24 + Math.min(blockH, A4[1] - M * 2 - 80));
     this.y -= 2;
     this.page.drawText(title.toUpperCase(), { x: M, y: this.y - 8, size: 8.5, font: this.bold, color: BLACK });
     this.y -= 11;
@@ -140,6 +150,7 @@ class Doc {
   }
 
   grid(fields: RmaField[], values: RmaValues, cols: number) {
+    this.flushHead(52);
     const gap = 6;
     const cw = (W - gap * (cols - 1)) / cols;
     let i = 0;
@@ -193,6 +204,7 @@ class Doc {
       rowHs.push(Math.max(13, 5 + ln * 8.5));
     }
     const total = headH + rowHs.reduce((a, b) => a + b, 0);
+    this.flushHead(total);
     this.ensure(total + 6);
     const top = this.y;
     chunks.forEach((chunk, ci) => {
@@ -227,6 +239,7 @@ class Doc {
     );
     const rowHs = wrapped.map((cells) => Math.max(14, 5 + Math.max(1, ...cells.map((c) => c.length)) * 8.5));
     const total = headH + rowHs.reduce((a, b) => a + b, 0);
+    this.flushHead(total);
     this.ensure(total + 6);
     const top = this.y;
     const p = this.page;
@@ -263,6 +276,7 @@ class Doc {
 
 
   notes(items: string[]) {
+    this.flushHead(items.length * 10 + 6);
     this.ensure(items.length * 10 + 6);
     items.forEach((it) => {
       const lines = this.wrap(it, this.font, 6.8, W - 12, 2);
@@ -321,16 +335,7 @@ export async function buildRmaPdf(def: RmaFormDef, values: RmaValues, traceRows:
   const d = new Doc(pdf, font, bold, logo, def.docTitle, def.vendor);
 
   for (const sec of def.sections) {
-    const anySec = sec as any;
-    const blockH =
-      anySec.kind === "table"
-        ? 13 + Math.ceil((anySec.fields?.length || 0) / (anySec.cols || 1)) * 14
-        : anySec.kind === "grid"
-          ? Math.ceil((anySec.fields?.length || 0) / (anySec.cols || 1)) * 26
-          : anySec.kind === "trace"
-            ? 14 + Math.max(1, traceRows.length) * 16
-            : (anySec.items?.length || 0) * 10;
-    d.sectionHead(sec.title, blockH);
+    d.sectionHead(sec.title);
     if (sec.kind === "grid") d.grid(sec.fields, values, sec.cols);
     else if (sec.kind === "table") d.table(sec.fields, values, sec.cols);
     else if (sec.kind === "trace") d.trace(sec.columns, traceRows);

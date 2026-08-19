@@ -6,6 +6,7 @@ import {
 } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { toast } from "sonner";
+import { R } from "@/lib/routes";
 
 export default function UserAdmin() {
   const navigate = useNavigate();
@@ -22,8 +23,8 @@ export default function UserAdmin() {
 
   useEffect(() => {
     const s = getSession();
-    if (!s) { navigate("/"); return; }
-    if (!canManageUsers(s.username)) { navigate("/hr"); return; }
+    if (!s) { navigate(R.signin); return; }
+    if (!canManageUsers(s.username)) { navigate(R.hr); return; }
     setSession(s);
   }, [navigate]);
 

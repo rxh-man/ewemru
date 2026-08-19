@@ -1,3 +1,4 @@
+import { R } from "@/lib/routes";
 export type Role = "admin" | "surveyor" | "ft" | "hr" | "routes";
 export interface Session { role: Role; username: string }
 
@@ -145,9 +146,9 @@ export function logout() {
 }
 
 export function homeFor(role: Role): string {
-  if (role === "routes") return "/routes";
-  if (role === "admin") return "/admin";
-  if (role === "surveyor") return "/surveyor";
-  if (role === "hr") return "/hr";
-  return "/ft";
+  if (role === "routes") return R.routes;
+  if (role === "admin") return R.admin;
+  if (role === "surveyor") return R.surveyor;
+  if (role === "hr") return R.hr;
+  return R.ft;
 }

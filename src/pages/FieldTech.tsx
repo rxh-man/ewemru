@@ -5,6 +5,7 @@ import { getSession, type Session } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { ENERGY_FIELDS, WATER_FIELDS } from "@/lib/fields";
+import { R } from "@/lib/routes";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string;
 const FN_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/drive-files`;
@@ -34,7 +35,7 @@ export default function FieldTech() {
 
   useEffect(() => {
     const s = getSession();
-    if (!s || s.role !== "ft") { navigate("/"); return; }
+    if (!s || s.role !== "ft") { navigate(R.signin); return; }
     setSession(s);
     void loadFiles("");
   }, [navigate]);

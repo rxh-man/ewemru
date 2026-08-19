@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { login, getSession, homeFor } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
 import { LoginVideo } from "@/components/LoginVideo";
+import { R } from "@/lib/routes";
 
 
 export default function HRLogin() {
@@ -21,7 +22,7 @@ export default function HRLogin() {
     setErr(null);
     const s = login(u, p);
     if (!s) { setErr("Invalid username or password"); return; }
-    navigate("/welcome");
+    navigate(R.welcome);
   }
 
   return (

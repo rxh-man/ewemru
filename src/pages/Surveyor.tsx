@@ -5,6 +5,7 @@ import { getSession, type Session } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { ENERGY_FIELDS, WATER_FIELDS } from "@/lib/fields";
+import { R } from "@/lib/routes";
 
 type SiteType = "energy" | "water";
 type SiteRow = Record<string, string | null> & { id: string };
@@ -30,7 +31,7 @@ export default function Surveyor() {
 
   useEffect(() => {
     const s = getSession();
-    if (!s || s.role !== "surveyor") { navigate("/"); return; }
+    if (!s || s.role !== "surveyor") { navigate(R.signin); return; }
     setSession(s);
   }, [navigate]);
 

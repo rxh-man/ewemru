@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getSession, homeFor, getProfile } from "@/lib/auth";
 import { PHOTOS, initialsOf } from "@/lib/photos";
 import eandLogo from "@/assets/eand.png";
+import { R } from "@/lib/routes";
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ export default function Welcome() {
 
   useEffect(() => {
     const s = getSession();
-    if (!s) { navigate("/"); return; }
+    if (!s) { navigate(R.signin); return; }
 
     const timer = setTimeout(() => {
       setVisible(false);

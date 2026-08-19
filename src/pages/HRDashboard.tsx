@@ -15,6 +15,7 @@ import { CustomerExcellence } from "@/components/CustomerExcellence";
 import { ResourcesFleet } from "@/components/ResourcesFleet";
 import { FuelGovernance } from "@/components/FuelGovernance";
 import { EmindSection } from "@/components/EmindSection";
+import { R } from "@/lib/routes";
 
 
 
@@ -150,7 +151,7 @@ export default function HRDashboard() {
 
   useEffect(() => {
     const s = getSession();
-    if (!s || s.role !== "hr") { navigate("/hr-login"); return; }
+    if (!s || s.role !== "hr") { navigate(R.signin); return; }
     setSession(s);
     const a = getAccess(s.username);
     if (a && a.tracks.length > 0 && !a.tracks.includes(track)) {
@@ -323,7 +324,7 @@ export default function HRDashboard() {
 
           <div className="flex gap-2 flex-wrap">
             {canInnovation && (
-              <button onClick={() => navigate("/innovation")}
+              <button onClick={() => navigate(R.innovation)}
                 className="h-9 px-4 rounded-md bg-[#111] text-white text-xs font-semibold hover:opacity-90">
                 Innovation Tools
               </button>

@@ -109,7 +109,7 @@ export const DATAKORUM: RmaFormDef = {
         { key: "claimDate", label: "Claim Date", type: "date", required: true },
         { key: "company", label: "Your Company", type: "text", required: true, readonly: true },
         { key: "name", label: "Your Name", type: "text", required: true },
-        { key: "email", label: "Your Email", type: "text", required: true },
+        { key: "email", label: "Your Email", type: "text" },
         { key: "ref", label: "Your Claim Reference", type: "text" },
         { key: "distributor", label: "Distributor", type: "text" },
         { key: "phone", label: "Phone Number", type: "text" },

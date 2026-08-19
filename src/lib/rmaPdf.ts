@@ -106,7 +106,7 @@ class Doc {
     const p = this.page;
     p.drawRectangle({ x, y: yTop - h, width: w, height: h, borderColor: LINE, borderWidth: 0.6 });
     const lbl = this.fit(label + (required ? " *" : ""), this.bold, 6.5, w - 8);
-    p.drawText(lbl, { x: x + 4, y: yTop - 9, size: 6.5, font: this.bold, color: GREY });
+    p.drawText(lbl, { x: x + 4, y: yTop - 9, size: 6.5, font: this.bold, color: required ? RED : GREY });
     const maxLines = Math.max(1, Math.floor((h - 13) / 9.5));
     const lines = this.wrap((value || "").trim(), this.font, 8, w - 8, maxLines);
     lines.forEach((ln, i) => {
@@ -176,7 +176,7 @@ class Doc {
           font: this.font,
           color: BLACK,
         });
-        const v = values[f.key] || "—";
+        const v = (values[f.key] || "").trim();
         p.drawText(this.fit(v, this.bold, 7, colW - labelW - 8), {
           x: x + labelW + 4,
           y: yTop - rowH + 4.5,

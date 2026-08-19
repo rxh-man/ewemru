@@ -75,13 +75,8 @@ export default function HRLogin() {
       </div>
 
       <footer className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>© {new Date().getFullYear()} RAHMAN08 — Internal Use</span>
-          <div className="flex items-center gap-4">
-            <Link to="/ft" className="hover:text-[#111]">Field Tech</Link>
-            <Link to="/mru-login" className="hover:text-[#111]">MRU Automation</Link>
-            <Link to="/rmaforms" className="hover:text-[#111]">RMA Forms</Link>
-          </div>
+        <div className="max-w-6xl mx-auto px-6 h-12 flex items-center text-[11px] text-muted-foreground">
+          <span>© {new Date().getFullYear()} RAHMAN08 - Internal Use</span>
         </div>
       </footer>
     </div>

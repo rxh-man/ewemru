@@ -98,8 +98,8 @@ export const ESYASOFT: RmaFormDef = {
 export const DATAKORUM: RmaFormDef = {
   id: "datakorum",
   vendor: "Datakorum",
-  docTitle: "RMA & FAILURE ANALYSIS REQUEST FORM: BATCH",
-  blurb: "Batch RMA claim + installation checklist",
+  docTitle: "RMA & FAILURE ANALYSIS REQUEST FORM",
+  blurb: "RMA claim + installation checklist",
   sections: [
     {
       kind: "grid",
@@ -118,7 +118,7 @@ export const DATAKORUM: RmaFormDef = {
     },
     {
       kind: "grid",
-      title: "Batch Summary",
+      title: "Claim Summary",
       cols: 2,
       fields: [
         { key: "qty", label: "Total Number of Devices Included", type: "text", required: true },

@@ -7,6 +7,7 @@ export interface RmaField {
   options?: string[];
   required?: boolean;
   placeholder?: string;
+  readonly?: boolean;
 }
 
 export type RmaSection =
@@ -43,6 +44,7 @@ export const ESYASOFT: RmaFormDef = {
       title: "Device Identification",
       cols: 2,
       fields: [
+        { key: "company", label: "Company", type: "text", required: true, readonly: true },
         { key: "sr", label: "Gateway Sr. No", type: "text", required: true },
         { key: "model", label: "Gateway Model", type: "text", required: true },
         { key: "series", label: "Gateway Series", type: "text" },
@@ -105,7 +107,7 @@ export const DATAKORUM: RmaFormDef = {
       cols: 3,
       fields: [
         { key: "claimDate", label: "Claim Date", type: "date", required: true },
-        { key: "company", label: "Your Company", type: "text", required: true },
+        { key: "company", label: "Your Company", type: "text", required: true, readonly: true },
         { key: "name", label: "Your Name", type: "text", required: true },
         { key: "email", label: "Your Email", type: "text", required: true },
         { key: "ref", label: "Your Claim Reference", type: "text" },

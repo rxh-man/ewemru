@@ -102,7 +102,7 @@ export const DATAKORUM: RmaFormDef = {
     {
       kind: "grid",
       title: "Claim Information",
-      cols: 2,
+      cols: 3,
       fields: [
         { key: "claimDate", label: "Claim Date", type: "date", required: true },
         { key: "company", label: "Your Company", type: "text", required: true },

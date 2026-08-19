@@ -63,7 +63,7 @@ class Doc {
 
   sectionHead(title: string) {
     this.ensure(24);
-    this.y -= 4;
+    this.y -= 2;
     this.page.drawText(title.toUpperCase(), { x: M, y: this.y - 8, size: 8.5, font: this.bold, color: BLACK });
     this.y -= 11;
     this.page.drawLine({
@@ -72,7 +72,7 @@ class Doc {
       thickness: 0.8,
       color: BLACK,
     });
-    this.y -= 5;
+    this.y -= 4;
   }
 
   fit(text: string, font: PDFFont, size: number, max: number) {
@@ -107,7 +107,7 @@ class Doc {
     p.drawRectangle({ x, y: yTop - h, width: w, height: h, borderColor: LINE, borderWidth: 0.6 });
     const lbl = this.fit(label + (required ? " *" : ""), this.bold, 6.5, w - 8);
     p.drawText(lbl, { x: x + 4, y: yTop - 9, size: 6.5, font: this.bold, color: required ? RED : GREY });
-    const lines = this.wrap(value || "—", this.font, 8, w - 8, Math.max(1, Math.floor((h - 14) / 10)));
+    const lines = this.wrap(value === "" ? "" : value || "—", this.font, 8, w - 8, Math.max(1, Math.floor((h - 14) / 10)));
     lines.forEach((ln, i) => {
       p.drawText(ln, { x: x + 4, y: yTop - 20 - i * 9.5, size: 8, font: this.font, color: BLACK });
     });
@@ -128,21 +128,21 @@ class Doc {
       } else {
         for (let c = 0; c < cols && i < fields.length && fields[i].type !== "textarea"; c++) row.push(fields[i++]);
       }
-      const h = full ? 46 : row.some((r) => (values[r.key] || "").length > 34) ? 34 : 26;
-      this.ensure(h + 4);
+      const h = full ? 40 : row.some((r) => (values[r.key] || "").length > 34) ? 32 : 23;
+      this.ensure(h + 3);
       const top = this.y;
       row.forEach((rf, idx) => {
         const w = full ? W : cw;
         this.cell(M + idx * (cw + gap), w, top, h, rf.label, values[rf.key], rf.required);
       });
-      this.y -= h + 4;
+      this.y -= h + 3;
     }
   }
 
   table(fields: RmaField[], values: RmaValues, cols: 1 | 2) {
     const gap = 8;
     const colW = cols === 2 ? (W - gap) / 2 : W;
-    const rowH = 14;
+    const rowH = 13;
     const per = Math.ceil(fields.length / cols);
     const chunks: RmaField[][] = [];
     for (let c = 0; c < cols; c++) chunks.push(fields.slice(c * per, (c + 1) * per));
@@ -151,7 +151,7 @@ class Doc {
     const top = this.y;
     chunks.forEach((chunk, ci) => {
       const x = M + ci * (colW + gap);
-      const labelW = colW * 0.66;
+      const labelW = colW * (cols === 2 ? 0.58 : 0.66);
       const p = this.page;
       // header
       p.drawRectangle({ x, y: top - rowH, width: colW, height: rowH, color: HEAD_BG, borderColor: LINE, borderWidth: 0.6 });
@@ -178,7 +178,7 @@ class Doc {
         });
       });
     });
-    this.y = top - rowH * (rows + 1) - 6;
+    this.y = top - rowH * (rows + 1) - 4;
   }
 
   trace(columns: { key: string; label: string; width: number }[], rows: TraceRow[]) {
@@ -217,7 +217,7 @@ class Doc {
         cx += cw;
       });
     });
-    this.y = top - rowH * (list.length + 1) - 6;
+    this.y = top - rowH * (list.length + 1) - 4;
   }
 
   notes(items: string[]) {
@@ -235,16 +235,16 @@ class Doc {
         this.y -= 9;
       });
     });
-    this.y -= 4;
+    this.y -= 2;
   }
 
   signature() {
     this.ensure(40);
-    const top = this.y - 6;
+    const top = this.y - 4;
     const half = (W - 8) / 2;
-    this.cell(M, half, top, 30, "Prepared by (Name & Signature)", "");
-    this.cell(M + half + 8, half, top, 30, "Date", new Date().toLocaleDateString("en-GB"));
-    this.y = top - 34;
+    this.cell(M, half, top, 28, "Prepared by (Name & Signature)", "");
+    this.cell(M + half + 8, half, top, 28, "Date", new Date().toLocaleDateString("en-GB"));
+    this.y = top - 32;
   }
 
   footer() {

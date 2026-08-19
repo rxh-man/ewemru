@@ -70,9 +70,24 @@ export default function RmaForms() {
 
   if (!active) {
     return (
-      <div className="min-h-screen bg-[#fafafa]">
+      <div className="min-h-screen bg-background relative overflow-hidden">
         <Toaster position="top-center" richColors />
-        <header className="bg-[#111] text-white">
+        {/* ambient automation-themed background */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div
+            className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] animate-[spin_60s_linear_infinite] opacity-[0.03]"
+            style={{ background: "conic-gradient(from 0deg, transparent 0deg, var(--primary) 60deg, transparent 120deg)" }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 20% 20%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 40%), radial-gradient(circle at 80% 80%, color-mix(in oklch, var(--primary) 6%, transparent) 0%, transparent 40%)",
+            }}
+          />
+        </div>
+
+        <header className="relative bg-[#111] text-white">
           <div className="max-w-3xl mx-auto px-4 py-5 flex items-center gap-3">
             <img src={eandLogo} alt="e&" className="h-7 w-auto" />
             <div>
@@ -81,24 +96,53 @@ export default function RmaForms() {
             </div>
           </div>
         </header>
-        <main className="max-w-3xl mx-auto px-4 py-6">
-          <p className="text-sm text-muted-foreground mb-4">
-            Pick the vendor, answer the short list of questions, and a clean single-file PDF downloads automatically.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
+
+        <main className="relative max-w-3xl mx-auto px-4 py-10">
+          <div className="text-center mb-8">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-medium text-primary mb-4">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+              </span>
+              Automation-first documentation
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
+              Generate RMA forms in seconds
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
+              Pick the vendor form, answer the guided questions, and a clean single-file PDF downloads automatically.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             {RMA_FORMS.map((f) => (
               <button
                 key={f.id}
                 onClick={() => open(f)}
-                className="text-left rounded-xl border border-border bg-white p-4 hover:border-[#dc2626] hover:shadow-sm transition"
+                className="group text-left rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
               >
-                <div className="text-xs font-semibold uppercase tracking-wide text-[#dc2626]">{f.vendor}</div>
-                <div className="mt-1 text-sm font-medium text-[#111]">{f.docTitle}</div>
+                <div className="flex items-start justify-between">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-primary">{f.vendor}</div>
+                  <div className="rounded-full border border-border bg-background p-1.5 text-primary opacity-60 group-hover:opacity-100 transition">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="m12 5 7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="mt-3 text-sm font-semibold text-card-foreground">{f.docTitle}</div>
                 <div className="mt-1 text-xs text-muted-foreground">{f.blurb}</div>
-                <div className="mt-3 text-xs font-medium text-[#111]">Start form →</div>
+                <div className="mt-4 flex items-center gap-1.5 text-xs font-medium text-primary group-hover:translate-x-0.5 transition">
+                  Start form
+                  <span className="transition-transform group-hover:translate-x-0.5">→</span>
+                </div>
               </button>
             ))}
           </div>
+
+          <p className="mt-8 text-center text-[11px] text-muted-foreground">
+            No data is stored on our servers. The PDF is built locally in your browser.
+          </p>
         </main>
       </div>
     );

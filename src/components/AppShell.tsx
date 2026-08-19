@@ -3,12 +3,13 @@ import { logout, type Session, getProfile, canManageUsers } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
 import { PHOTOS, initialsOf } from "@/lib/photos";
 import { Toaster } from "sonner";
+import { R } from "@/lib/routes";
 
 export function AppShell({ session, children }: { session: Session; children: React.ReactNode }) {
   const navigate = useNavigate();
   function handleLogout() {
     logout();
-    navigate("/");
+    navigate(R.signin);
   }
   return (
     <div className="min-h-screen bg-white">
@@ -22,7 +23,7 @@ export function AppShell({ session, children }: { session: Session; children: Re
           </div>
           <div className="flex items-center gap-3">
             {canManageUsers(session.username) && (
-              <button onClick={() => navigate("/users")} className="text-xs font-medium text-[#111] hover:text-[#dc2626]">
+              <button onClick={() => navigate(R.users)} className="text-xs font-medium text-[#111] hover:text-[#dc2626]">
                 Manage users
               </button>
             )}

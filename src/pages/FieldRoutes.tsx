@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from "react-leaflet";
+import { R } from "@/lib/routes";
 
 const TEMPLATE_HEADERS = [
   "SERIALNUMBER", "Badge", "DISTRICT", "SUBDISTRICT", "CITYNAME", "REGION", "SECTOR",
@@ -203,7 +204,7 @@ export default function FieldRoutes() {
 
   useEffect(() => {
     const s = getSession();
-    if (!s) { navigate("/"); return; }
+    if (!s) { navigate(R.signin); return; }
     setSession(s);
   }, [navigate]);
 

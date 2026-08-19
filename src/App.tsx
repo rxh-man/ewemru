@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import HRLogin from "./pages/HRLogin";
 import Welcome from "./pages/Welcome";
@@ -10,26 +10,26 @@ import Innovation from "./pages/Innovation";
 import UserAdmin from "./pages/UserAdmin";
 import FieldRoutes from "./pages/FieldRoutes";
 import RmaForms from "./pages/RmaForms";
+import NotFound from "./pages/NotFound";
+import { R } from "./lib/routes";
 
 export default function App() {
   return (
     <HashRouter>
       <Routes>
-        <Route path="/" element={<HRLogin />} />
-        <Route path="/hr-login" element={<Navigate to="/" replace />} />
-        <Route path="/welcome" element={<Welcome />} />
-        <Route path="/hr" element={<HRDashboard />} />
-        <Route path="/mru-login" element={<Login />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/surveyor" element={<Surveyor />} />
-        <Route path="/ft" element={<FieldTech />} />
-        <Route path="/innovation" element={<Innovation />} />
-        <Route path="/users" element={<UserAdmin />} />
-        <Route path="/routes" element={<FieldRoutes />} />
-        <Route path="/rma" element={<RmaForms />} />
-        <Route path="/rmaforms" element={<RmaForms />} />
-        <Route path="/RMAFORMS" element={<RmaForms />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/" element={<NotFound />} />
+        <Route path={R.signin} element={<HRLogin />} />
+        <Route path={R.welcome} element={<Welcome />} />
+        <Route path={R.hr} element={<HRDashboard />} />
+        <Route path={R.mruLogin} element={<Login />} />
+        <Route path={R.admin} element={<Admin />} />
+        <Route path={R.surveyor} element={<Surveyor />} />
+        <Route path={R.ft} element={<FieldTech />} />
+        <Route path={R.innovation} element={<Innovation />} />
+        <Route path={R.users} element={<UserAdmin />} />
+        <Route path={R.routes} element={<FieldRoutes />} />
+        <Route path={R.rma} element={<RmaForms />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </HashRouter>
   );

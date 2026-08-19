@@ -6,6 +6,7 @@ import { getSession, type Session } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { ENERGY_FIELDS, WATER_FIELDS, mapRow } from "@/lib/fields";
+import { R } from "@/lib/routes";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function Admin() {
 
   useEffect(() => {
     const s = getSession();
-    if (!s || s.role !== "admin") { navigate("/"); return; }
+    if (!s || s.role !== "admin") { navigate(R.signin); return; }
     setSession(s);
   }, [navigate]);
 

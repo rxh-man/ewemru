@@ -62,7 +62,7 @@ class Doc {
   }
 
   sectionHead(title: string, blockH = 40) {
-    this.ensure(24 + Math.min(blockH, 90));
+    this.ensure(24 + Math.min(blockH, A4[1] - M * 2 - 60));
     this.y -= 2;
     this.page.drawText(title.toUpperCase(), { x: M, y: this.y - 8, size: 8.5, font: this.bold, color: BLACK });
     this.y -= 11;

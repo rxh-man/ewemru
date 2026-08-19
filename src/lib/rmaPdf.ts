@@ -79,27 +79,47 @@ class Doc {
     if (!text) return "";
     if (font.widthOfTextAtSize(text, size) <= max) return text;
     let s = text;
-    while (s.length > 1 && font.widthOfTextAtSize(s + "…", size) > max) s = s.slice(0, -1);
-    return s + "…";
+    while (s.length > 1 && font.widthOfTextAtSize(s + "...", size) > max) s = s.slice(0, -1);
+    return s.trimEnd() + "...";
   }
 
+  /** Word wrap with hard break for long tokens; adds "..." if it overflows maxLines */
   wrap(text: string, font: PDFFont, size: number, max: number, maxLines: number) {
-    const words = (text || "").split(/\s+/).filter(Boolean);
+    const raw = (text || "").trim();
+    if (!raw) return [];
+    const words: string[] = [];
+    for (const w of raw.split(/\s+/)) {
+      let cur = w;
+      while (font.widthOfTextAtSize(cur, size) > max) {
+        let cut = cur.length;
+        while (cut > 1 && font.widthOfTextAtSize(cur.slice(0, cut), size) > max) cut--;
+        words.push(cur.slice(0, cut));
+        cur = cur.slice(cut);
+      }
+      if (cur) words.push(cur);
+    }
     const lines: string[] = [];
     let cur = "";
-    for (const w of words) {
-      const t = cur ? cur + " " + w : w;
+    let idx = 0;
+    for (; idx < words.length; idx++) {
+      const t = cur ? cur + " " + words[idx] : words[idx];
       if (font.widthOfTextAtSize(t, size) <= max) cur = t;
       else {
-        if (cur) lines.push(cur);
-        cur = w;
+        lines.push(cur);
+        cur = words[idx];
         if (lines.length === maxLines) break;
       }
     }
-    if (cur && lines.length < maxLines) lines.push(cur);
-    if (lines.length === maxLines) lines[maxLines - 1] = this.fit(lines[maxLines - 1], font, size, max);
+    if (lines.length < maxLines && cur) {
+      lines.push(cur);
+      idx = words.length;
+    }
+    if (idx < words.length && lines.length) {
+      lines[lines.length - 1] = this.fit(lines[lines.length - 1] + " " + words[idx], font, size, max);
+    }
     return lines;
   }
+
 
   /** Boxed label/value cell */
   cell(x: number, w: number, yTop: number, h: number, label: string, value: string, required?: boolean) {

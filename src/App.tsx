@@ -26,6 +26,9 @@ export default function App() {
         <Route path="/innovation" element={<Innovation />} />
         <Route path="/users" element={<UserAdmin />} />
         <Route path="/routes" element={<FieldRoutes />} />
+        <Route path="/rma" element={<RmaForms />} />
+        <Route path="/rmaforms" element={<RmaForms />} />
+        <Route path="/RMAFORMS" element={<RmaForms />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>

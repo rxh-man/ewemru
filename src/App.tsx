@@ -9,6 +9,7 @@ import FieldTech from "./pages/FieldTech";
 import Innovation from "./pages/Innovation";
 import UserAdmin from "./pages/UserAdmin";
 import FieldRoutes from "./pages/FieldRoutes";
+import RmaForms from "./pages/RmaForms";
 
 export default function App() {
   return (

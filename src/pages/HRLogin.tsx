@@ -79,6 +79,7 @@ export default function HRLogin() {
           <div className="flex items-center gap-4">
             <Link to="/ft" className="hover:text-[#111]">Field Tech</Link>
             <Link to="/mru-login" className="hover:text-[#111]">MRU Automation</Link>
+            <Link to="/rmaforms" className="hover:text-[#111]">RMA Forms</Link>
           </div>
         </div>
       </footer>

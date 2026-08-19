@@ -180,7 +180,7 @@ class Doc {
     const cellLines: { lbl: string[]; val: string[] }[][] = chunks.map((chunk) =>
       chunk.map((f) => ({
         lbl: this.wrap(f.label, this.font, 7, labelW - 8, 3),
-        val: this.wrap((values[f.key] || "").trim(), this.bold, 7, colW - labelW - 8, 3),
+        val: this.wrap((values[f.key] || "").trim(), this.bold, 7, colW - labelW - 8, 5),
       })),
     );
     const rowHs: number[] = [];

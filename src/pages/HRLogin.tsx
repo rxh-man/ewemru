@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { login, getSession, homeFor } from "@/lib/auth";
 import eandLogo from "@/assets/eand.png";
 import { LoginVideo } from "@/components/LoginVideo";

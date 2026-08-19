@@ -142,10 +142,10 @@ export const DATAKORUM: RmaFormDef = {
           label: "Condition of Product",
           type: "choice",
           options: [
-            "Brand new — never installed",
-            "Good condition — installed in field",
+            "Brand new - never installed",
+            "Good condition - installed in field",
             "Visible signs of ageing",
-            "Damaged — broken or cracked",
+            "Damaged - broken or cracked",
           ],
           required: true,
         },
@@ -212,7 +212,7 @@ export const DATAKORUM: RmaFormDef = {
       title: "Shipment Terms",
       items: [
         "All products should be provided in good condition.",
-        "Do not mark the samples with tape or stickers — use a marker pen instead.",
+        "Do not mark the samples with tape or stickers - use a marker pen instead.",
         "Pack the product in a box to prevent physical stress during shipment.",
         "Products should be provided free of charge; reciprocally the analysis is done free of charge.",
       ],

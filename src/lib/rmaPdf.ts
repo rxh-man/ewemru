@@ -61,8 +61,18 @@ class Doc {
     if (this.y - h < M + 14) this.newPage();
   }
 
+  pendingHead: string | null = null;
+
   sectionHead(title: string) {
-    this.ensure(24);
+    this.pendingHead = title;
+  }
+
+  /** Draw the queued section title, keeping it on the same page as its block */
+  private flushHead(blockH: number) {
+    const title = this.pendingHead;
+    if (!title) return;
+    this.pendingHead = null;
+    this.ensure(24 + Math.min(blockH, A4[1] - M * 2 - 80));
     this.y -= 2;
     this.page.drawText(title.toUpperCase(), { x: M, y: this.y - 8, size: 8.5, font: this.bold, color: BLACK });
     this.y -= 11;
@@ -79,27 +89,47 @@ class Doc {
     if (!text) return "";
     if (font.widthOfTextAtSize(text, size) <= max) return text;
     let s = text;
-    while (s.length > 1 && font.widthOfTextAtSize(s + "…", size) > max) s = s.slice(0, -1);
-    return s + "…";
+    while (s.length > 1 && font.widthOfTextAtSize(s + "...", size) > max) s = s.slice(0, -1);
+    return s.trimEnd() + "...";
   }
 
+  /** Word wrap with hard break for long tokens; adds "..." if it overflows maxLines */
   wrap(text: string, font: PDFFont, size: number, max: number, maxLines: number) {
-    const words = (text || "").split(/\s+/).filter(Boolean);
+    const raw = (text || "").trim();
+    if (!raw) return [];
+    const words: string[] = [];
+    for (const w of raw.split(/\s+/)) {
+      let cur = w;
+      while (font.widthOfTextAtSize(cur, size) > max) {
+        let cut = cur.length;
+        while (cut > 1 && font.widthOfTextAtSize(cur.slice(0, cut), size) > max) cut--;
+        words.push(cur.slice(0, cut));
+        cur = cur.slice(cut);
+      }
+      if (cur) words.push(cur);
+    }
     const lines: string[] = [];
     let cur = "";
-    for (const w of words) {
-      const t = cur ? cur + " " + w : w;
+    let idx = 0;
+    for (; idx < words.length; idx++) {
+      const t = cur ? cur + " " + words[idx] : words[idx];
       if (font.widthOfTextAtSize(t, size) <= max) cur = t;
       else {
-        if (cur) lines.push(cur);
-        cur = w;
+        lines.push(cur);
+        cur = words[idx];
         if (lines.length === maxLines) break;
       }
     }
-    if (cur && lines.length < maxLines) lines.push(cur);
-    if (lines.length === maxLines) lines[maxLines - 1] = this.fit(lines[maxLines - 1], font, size, max);
+    if (lines.length < maxLines && cur) {
+      lines.push(cur);
+      idx = words.length;
+    }
+    if (idx < words.length && lines.length) {
+      lines[lines.length - 1] = this.fit(lines[lines.length - 1] + " " + words[idx], font, size, max);
+    }
     return lines;
   }
+
 
   /** Boxed label/value cell */
   cell(x: number, w: number, yTop: number, h: number, label: string, value: string, required?: boolean) {
@@ -107,13 +137,20 @@ class Doc {
     p.drawRectangle({ x, y: yTop - h, width: w, height: h, borderColor: LINE, borderWidth: 0.6 });
     const lbl = this.fit(label + (required ? " *" : ""), this.bold, 6.5, w - 8);
     p.drawText(lbl, { x: x + 4, y: yTop - 9, size: 6.5, font: this.bold, color: required ? RED : GREY });
-    const lines = this.wrap(value === "" ? "" : value || "—", this.font, 8, w - 8, Math.max(1, Math.floor((h - 14) / 10)));
+    const maxLines = Math.max(1, Math.floor((h - 13) / 9.5));
+    const lines = this.wrap((value || "").trim(), this.font, 8, w - 8, maxLines);
     lines.forEach((ln, i) => {
-      p.drawText(ln, { x: x + 4, y: yTop - 20 - i * 9.5, size: 8, font: this.font, color: BLACK });
+      p.drawText(ln, { x: x + 4, y: yTop - 19.5 - i * 9.5, size: 8, font: this.font, color: BLACK });
     });
   }
 
+  /** Lines needed for a value inside a cell of width w */
+  private linesNeeded(value: string, w: number) {
+    return Math.max(1, this.wrap((value || "").trim(), this.font, 8, w - 8, 6).length || 1);
+  }
+
   grid(fields: RmaField[], values: RmaValues, cols: number) {
+    this.flushHead(52);
     const gap = 6;
     const cw = (W - gap * (cols - 1)) / cols;
     let i = 0;
@@ -128,99 +165,118 @@ class Doc {
       } else {
         for (let c = 0; c < cols && i < fields.length && fields[i].type !== "textarea"; c++) row.push(fields[i++]);
       }
-      const h = full ? 40 : row.some((r) => (values[r.key] || "").length > 34) ? 32 : 23;
+      const w = full ? W : cw;
+      const needed = Math.max(...row.map((r) => this.linesNeeded(values[r.key], w)), full ? 2 : 1);
+      const h = Math.max(23, 14 + needed * 9.5);
       this.ensure(h + 3);
       const top = this.y;
       row.forEach((rf, idx) => {
-        const w = full ? W : cw;
         this.cell(M + idx * (cw + gap), w, top, h, rf.label, values[rf.key], rf.required);
       });
       this.y -= h + 3;
     }
   }
 
+
   table(fields: RmaField[], values: RmaValues, cols: 1 | 2) {
     const gap = 8;
     const colW = cols === 2 ? (W - gap) / 2 : W;
-    const rowH = 13;
+    const headH = 13;
     const per = Math.ceil(fields.length / cols);
     const chunks: RmaField[][] = [];
     for (let c = 0; c < cols; c++) chunks.push(fields.slice(c * per, (c + 1) * per));
     const rows = Math.max(...chunks.map((c) => c.length));
-    this.ensure(rowH * (rows + 1) + 6);
+    const labelW = colW * (cols === 2 ? 0.58 : 0.66);
+    // pre-compute wrapped content + per-row heights (shared across columns)
+    const cellLines: { lbl: string[]; val: string[] }[][] = chunks.map((chunk) =>
+      chunk.map((f) => ({
+        lbl: this.wrap(f.label, this.font, 7, labelW - 8, 3),
+        val: this.wrap((values[f.key] || "").trim(), this.bold, 7, colW - labelW - 8, 5),
+      })),
+    );
+    const rowHs: number[] = [];
+    for (let ri = 0; ri < rows; ri++) {
+      let ln = 1;
+      cellLines.forEach((col) => {
+        const c = col[ri];
+        if (c) ln = Math.max(ln, c.lbl.length, c.val.length);
+      });
+      rowHs.push(Math.max(13, 5 + ln * 8.5));
+    }
+    const total = headH + rowHs.reduce((a, b) => a + b, 0);
+    this.flushHead(total);
+    this.ensure(total + 6);
     const top = this.y;
     chunks.forEach((chunk, ci) => {
       const x = M + ci * (colW + gap);
-      const labelW = colW * (cols === 2 ? 0.58 : 0.66);
       const p = this.page;
-      // header
-      p.drawRectangle({ x, y: top - rowH, width: colW, height: rowH, color: HEAD_BG, borderColor: LINE, borderWidth: 0.6 });
-      p.drawText("ITEM", { x: x + 4, y: top - rowH + 4.5, size: 6.5, font: this.bold, color: BLACK });
-      p.drawText("RESULT", { x: x + labelW + 4, y: top - rowH + 4.5, size: 6.5, font: this.bold, color: BLACK });
-      p.drawLine({ start: { x: x + labelW, y: top }, end: { x: x + labelW, y: top - rowH * (chunk.length + 1) }, thickness: 0.6, color: LINE });
+      const colHeight = headH + rowHs.slice(0, chunk.length).reduce((a, b) => a + b, 0);
+      p.drawRectangle({ x, y: top - headH, width: colW, height: headH, color: HEAD_BG, borderColor: LINE, borderWidth: 0.6 });
+      p.drawText("ITEM", { x: x + 4, y: top - headH + 4.5, size: 6.5, font: this.bold, color: BLACK });
+      p.drawText("RESULT", { x: x + labelW + 4, y: top - headH + 4.5, size: 6.5, font: this.bold, color: BLACK });
+      p.drawLine({ start: { x: x + labelW, y: top }, end: { x: x + labelW, y: top - colHeight }, thickness: 0.6, color: LINE });
+      let yTop = top - headH;
       chunk.forEach((f, ri) => {
-        const yTop = top - rowH * (ri + 1);
-        p.drawRectangle({ x, y: yTop - rowH, width: colW, height: rowH, borderColor: LINE, borderWidth: 0.6 });
-        p.drawText(this.fit(f.label, this.font, 7, labelW - 8), {
-          x: x + 4,
-          y: yTop - rowH + 4.5,
-          size: 7,
-          font: this.font,
-          color: BLACK,
-        });
-        const v = values[f.key] || "—";
-        p.drawText(this.fit(v, this.bold, 7, colW - labelW - 8), {
-          x: x + labelW + 4,
-          y: yTop - rowH + 4.5,
-          size: 7,
-          font: this.bold,
-          color: BLACK,
-        });
+        const h = rowHs[ri];
+        p.drawRectangle({ x, y: yTop - h, width: colW, height: h, borderColor: LINE, borderWidth: 0.6 });
+        const { lbl, val } = cellLines[ci][ri];
+        lbl.forEach((ln, i) => p.drawText(ln, { x: x + 4, y: yTop - 9 - i * 8.5, size: 7, font: this.font, color: BLACK }));
+        val.forEach((ln, i) =>
+          p.drawText(ln, { x: x + labelW + 4, y: yTop - 9 - i * 8.5, size: 7, font: this.bold, color: BLACK }),
+        );
+        yTop -= h;
       });
     });
-    this.y = top - rowH * (rows + 1) - 4;
+    this.y = top - total - 4;
   }
 
   trace(columns: { key: string; label: string; width: number }[], rows: TraceRow[]) {
-    const rowH = 14;
+    const headH = 14;
     const data = rows.filter((r) => columns.some((c) => (r[c.key] || "").trim()));
     const list = data.length ? data : rows.slice(0, 3);
-    this.ensure(rowH * (list.length + 1) + 6);
+    const wrapped = list.map((r) =>
+      columns.map((c) => this.wrap((r[c.key] || "").trim(), this.font, 7, W * c.width - 6, 3)),
+    );
+    const rowHs = wrapped.map((cells) => Math.max(14, 5 + Math.max(1, ...cells.map((c) => c.length)) * 8.5));
+    const total = headH + rowHs.reduce((a, b) => a + b, 0);
+    this.flushHead(total);
+    this.ensure(total + 6);
     const top = this.y;
     const p = this.page;
     let x = M;
-    p.drawRectangle({ x: M, y: top - rowH, width: W, height: rowH, color: HEAD_BG, borderColor: LINE, borderWidth: 0.6 });
+    p.drawRectangle({ x: M, y: top - headH, width: W, height: headH, color: HEAD_BG, borderColor: LINE, borderWidth: 0.6 });
     columns.forEach((c) => {
       const cw = W * c.width;
       p.drawText(this.fit(c.label.toUpperCase(), this.bold, 6.3, cw - 6), {
         x: x + 3,
-        y: top - rowH + 4.5,
+        y: top - headH + 4.5,
         size: 6.3,
         font: this.bold,
         color: BLACK,
       });
       x += cw;
     });
-    list.forEach((r, ri) => {
-      const yTop = top - rowH * (ri + 1);
+    let yTop = top - headH;
+    wrapped.forEach((cells, ri) => {
+      const h = rowHs[ri];
       let cx = M;
-      columns.forEach((c) => {
+      columns.forEach((c, ci) => {
         const cw = W * c.width;
-        p.drawRectangle({ x: cx, y: yTop - rowH, width: cw, height: rowH, borderColor: LINE, borderWidth: 0.6 });
-        p.drawText(this.fit(r[c.key] || "", this.font, 7, cw - 6), {
-          x: cx + 3,
-          y: yTop - rowH + 4.5,
-          size: 7,
-          font: this.font,
-          color: BLACK,
-        });
+        p.drawRectangle({ x: cx, y: yTop - h, width: cw, height: h, borderColor: LINE, borderWidth: 0.6 });
+        cells[ci].forEach((ln, i) =>
+          p.drawText(ln, { x: cx + 3, y: yTop - 10 - i * 8.5, size: 7, font: this.font, color: BLACK }),
+        );
         cx += cw;
       });
+      yTop -= h;
     });
-    this.y = top - rowH * (list.length + 1) - 4;
+    this.y = top - total - 4;
   }
 
+
+
   notes(items: string[]) {
+    this.flushHead(items.length * 10 + 6);
     this.ensure(items.length * 10 + 6);
     items.forEach((it) => {
       const lines = this.wrap(it, this.font, 6.8, W - 12, 2);

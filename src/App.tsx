@@ -9,6 +9,7 @@ import FieldTech from "./pages/FieldTech";
 import Innovation from "./pages/Innovation";
 import UserAdmin from "./pages/UserAdmin";
 import FieldRoutes from "./pages/FieldRoutes";
+import RmaForms from "./pages/RmaForms";
 
 export default function App() {
   return (
@@ -25,6 +26,9 @@ export default function App() {
         <Route path="/innovation" element={<Innovation />} />
         <Route path="/users" element={<UserAdmin />} />
         <Route path="/routes" element={<FieldRoutes />} />
+        <Route path="/rma" element={<RmaForms />} />
+        <Route path="/rmaforms" element={<RmaForms />} />
+        <Route path="/RMAFORMS" element={<RmaForms />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>

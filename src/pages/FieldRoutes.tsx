@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getSession, type Session } from "@/lib/auth";
+import { getSession, login, logout, type Session } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -8,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from "react-leaflet";
 import { R } from "@/lib/routes";
+import eandLogo from "@/assets/eand.png";
 
 const TEMPLATE_HEADERS = [
   "SERIALNUMBER", "Badge", "DISTRICT", "SUBDISTRICT", "CITYNAME", "REGION", "SECTOR",
@@ -200,17 +201,28 @@ export default function FieldRoutes() {
   const [day, setDay] = useState("");
   const [team, setTeam] = useState("all");
   const [optimize, setOptimize] = useState(true);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const s = getSession();
-    if (!s) {
-      sessionStorage.setItem("post_login", R.routes);
-      navigate(R.signin);
+    if (s?.role === "routes") setSession(s);
+  }, [navigate]);
+
+  function handlePlannerLogin(event: React.FormEvent) {
+    event.preventDefault();
+    setLoginError("");
+    const nextSession = login(username, password);
+    if (!nextSession || nextSession.role !== "routes") {
+      if (nextSession) logout();
+      setLoginError("Use your Field Visit Planning account to continue.");
       return;
     }
-    setSession(s);
-  }, [navigate]);
+    sessionStorage.setItem("post_login", R.routes);
+    navigate(R.welcome);
+  }
 
   useEffect(() => {
     let alive = true;
@@ -374,7 +386,46 @@ export default function FieldRoutes() {
     return `https://www.google.com/maps/dir/?api=1&origin=${pts[0]}&destination=${pts[pts.length - 1]}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ""}&travelmode=driving`;
   }
 
-  if (!session) return null;
+  if (!session) {
+    return (
+      <main className="min-h-screen bg-background px-5 py-10 flex items-center justify-center">
+        <section className="w-full max-w-sm" aria-labelledby="planner-sign-in-title">
+          <img src={eandLogo} alt="e&" className="h-10 w-auto mb-8" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Field Visit Planning</p>
+          <h1 id="planner-sign-in-title" className="mt-2 text-3xl font-semibold text-foreground">Planner sign in</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Authorised field planning access only.</p>
+          <form onSubmit={handlePlannerLogin} className="mt-8 space-y-4">
+            <div>
+              <label htmlFor="planner-username" className="text-xs font-medium text-foreground">Username</label>
+              <input
+                id="planner-username"
+                autoFocus
+                autoComplete="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label htmlFor="planner-password" className="text-xs font-medium text-foreground">Password</label>
+              <input
+                id="planner-password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            {loginError && <p role="alert" className="text-xs text-destructive">{loginError}</p>}
+            <button type="submit" className="h-11 w-full rounded-md bg-primary text-sm font-semibold text-primary-foreground hover:opacity-90">
+              Open planner
+            </button>
+          </form>
+        </section>
+      </main>
+    );
+  }
 
 
   return (

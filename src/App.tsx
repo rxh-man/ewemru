@@ -29,6 +29,9 @@ export default function App() {
         <Route path={R.users} element={<UserAdmin />} />
         <Route path={R.routes} element={<FieldRoutes />} />
         <Route path={R.rma} element={<RmaForms />} />
+        <Route path="/rma" element={<RmaForms />} />
+        <Route path="/rmaforms" element={<RmaForms />} />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </HashRouter>

@@ -294,12 +294,12 @@ class Doc {
     this.y -= 2;
   }
 
-  signature() {
+  signature(preparedBy: string) {
     this.ensure(40);
     const top = this.y - 4;
     const half = (W - 8) / 2;
-    this.cell(M, half, top, 28, "Prepared by (Name & Signature)", "");
-    this.cell(M + half + 8, half, top, 28, "Date", new Date().toLocaleDateString("en-GB"));
+    this.cell(M, half, top, 28, "Prepared by", preparedBy);
+    this.cell(M + half + 8, half, top, 28, "Date of upload", new Date().toLocaleDateString("en-GB"));
     this.y = top - 32;
   }
 

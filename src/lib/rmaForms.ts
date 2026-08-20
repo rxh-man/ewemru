@@ -163,7 +163,7 @@ export const DATAKORUM: RmaFormDef = {
       title: "Traceability",
       minRows: 3,
       columns: [
-        { key: "serial", label: "Serial Number", width: 0.2 input(name "href" file name) },
+        { key: "serial", label: "Serial Number", width: 0.2 },
         { key: "mfg", label: "MFG", width: 0.11 },
         { key: "model", label: "Gateway Model", width: 0.18 },
         { key: "fw", label: "FW Version", width: 0.12 },

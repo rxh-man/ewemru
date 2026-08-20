@@ -21,7 +21,7 @@ export default function RmaForms() {
     setActive(def);
     setStep(0);
     setRows([{}, {}, {}]);
-    const init: RmaValues = { company: "e& Enterprise" };
+    const init: RmaValues = { company: "e& Etisalat" };
     def.sections.forEach((s) => {
       if (s.kind === "grid" || s.kind === "table")
         s.fields.forEach((f) => {

@@ -9,6 +9,6 @@ export const R = {
   ft: "/ftk-2w9j4v",
   innovation: "/inn-3y6h8w",
   users: "/usr-7c5k1x",
-  routes: "/fvp-1n8s9y",
+  routes: "/planner",
   rma: "/rma-4k9x3z",
 } as const;

@@ -341,7 +341,8 @@ export async function buildRmaPdf(def: RmaFormDef, values: RmaValues, traceRows:
     else if (sec.kind === "trace") d.trace(sec.columns, traceRows);
     else d.notes(sec.items);
   }
-  d.signature();
+  const preparedBy = (values.by || values.name || "").trim();
+  d.signature(preparedBy);
   d.footer();
 
   pdf.setTitle(`${def.vendor} RMA Form`);

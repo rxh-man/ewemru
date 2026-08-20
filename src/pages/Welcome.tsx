@@ -15,7 +15,9 @@ export default function Welcome() {
 
     const timer = setTimeout(() => {
       setVisible(false);
-      setTimeout(() => navigate(homeFor(s.role), { replace: true }), 500);
+      const next = sessionStorage.getItem("post_login");
+      sessionStorage.removeItem("post_login");
+      setTimeout(() => navigate(next || homeFor(s.role), { replace: true }), 500);
     }, 3000);
 
     return () => clearTimeout(timer);

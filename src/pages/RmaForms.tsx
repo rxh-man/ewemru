@@ -58,8 +58,11 @@ export default function RmaForms() {
     setBusy(true);
     try {
       const bytes = await buildRmaPdf(active, values, rows);
-      const tag = (values.sr || values.ref || values.company || "form").toString().replace(/[^\w-]+/g, "_");
-      downloadPdf(bytes, `${active.vendor}_RMA_${tag}.pdf`);
+      const serial = (values.sr || rows.map((r) => (r.serial || "").trim()).find(Boolean) || values.ref || "form")
+        .toString()
+        .trim()
+        .replace(/[^\w-]+/g, "_");
+      downloadPdf(bytes, `${serial}.pdf`);
       toast.success("PDF generated and downloaded");
     } catch (e: any) {
       toast.error(e?.message || "Could not generate the PDF");

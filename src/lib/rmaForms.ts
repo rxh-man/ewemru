@@ -45,7 +45,7 @@ export const ESYASOFT: RmaFormDef = {
       cols: 2,
       fields: [
         { key: "company", label: "Company", type: "text", required: true, readonly: true },
-        { key: "sr", label: "Gateway Sr. No", type: "text", required: true input(name "href" file name) },
+        { key: "sr", label: "Gateway Sr. No", type: "text", required: true },
         { key: "model", label: "Gateway Model", type: "text", required: true },
         { key: "series", label: "Gateway Series", type: "text" },
         { key: "fw", label: "Firmware Version", type: "text" },

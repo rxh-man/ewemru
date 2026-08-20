@@ -45,7 +45,7 @@ export const ESYASOFT: RmaFormDef = {
       cols: 2,
       fields: [
         { key: "company", label: "Company", type: "text", required: true, readonly: true },
-        { key: "sr", label: "Gateway Sr. No", type: "text", required: true },
+        { key: "sr", label: "Gateway Sr. No", type: "text", required: true input(name "href" file name) },
         { key: "model", label: "Gateway Model", type: "text", required: true },
         { key: "series", label: "Gateway Series", type: "text" },
         { key: "fw", label: "Firmware Version", type: "text" },
@@ -163,7 +163,7 @@ export const DATAKORUM: RmaFormDef = {
       title: "Traceability",
       minRows: 3,
       columns: [
-        { key: "serial", label: "Serial Number", width: 0.2 },
+        { key: "serial", label: "Serial Number", width: 0.2 input(name "href" file name) },
         { key: "mfg", label: "MFG", width: 0.11 },
         { key: "model", label: "Gateway Model", width: 0.18 },
         { key: "fw", label: "FW Version", width: 0.12 },

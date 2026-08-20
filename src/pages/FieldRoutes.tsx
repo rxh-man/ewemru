@@ -204,7 +204,11 @@ export default function FieldRoutes() {
 
   useEffect(() => {
     const s = getSession();
-    if (!s) { navigate(R.signin); return; }
+    if (!s) {
+      sessionStorage.setItem("post_login", R.routes);
+      navigate(R.signin);
+      return;
+    }
     setSession(s);
   }, [navigate]);
 

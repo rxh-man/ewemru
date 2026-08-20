@@ -41,7 +41,7 @@ class Doc {
     while (this.bold.widthOfTextAtSize(t, size) > W - 70 && size > 8) size -= 0.25;
     p.drawText(t, { x: M, y: this.y - 11, size, font: this.bold, color: BLACK });
     if (this.logo) {
-      const h = 20;
+      const h = 15;
       const w = (this.logo.width / this.logo.height) * h;
       p.drawImage(this.logo, { x: M + W - w, y: this.y - h - 1, width: w, height: h });
     }

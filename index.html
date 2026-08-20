@@ -29,3 +29,13 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+  <script>
+    // Clean-path support: fieldone.live/rma -> fieldone.live/#/rma
+    (function () {
+      var p = location.pathname.replace(/\/+$/, "");
+      if (p && p !== "/index.html" && !/\.[a-z0-9]+$/i.test(p) && !location.hash) {
+        location.replace(location.origin + "/#" + p + location.search);
+      }
+    })();
+  </script>
+</head>

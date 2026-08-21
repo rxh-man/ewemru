@@ -30,6 +30,7 @@ export default function App() {
         <Route path={R.routes} element={<FieldRoutes />} />
         <Route path="/routes" element={<FieldRoutes />} />
         <Route path="/fvp-1n8s9y" element={<FieldRoutes />} />
+        <Route path={R.fuel} element={<FuelPortal />} />
         <Route path={R.rma} element={<RmaForms />} />
         <Route path="/rma" element={<RmaForms />} />
         <Route path="/rmaforms" element={<RmaForms />} />

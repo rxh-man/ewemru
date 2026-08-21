@@ -192,6 +192,59 @@ function parseWorkbook(buf: ArrayBuffer): Stop[] {
   return out;
 }
 
+/** Default UAE public holidays to exclude (editable in the UI). */
+const DEFAULT_HOLIDAYS = "2026-12-02, 2026-12-03";
+
+function parseHolidays(raw: string): Set<string> {
+  return new Set(
+    raw.split(/[\s,;]+/).map((s) => s.trim()).filter((s) => /^\d{4}-\d{2}-\d{2}$/.test(s)),
+  );
+}
+
+/** Builds working dates from a start date, honouring selected weekdays and excluded holidays. */
+function workingDates(start: string, count: number, workdays: number[], holidays: Set<string>): string[] {
+  const out: string[] = [];
+  const d = new Date(`${start}T00:00:00`);
+  if (isNaN(d.getTime()) || !workdays.length) return out;
+  let guard = 0;
+  while (out.length < count && guard < 2000) {
+    const iso = d.toISOString().slice(0, 10);
+    if (workdays.includes(d.getDay()) && !holidays.has(iso)) out.push(iso);
+    d.setDate(d.getDate() + 1);
+    guard++;
+  }
+  return out;
+}
+
+interface PlanConfig {
+  teams: number;
+  target: number;
+  start: string;
+  workdays: number[];
+  holidays: Set<string>;
+}
+
+/**
+ * Geographic auto-planner: sequences every coordinate into one shortest chain,
+ * slices it into day-sized clusters and spreads those clusters across teams and working days.
+ */
+function buildPlan(list: Stop[], cfg: PlanConfig): Stop[] {
+  const ordered = optimizeRoute(list);
+  const chunks: Stop[][] = [];
+  for (let i = 0; i < ordered.length; i += cfg.target) chunks.push(ordered.slice(i, i + cfg.target));
+  const dayCount = Math.ceil(chunks.length / cfg.teams);
+  const dates = workingDates(cfg.start, dayCount, cfg.workdays, cfg.holidays);
+  const out: Stop[] = [];
+  chunks.forEach((chunk, i) => {
+    const dayIdx = Math.floor(i / cfg.teams);
+    const day = dates[dayIdx] ?? "Unplanned";
+    const team = `Team ${(i % cfg.teams) + 1}`;
+    optimizeRoute(chunk).forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
+  });
+  return out;
+}
+
+
 export default function FieldRoutes() {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);

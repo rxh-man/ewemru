@@ -616,7 +616,67 @@ export default function FieldRoutes() {
           </div>
         ) : (
           <>
+            {/* ── Auto-planner ─────────────────────────────────── */}
+            <div className="rounded-xl border border-border bg-white p-3 shadow-sm space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#111]">Auto plan builder</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Clusters coordinates, splits them by daily target and spreads across teams on working days only.
+                  </p>
+                </div>
+                {planned && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-1">
+                    Plan generated
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">No of teams</span>
+                  <input type="number" min={1} max={30} value={teamCount}
+                    onChange={(e) => setTeamCount(Math.max(1, Number(e.target.value) || 1))}
+                    className="mt-1 h-9 w-full rounded-lg border border-input bg-white px-2 text-xs" />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Target per team / day</span>
+                  <input type="number" min={1} max={200} value={targetPerDay}
+                    onChange={(e) => setTargetPerDay(Math.max(1, Number(e.target.value) || 1))}
+                    className="mt-1 h-9 w-full rounded-lg border border-input bg-white px-2 text-xs" />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Start date</span>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                    className="mt-1 h-9 w-full rounded-lg border border-input bg-white px-2 text-xs" />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Exclude holidays (YYYY-MM-DD)</span>
+                  <input value={holidayText} onChange={(e) => setHolidayText(e.target.value)}
+                    placeholder="2026-12-02, 2026-12-03"
+                    className="mt-1 h-9 w-full rounded-lg border border-input bg-white px-2 text-xs" />
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Working days</span>
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+                  <button key={d} onClick={() => toggleWorkday(i)}
+                    className={`h-8 px-2.5 rounded-lg text-xs font-medium border transition ${workdays.includes(i) ? "bg-[#111] text-white border-[#111]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+                    {d}
+                  </button>
+                ))}
+                <button onClick={generatePlan}
+                  className="ml-auto h-9 px-4 rounded-lg bg-[#dc2626] text-white text-xs font-semibold hover:brightness-110 transition">
+                  Build plan
+                </button>
+                <button onClick={downloadPlan}
+                  className="h-9 px-3 rounded-lg border border-border text-xs font-semibold text-[#111] hover:bg-secondary transition">
+                  Download plan
+                </button>
+              </div>
+            </div>
+
             {/* ── Controls ─────────────────────────────────────── */}
+
             <div className="rounded-xl border border-border bg-white p-3 space-y-2.5 shadow-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground w-14">Day</span>

@@ -29,7 +29,7 @@ const BASE_USERS: Record<string, UserRecord> = {
     access: { tracks: ["fuel"], innovation: false, urgent: false },
   },
   field: {
-    password: "900000", role: "routes",
+    password: "7866", role: "routes",
     profile: { name: "Field Routing", title: "Field Team Route Planning", photo: "" },
   },
   mruadmin: { password: "123999", role: "admin" },

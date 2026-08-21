@@ -566,11 +566,16 @@ export default function FieldRoutes() {
                   {" "}{stops.length.toLocaleString()} visits · {teams.length} teams · {days.length} planned days.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button onClick={downloadTemplate}
                   className="h-9 px-3 rounded-lg border border-white/20 bg-white/5 text-xs font-medium text-white hover:bg-white/10 transition">
                   Template
                 </button>
+                <button onClick={downloadPlan} disabled={!stops.length}
+                  className="h-9 px-3 rounded-lg border border-white/20 bg-white/5 text-xs font-medium text-white hover:bg-white/10 transition disabled:opacity-40">
+                  Download plan
+                </button>
+
                 <button onClick={() => inputRef.current?.click()}
                   className="h-9 px-4 rounded-lg bg-[#dc2626] text-white text-xs font-semibold hover:brightness-110 transition shadow-[0_6px_24px_-6px_rgba(220,38,38,.9)]">
                   Upload plan

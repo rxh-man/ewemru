@@ -257,7 +257,14 @@ export default function FieldRoutes() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [teamCount, setTeamCount] = useState(4);
+  const [targetPerDay, setTargetPerDay] = useState(15);
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [workdays, setWorkdays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [holidayText, setHolidayText] = useState(DEFAULT_HOLIDAYS);
+  const [planned, setPlanned] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     const s = getSession();

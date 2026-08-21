@@ -10,5 +10,6 @@ export const R = {
   innovation: "/inn-3y6h8w",
   users: "/usr-7c5k1x",
   routes: "/planner",
+  fuel: "/fuel",
   rma: "/rma-4k9x3z",
 } as const;

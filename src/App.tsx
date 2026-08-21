@@ -10,6 +10,7 @@ import Innovation from "./pages/Innovation";
 import UserAdmin from "./pages/UserAdmin";
 import FieldRoutes from "./pages/FieldRoutes";
 import RmaForms from "./pages/RmaForms";
+import FuelPortal from "./pages/FuelPortal";
 import NotFound from "./pages/NotFound";
 import { R } from "./lib/routes";
 
@@ -30,6 +31,7 @@ export default function App() {
         <Route path={R.routes} element={<FieldRoutes />} />
         <Route path="/routes" element={<FieldRoutes />} />
         <Route path="/fvp-1n8s9y" element={<FieldRoutes />} />
+        <Route path={R.fuel} element={<FuelPortal />} />
         <Route path={R.rma} element={<RmaForms />} />
         <Route path="/rma" element={<RmaForms />} />
         <Route path="/rmaforms" element={<RmaForms />} />

@@ -35,7 +35,7 @@ export default function Welcome() {
           visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
         }`}
       >
-        <img src={eandLogo} alt="e&" className="h-12 w-auto mb-6" />
+        {(!profile || photo) && <img src={eandLogo} alt="e&" className="h-12 w-auto mb-6" />}
         {profile && (
           photo ? (
             <img
@@ -49,6 +49,7 @@ export default function Welcome() {
             </div>
           )
         )}
+
 
         <h1 className="text-3xl font-semibold text-[#111] tracking-tight">
           Welcome, {displayName}

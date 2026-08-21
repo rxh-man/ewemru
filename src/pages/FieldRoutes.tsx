@@ -440,6 +440,55 @@ export default function FieldRoutes() {
     }
   }
 
+  function generatePlan() {
+    if (!stops.length) { toast.error("Upload a plan file first."); return; }
+    if (teamCount < 1 || targetPerDay < 1) { toast.error("Teams and target per day must be at least 1."); return; }
+    if (!workdays.length) { toast.error("Select at least one working day."); return; }
+    setLoading(true);
+    try {
+      const next = buildPlan(stops, {
+        teams: teamCount,
+        target: targetPerDay,
+        start: startDate,
+        workdays,
+        holidays: parseHolidays(holidayText),
+      });
+      setStops(next);
+      setPlanned(true);
+      setTeam("all");
+      setDay(next[0]?.day ?? "");
+      const dayTotal = new Set(next.map((s) => s.day)).size;
+      toast.success(`Plan built: ${next.length.toLocaleString()} visits · ${teamCount} teams · ${dayTotal} working days`);
+    } catch {
+      toast.error("Could not build the plan. Check the coordinates and try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function toggleWorkday(d: number) {
+    setWorkdays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
+  }
+
+  function downloadPlan() {
+    if (!stops.length) { toast.error("Nothing to download yet."); return; }
+    const sorted = [...stops].sort(
+      (a, b) => a.day.localeCompare(b.day) || teamKey(a.team) - teamKey(b.team) || a.order - b.order,
+    );
+    const rows = sorted.map((s) => [
+      s.serial, s.serial, s.district, s.subdistrict, s.city, s.region, s.sector, s.plot,
+      s.lat, s.lng, s.priority, s.status, s.day, s.team, s.order,
+    ]);
+    const ws = XLSX.utils.aoa_to_sheet([[...TEMPLATE_HEADERS, "Visit Order"], ...rows]);
+    ws["!cols"] = [...TEMPLATE_HEADERS, "Visit Order"].map(() => ({ wch: 18 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Optimised Plan");
+    XLSX.writeFile(wb, `field-visit-plan-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success("Plan downloaded");
+  }
+
+
+
   function gmapsLink(list: Stop[]) {
     const pts = list.slice(0, 10).map((s) => `${s.lat},${s.lng}`);
     const waypoints = pts.slice(1, -1).join("|");

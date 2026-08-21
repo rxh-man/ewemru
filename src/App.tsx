@@ -10,6 +10,7 @@ import Innovation from "./pages/Innovation";
 import UserAdmin from "./pages/UserAdmin";
 import FieldRoutes from "./pages/FieldRoutes";
 import RmaForms from "./pages/RmaForms";
+import FuelPortal from "./pages/FuelPortal";
 import NotFound from "./pages/NotFound";
 import { R } from "./lib/routes";
 

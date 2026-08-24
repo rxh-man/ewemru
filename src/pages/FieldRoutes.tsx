@@ -718,7 +718,12 @@ export default function FieldRoutes() {
                   className={`h-9 px-3 rounded-lg text-xs font-semibold border transition ${optimize ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
                   {optimize ? "AI sequencing: ON" : "AI sequencing: OFF"}
                 </button>
+                <button onClick={() => setRoadMode((v) => !v)} disabled={roadLoading}
+                  className={`h-9 px-3 rounded-lg text-xs font-semibold border transition disabled:opacity-60 ${roadMode ? "bg-[#111] text-white border-[#111]" : "bg-white text-[#111] border-border hover:bg-secondary"}`}>
+                  {roadLoading ? "Snapping to roads…" : roadMode ? "Road paths: ON" : "Road paths: OFF"}
+                </button>
                 <span className="ml-auto text-[11px] text-muted-foreground truncate max-w-[220px]">{fileName}</span>
+
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground w-14">Team</span>
@@ -744,20 +749,29 @@ export default function FieldRoutes() {
                     Optimised field graph · {dayLabel(day)}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    {dayStops.length} nodes · {routeKm.toFixed(0)} km
+                    {dayStops.length} nodes · {(roadMode && roadKm > 0 ? roadKm : routeKm).toFixed(0)} km
+                    {roadMode && roadKm > 0 && <span className="text-emerald-700"> on-road</span>}
                     {outlierCount > 0 && <span className="text-[#b45309]"> · {outlierCount} flagged</span>}
                   </p>
+
                 </div>
                 <MapContainer center={[24.4, 55.13]} zoom={9} scrollWheelZoom style={{ height: 500, width: "100%", background: "#ffffff" }}>
                   <TileLayer attribution="&copy; OpenStreetMap"
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                   <FitBounds points={points} />
                   {routes.map((r) => {
-                    const linePts = r.stops.filter((s) => !r.outliers.includes(s)).map((s) => [s.lat, s.lng] as [number, number]);
+                    const straight = r.stops.filter((s) => !r.outliers.includes(s)).map((s) => [s.lat, s.lng] as [number, number]);
+                    const road = roadLegs[r.team]?.polylines?.map((p) => decodePolyline(p)) ?? [];
+                    const segments = road.length ? road : [straight];
                     return (
                       <Fragment key={r.team}>
-                        <Polyline positions={linePts} pathOptions={{ color: r.color, weight: 10, opacity: 0.18 }} />
-                        <Polyline positions={linePts} pathOptions={{ color: r.color, weight: 2.5, opacity: 0.95 }} />
+                        {segments.map((pts, si) => (
+                          <Fragment key={si}>
+                            <Polyline positions={pts} pathOptions={{ color: r.color, weight: 10, opacity: 0.18 }} />
+                            <Polyline positions={pts} pathOptions={{ color: r.color, weight: 2.5, opacity: 0.95, dashArray: road.length ? undefined : "6 6" }} />
+                          </Fragment>
+                        ))}
+
                         {r.stops.map((s, i) => {
                           const flagged = r.outliers.includes(s);
                           return (

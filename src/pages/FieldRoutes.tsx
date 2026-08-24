@@ -416,7 +416,27 @@ export default function FieldRoutes() {
     return { visits, saved, savedPct, balance, density, hours, fuelAed, confidence, topArea, priorityMix, maxT, minT };
   }, [dayStops, routes, routeKm, baselineKm, outlierCount]);
 
+  /** FieldOne Accelerate — real travel cost today and the saving the engine delivers. */
+  const KM_PER_L = 11;
+  const AED_PER_L = 3.49;
+  const accelerate = useMemo(() => {
+    const km = roadMode && roadKm > 0 ? roadKm : routeKm;
+    const litres = km / KM_PER_L;
+    const aed = litres * AED_PER_L;
+    const hours = km / 45 + insights.visits * 0.35;
+    // When road paths are on, scale the sheet-order baseline by the same road factor.
+    const baseKm = optimize
+      ? (roadMode && roadKm > 0 && routeKm > 0 ? baselineKm * (roadKm / routeKm) : baselineKm)
+      : km;
+    const savedKm = Math.max(0, baseKm - km);
+    const savedAed = (savedKm / KM_PER_L) * AED_PER_L;
+    const savedHours = savedKm / 45;
+    const savedPct = baseKm > 0 ? (savedKm / baseKm) * 100 : 0;
+    return { km, litres, aed, hours, baseKm, savedKm, savedAed, savedHours, savedPct };
+  }, [roadMode, roadKm, routeKm, baselineKm, optimize, insights.visits]);
+
   const narrative = useMemo(() => {
+
     const out: { tone: "good" | "warn" | "info"; text: string }[] = [];
     out.push({
       tone: insights.savedPct >= 5 ? "good" : "info",
@@ -439,11 +459,14 @@ export default function FieldRoutes() {
         text: `Highest density in ${insights.topArea[0]} with ${insights.topArea[1]} visits — ideal anchor cluster to start the day and reduce dead mileage.`,
       });
     out.push({
-      tone: "info",
-      text: `Projected field effort ${insights.hours.toFixed(1)} crew-hours and AED ${insights.fuelAed.toFixed(0)} fuel at 11 km/L · AED 3.49/L.`,
+      tone: accelerate.savedKm > 0 ? "good" : "info",
+      text: accelerate.savedKm > 0
+        ? `FieldOne Accelerate: ${accelerate.savedKm.toFixed(0)} km, AED ${accelerate.savedAed.toFixed(0)} fuel and ${accelerate.savedHours.toFixed(1)} crew-hours saved today versus the raw sheet order (${accelerate.savedPct.toFixed(1)}% shorter).`
+        : `Travel today ${accelerate.km.toFixed(0)} km · ${accelerate.litres.toFixed(1)} L · AED ${accelerate.aed.toFixed(0)} at 11 km/L and AED 3.49/L. Turn on AI sequencing to see the saving.`,
     });
     return out;
-  }, [insights, routes.length, outlierCount]);
+  }, [insights, routes.length, outlierCount, accelerate]);
+
 
   function downloadTemplate() {
     const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ...TEMPLATE_ROWS]);
@@ -806,7 +829,45 @@ export default function FieldRoutes() {
                   <p className="text-[10px] uppercase tracking-[0.2em] text-white/50">Route AI · Analyst brief</p>
                   <p className="text-sm font-semibold mt-0.5">Recommendations for {dayLabel(day)}</p>
                 </div>
+                {/* FieldOne Accelerate */}
+                <div className="px-3 py-3 border-b border-border bg-secondary/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-[#dc2626]">FieldOne Accelerate</p>
+                    <span className="text-[9px] text-muted-foreground">
+                      {accelerate.savedKm > 0 ? (roadMode ? "On-road saving" : "AI sequencing saving") : "Baseline travel"}
+                    </span>
+                  </div>
+                  {accelerate.savedKm > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { k: "Distance saved", v: `${accelerate.savedKm.toFixed(0)} km` },
+                        { k: "Fuel saved", v: `AED ${accelerate.savedAed.toFixed(0)}` },
+                        { k: "Time saved", v: `${accelerate.savedHours.toFixed(1)} h` },
+                      ].map((m) => (
+                        <div key={m.k} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2">
+                          <p className="text-[9px] uppercase tracking-wider text-emerald-700">{m.k}</p>
+                          <p className="text-sm font-semibold text-emerald-900 tabular-nums">{m.v}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { k: "Travel", v: `${accelerate.km.toFixed(0)} km` },
+                        { k: "Fuel", v: `${accelerate.litres.toFixed(1)} L` },
+                        { k: "Cost", v: `AED ${accelerate.aed.toFixed(0)}` },
+                      ].map((m) => (
+                        <div key={m.k} className="rounded-lg border border-border bg-white px-2 py-2">
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{m.k}</p>
+                          <p className="text-sm font-semibold text-[#111] tabular-nums">{m.v}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[9px] text-muted-foreground mt-1.5">11 km/L · AED 3.49/L</p>
+                </div>
                 <div className="p-3 grid grid-cols-2 gap-2 border-b border-border">
+
                   {[
                     { k: "Efficiency index", v: `${Math.min(100, Math.round(insights.savedPct * 4 + 55))}` },
                     { k: "Crew balance", v: `${insights.balance}%` },

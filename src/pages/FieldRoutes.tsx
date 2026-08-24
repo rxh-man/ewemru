@@ -439,11 +439,14 @@ export default function FieldRoutes() {
         text: `Highest density in ${insights.topArea[0]} with ${insights.topArea[1]} visits — ideal anchor cluster to start the day and reduce dead mileage.`,
       });
     out.push({
-      tone: "info",
-      text: `Projected field effort ${insights.hours.toFixed(1)} crew-hours and AED ${insights.fuelAed.toFixed(0)} fuel at 11 km/L · AED 3.49/L.`,
+      tone: accelerate.savedKm > 0 ? "good" : "info",
+      text: accelerate.savedKm > 0
+        ? `FieldOne Accelerate: ${accelerate.savedKm.toFixed(0)} km, AED ${accelerate.savedAed.toFixed(0)} fuel and ${accelerate.savedHours.toFixed(1)} crew-hours saved today versus the raw sheet order (${accelerate.savedPct.toFixed(1)}% shorter).`
+        : `Travel today ${accelerate.km.toFixed(0)} km · ${accelerate.litres.toFixed(1)} L · AED ${accelerate.aed.toFixed(0)} at 11 km/L and AED 3.49/L. Turn on AI sequencing to see the saving.`,
     });
     return out;
-  }, [insights, routes.length, outlierCount]);
+  }, [insights, routes.length, outlierCount, accelerate]);
+
 
   function downloadTemplate() {
     const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ...TEMPLATE_ROWS]);

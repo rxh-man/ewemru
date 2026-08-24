@@ -416,7 +416,27 @@ export default function FieldRoutes() {
     return { visits, saved, savedPct, balance, density, hours, fuelAed, confidence, topArea, priorityMix, maxT, minT };
   }, [dayStops, routes, routeKm, baselineKm, outlierCount]);
 
+  /** FieldOne Accelerate — real travel cost today and the saving the engine delivers. */
+  const KM_PER_L = 11;
+  const AED_PER_L = 3.49;
+  const accelerate = useMemo(() => {
+    const km = roadMode && roadKm > 0 ? roadKm : routeKm;
+    const litres = km / KM_PER_L;
+    const aed = litres * AED_PER_L;
+    const hours = km / 45 + insights.visits * 0.35;
+    // When road paths are on, scale the sheet-order baseline by the same road factor.
+    const baseKm = optimize
+      ? (roadMode && roadKm > 0 && routeKm > 0 ? baselineKm * (roadKm / routeKm) : baselineKm)
+      : km;
+    const savedKm = Math.max(0, baseKm - km);
+    const savedAed = (savedKm / KM_PER_L) * AED_PER_L;
+    const savedHours = savedKm / 45;
+    const savedPct = baseKm > 0 ? (savedKm / baseKm) * 100 : 0;
+    return { km, litres, aed, hours, baseKm, savedKm, savedAed, savedHours, savedPct };
+  }, [roadMode, roadKm, routeKm, baselineKm, optimize, insights.visits]);
+
   const narrative = useMemo(() => {
+
     const out: { tone: "good" | "warn" | "info"; text: string }[] = [];
     out.push({
       tone: insights.savedPct >= 5 ? "good" : "info",

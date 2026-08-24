@@ -343,6 +343,32 @@ export default function FieldRoutes() {
     [routes],
   );
 
+  /** Road-following paths (Google Routes API) — fetched only while road mode is on. */
+  useEffect(() => {
+    if (!roadMode) { setRoadLegs({}); return; }
+    const legs = routes.map((r) => ({
+      key: r.team,
+      coords: r.stops.filter((s) => !r.outliers.includes(s)).map((s) => [s.lat, s.lng] as [number, number]),
+    })).filter((l) => l.coords.length >= 2);
+    if (!legs.length) { setRoadLegs({}); return; }
+    let alive = true;
+    setRoadLoading(true);
+    fetchRoadRoutes(legs)
+      .then((res) => { if (alive) setRoadLegs(res); })
+      .catch((e) => {
+        if (!alive) return;
+        setRoadMode(false);
+        toast.error("Road routing unavailable", { description: e instanceof Error ? e.message.slice(0, 180) : "Try again" });
+      })
+      .finally(() => { if (alive) setRoadLoading(false); });
+    return () => { alive = false; };
+  }, [roadMode, routes]);
+
+  const roadKm = useMemo(
+    () => Object.values(roadLegs).reduce((s, l) => s + (l.km ?? 0), 0),
+    [roadLegs],
+  );
+
 
   const points = useMemo(
     () => routes.flatMap((r) => r.stops.map((s) => [s.lat, s.lng] as [number, number])),

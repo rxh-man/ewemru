@@ -9,6 +9,7 @@ import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from "react-leaflet";
 import { R } from "@/lib/routes";
 import eandLogo from "@/assets/eand.png";
+import { decodePolyline, fetchRoadRoutes, type RoadLeg } from "@/lib/roadRoute";
 
 const TEMPLATE_HEADERS = [
   "SERIALNUMBER", "Badge", "DISTRICT", "SUBDISTRICT", "CITYNAME", "REGION", "SECTOR",
@@ -263,6 +264,9 @@ export default function FieldRoutes() {
   const [workdays, setWorkdays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [holidayText, setHolidayText] = useState(DEFAULT_HOLIDAYS);
   const [planned, setPlanned] = useState(false);
+  const [roadMode, setRoadMode] = useState(false);
+  const [roadLegs, setRoadLegs] = useState<Record<string, RoadLeg>>({});
+  const [roadLoading, setRoadLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
 

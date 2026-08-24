@@ -829,7 +829,45 @@ export default function FieldRoutes() {
                   <p className="text-[10px] uppercase tracking-[0.2em] text-white/50">Route AI · Analyst brief</p>
                   <p className="text-sm font-semibold mt-0.5">Recommendations for {dayLabel(day)}</p>
                 </div>
+                {/* FieldOne Accelerate */}
+                <div className="px-3 py-3 border-b border-border bg-secondary/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-[#dc2626]">FieldOne Accelerate</p>
+                    <span className="text-[9px] text-muted-foreground">
+                      {accelerate.savedKm > 0 ? (roadMode ? "On-road saving" : "AI sequencing saving") : "Baseline travel"}
+                    </span>
+                  </div>
+                  {accelerate.savedKm > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { k: "Distance saved", v: `${accelerate.savedKm.toFixed(0)} km` },
+                        { k: "Fuel saved", v: `AED ${accelerate.savedAed.toFixed(0)}` },
+                        { k: "Time saved", v: `${accelerate.savedHours.toFixed(1)} h` },
+                      ].map((m) => (
+                        <div key={m.k} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2">
+                          <p className="text-[9px] uppercase tracking-wider text-emerald-700">{m.k}</p>
+                          <p className="text-sm font-semibold text-emerald-900 tabular-nums">{m.v}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { k: "Travel", v: `${accelerate.km.toFixed(0)} km` },
+                        { k: "Fuel", v: `${accelerate.litres.toFixed(1)} L` },
+                        { k: "Cost", v: `AED ${accelerate.aed.toFixed(0)}` },
+                      ].map((m) => (
+                        <div key={m.k} className="rounded-lg border border-border bg-white px-2 py-2">
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{m.k}</p>
+                          <p className="text-sm font-semibold text-[#111] tabular-nums">{m.v}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[9px] text-muted-foreground mt-1.5">11 km/L · AED 3.49/L</p>
+                </div>
                 <div className="p-3 grid grid-cols-2 gap-2 border-b border-border">
+
                   {[
                     { k: "Efficiency index", v: `${Math.min(100, Math.round(insights.savedPct * 4 + 55))}` },
                     { k: "Crew balance", v: `${insights.balance}%` },

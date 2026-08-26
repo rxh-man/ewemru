@@ -574,20 +574,58 @@ export default function FieldRoutes() {
 
   function downloadPlan() {
     if (!stops.length) { toast.error("Nothing to download yet."); return; }
-    const sorted = [...stops].sort(
-      (a, b) => a.day.localeCompare(b.day) || teamKey(a.team) - teamKey(b.team) || a.order - b.order,
-    );
-    const rows = sorted.map((s) => [
-      s.serial, s.serial, s.district, s.subdistrict, s.city, s.region, s.sector, s.plot,
-      s.lat, s.lng, s.priority, s.status, s.day, s.team, s.order,
-    ]);
-    const ws = XLSX.utils.aoa_to_sheet([[...TEMPLATE_HEADERS, "Visit Order"], ...rows]);
-    ws["!cols"] = [...TEMPLATE_HEADERS, "Visit Order"].map(() => ({ wch: 18 }));
+    // Export exactly what the manager sees: AI-sequenced order per team/day, off-route stops last,
+    // plus leg distance, fuel cost and on-road distance where road paths were fetched.
+    const byKey = new Map<string, Stop[]>();
+    stops.forEach((s) => {
+      const k = `${s.day}||${s.team}`;
+      byKey.set(k, [...(byKey.get(k) ?? []), s]);
+    });
+    const rows: (string | number)[][] = [];
+    const summary: (string | number)[][] = [["Day", "Team", "Visits", "Travel km", "Litres", "Fuel AED", "On-road km"]];
+    Array.from(byKey.keys())
+      .sort((a, b) => {
+        const [da, ta] = a.split("||"), [db, tb] = b.split("||");
+        return da.localeCompare(db) || teamKey(ta) - teamKey(tb);
+      })
+      .forEach((k) => {
+        const [d, t] = k.split("||");
+        const list = [...(byKey.get(k) ?? [])].sort((a, b) => a.order - b.order);
+        let seq = list, outliers: Stop[] = [];
+        if (optimize) {
+          const split = splitOutliers(list);
+          outliers = optimizeRoute(split.outliers);
+          seq = [...optimizeRoute(split.core), ...outliers];
+        }
+        const core = seq.filter((s) => !outliers.includes(s));
+        const km = pathLength(core);
+        const road = day === d ? roadLegs[t]?.km : undefined;
+        seq.forEach((s, i) => {
+          const prev = i > 0 ? seq[i - 1] : undefined;
+          rows.push([
+            s.serial, s.serial, s.district, s.subdistrict, s.city, s.region, s.sector, s.plot,
+            s.lat, s.lng, s.priority, s.status, d, t, i + 1,
+            outliers.includes(s) ? "Check data - visit last" : "In sequence",
+            prev ? Number(haversine(prev, s).toFixed(2)) : 0,
+          ]);
+        });
+        summary.push([
+          d, t, seq.length, Number(km.toFixed(1)), Number((km / 11).toFixed(1)),
+          Number(((km / 11) * 3.49).toFixed(0)), road ? Number(road.toFixed(1)) : "-",
+        ]);
+      });
+    const headers = [...TEMPLATE_HEADERS, "Visit Order", "Route Check", "Leg km from previous"];
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws["!cols"] = headers.map(() => ({ wch: 18 }));
+    const ws2 = XLSX.utils.aoa_to_sheet(summary);
+    ws2["!cols"] = summary[0].map(() => ({ wch: 16 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Optimised Plan");
+    XLSX.utils.book_append_sheet(wb, ws2, "Day Summary");
     XLSX.writeFile(wb, `field-visit-plan-${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success("Plan downloaded");
+    toast.success(optimize ? "Optimised plan downloaded" : "Plan downloaded (turn on AI sequencing for the optimised order)");
   }
+
 
 
 

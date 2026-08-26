@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type LatLng = [number, number];
-export interface RoadLeg { polylines: string[]; km: number; minutes: number }
+export interface RoadLeg { polylines: string[]; km: number; minutes: number; partial?: boolean; failedSegments?: number }
 
 /** Google encoded-polyline decoder. */
 export function decodePolyline(str: string): LatLng[] {

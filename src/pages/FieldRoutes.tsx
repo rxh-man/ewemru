@@ -274,24 +274,48 @@ function buildTerritories(list: Stop[], k: number): Stop[][] {
 /**
  * Territory-first auto-planner: each team owns one tight geographic territory (no two teams
  * working the same proximity), sequences it into one shortest chain and works through it
- * day by day at the daily target — finishing part of a sector today, the rest tomorrow.
+ * day by day at the daily target. Far/illogical coordinates (outliers) are pulled out of the
+ * daily plans and parked together on the very last day, so no crew burns a day travelling
+ * far for 1-2 stray stops.
  */
 function buildPlan(list: Stop[], cfg: PlanConfig): Stop[] {
   const territories = buildTerritories(list, cfg.teams);
-  const maxDays = Math.max(...territories.map((t) => Math.ceil(t.length / cfg.target)), 1);
-  const dates = workingDates(cfg.start, maxDays, cfg.workdays, cfg.holidays);
+  // Split far coordinates out of every territory before day chunking.
+  const cores: Stop[][] = [];
+  const strays: Stop[] = [];
+  territories.forEach((t) => {
+    const chain = optimizeRoute(t);
+    const { core, outliers } = splitOutliers(chain);
+    cores.push(core);
+    strays.push(...outliers);
+  });
+  const coreDays = Math.max(...cores.map((t) => Math.ceil(t.length / cfg.target)), 1);
+  const strayDays = strays.length ? Math.ceil(strays.length / (cfg.target * cfg.teams)) : 0;
+  const dates = workingDates(cfg.start, coreDays + strayDays, cfg.workdays, cfg.holidays);
   const out: Stop[] = [];
-  territories.forEach((territory, ti) => {
+  cores.forEach((core, ti) => {
     const team = `Team ${ti + 1}`;
-    const chain = optimizeRoute(territory);
-    for (let i = 0, dayIdx = 0; i < chain.length; i += cfg.target, dayIdx++) {
-      const chunk = chain.slice(i, i + cfg.target);
+    for (let i = 0, dayIdx = 0; i < core.length; i += cfg.target, dayIdx++) {
+      const chunk = core.slice(i, i + cfg.target);
       const day = dates[dayIdx] ?? "Unplanned";
       optimizeRoute(chunk).forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
     }
   });
+  // Outliers: grouped by proximity across the available teams, on the final day(s) of the plan.
+  if (strays.length) {
+    const groups = buildTerritories(optimizeRoute(strays), Math.min(cfg.teams, strays.length));
+    groups.forEach((g, gi) => {
+      const team = `Team ${gi + 1}`;
+      const chain = optimizeRoute(g);
+      for (let i = 0, dayIdx = coreDays; i < chain.length; i += cfg.target, dayIdx++) {
+        const day = dates[dayIdx] ?? dates[dates.length - 1] ?? "Unplanned";
+        chain.slice(i, i + cfg.target).forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
+      }
+    });
+  }
   return out;
 }
+
 
 
 

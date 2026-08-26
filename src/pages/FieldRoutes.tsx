@@ -225,25 +225,74 @@ interface PlanConfig {
   holidays: Set<string>;
 }
 
+/** Balanced geographic territories: k-means centroids + capacity-constrained assignment. */
+function buildTerritories(list: Stop[], k: number): Stop[][] {
+  if (k <= 1 || list.length <= k) return [list];
+  // seed centroids with k-means++ style spread
+  const centroids: { lat: number; lng: number }[] = [{ lat: list[0].lat, lng: list[0].lng }];
+  while (centroids.length < k) {
+    let best = list[0], bestD = -1;
+    for (const s of list) {
+      let min = Infinity;
+      for (const c of centroids) {
+        const d = haversine(s, c as Stop);
+        if (d < min) min = d;
+      }
+      if (min > bestD) { bestD = min; best = s; }
+    }
+    centroids.push({ lat: best.lat, lng: best.lng });
+  }
+  let groups: Stop[][] = [];
+  const cap = Math.ceil(list.length / k);
+  for (let iter = 0; iter < 12; iter++) {
+    groups = Array.from({ length: k }, () => [] as Stop[]);
+    // assign nearest-first with capacity so no team is overloaded (keeps clusters tight & balanced)
+    const scored = list
+      .map((s) => {
+        const ds = centroids.map((c) => haversine(s, c as Stop));
+        const order = ds.map((d, i) => i).sort((a, b) => ds[a] - ds[b]);
+        return { s, ds, order };
+      })
+      .sort((a, b) => a.ds[a.order[0]] - b.ds[b.order[0]]);
+    for (const item of scored) {
+      const target = item.order.find((i) => groups[i].length < cap) ?? item.order[0];
+      groups[target].push(item.s);
+    }
+    let moved = false;
+    groups.forEach((g, i) => {
+      if (!g.length) return;
+      const lat = g.reduce((t, s) => t + s.lat, 0) / g.length;
+      const lng = g.reduce((t, s) => t + s.lng, 0) / g.length;
+      if (Math.abs(lat - centroids[i].lat) > 1e-6 || Math.abs(lng - centroids[i].lng) > 1e-6) moved = true;
+      centroids[i] = { lat, lng };
+    });
+    if (!moved) break;
+  }
+  return groups.filter((g) => g.length);
+}
+
 /**
- * Geographic auto-planner: sequences every coordinate into one shortest chain,
- * slices it into day-sized clusters and spreads those clusters across teams and working days.
+ * Territory-first auto-planner: each team owns one tight geographic territory (no two teams
+ * working the same proximity), sequences it into one shortest chain and works through it
+ * day by day at the daily target — finishing part of a sector today, the rest tomorrow.
  */
 function buildPlan(list: Stop[], cfg: PlanConfig): Stop[] {
-  const ordered = optimizeRoute(list);
-  const chunks: Stop[][] = [];
-  for (let i = 0; i < ordered.length; i += cfg.target) chunks.push(ordered.slice(i, i + cfg.target));
-  const dayCount = Math.ceil(chunks.length / cfg.teams);
-  const dates = workingDates(cfg.start, dayCount, cfg.workdays, cfg.holidays);
+  const territories = buildTerritories(list, cfg.teams);
+  const maxDays = Math.max(...territories.map((t) => Math.ceil(t.length / cfg.target)), 1);
+  const dates = workingDates(cfg.start, maxDays, cfg.workdays, cfg.holidays);
   const out: Stop[] = [];
-  chunks.forEach((chunk, i) => {
-    const dayIdx = Math.floor(i / cfg.teams);
-    const day = dates[dayIdx] ?? "Unplanned";
-    const team = `Team ${(i % cfg.teams) + 1}`;
-    optimizeRoute(chunk).forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
+  territories.forEach((territory, ti) => {
+    const team = `Team ${ti + 1}`;
+    const chain = optimizeRoute(territory);
+    for (let i = 0, dayIdx = 0; i < chain.length; i += cfg.target, dayIdx++) {
+      const chunk = chain.slice(i, i + cfg.target);
+      const day = dates[dayIdx] ?? "Unplanned";
+      optimizeRoute(chunk).forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
+    }
   });
   return out;
 }
+
 
 
 export default function FieldRoutes() {

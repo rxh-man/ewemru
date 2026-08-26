@@ -225,25 +225,74 @@ interface PlanConfig {
   holidays: Set<string>;
 }
 
+/** Balanced geographic territories: k-means centroids + capacity-constrained assignment. */
+function buildTerritories(list: Stop[], k: number): Stop[][] {
+  if (k <= 1 || list.length <= k) return [list];
+  // seed centroids with k-means++ style spread
+  const centroids: { lat: number; lng: number }[] = [{ lat: list[0].lat, lng: list[0].lng }];
+  while (centroids.length < k) {
+    let best = list[0], bestD = -1;
+    for (const s of list) {
+      let min = Infinity;
+      for (const c of centroids) {
+        const d = haversine(s, c as Stop);
+        if (d < min) min = d;
+      }
+      if (min > bestD) { bestD = min; best = s; }
+    }
+    centroids.push({ lat: best.lat, lng: best.lng });
+  }
+  let groups: Stop[][] = [];
+  const cap = Math.ceil(list.length / k);
+  for (let iter = 0; iter < 12; iter++) {
+    groups = Array.from({ length: k }, () => [] as Stop[]);
+    // assign nearest-first with capacity so no team is overloaded (keeps clusters tight & balanced)
+    const scored = list
+      .map((s) => {
+        const ds = centroids.map((c) => haversine(s, c as Stop));
+        const order = ds.map((d, i) => i).sort((a, b) => ds[a] - ds[b]);
+        return { s, ds, order };
+      })
+      .sort((a, b) => a.ds[a.order[0]] - b.ds[b.order[0]]);
+    for (const item of scored) {
+      const target = item.order.find((i) => groups[i].length < cap) ?? item.order[0];
+      groups[target].push(item.s);
+    }
+    let moved = false;
+    groups.forEach((g, i) => {
+      if (!g.length) return;
+      const lat = g.reduce((t, s) => t + s.lat, 0) / g.length;
+      const lng = g.reduce((t, s) => t + s.lng, 0) / g.length;
+      if (Math.abs(lat - centroids[i].lat) > 1e-6 || Math.abs(lng - centroids[i].lng) > 1e-6) moved = true;
+      centroids[i] = { lat, lng };
+    });
+    if (!moved) break;
+  }
+  return groups.filter((g) => g.length);
+}
+
 /**
- * Geographic auto-planner: sequences every coordinate into one shortest chain,
- * slices it into day-sized clusters and spreads those clusters across teams and working days.
+ * Territory-first auto-planner: each team owns one tight geographic territory (no two teams
+ * working the same proximity), sequences it into one shortest chain and works through it
+ * day by day at the daily target — finishing part of a sector today, the rest tomorrow.
  */
 function buildPlan(list: Stop[], cfg: PlanConfig): Stop[] {
-  const ordered = optimizeRoute(list);
-  const chunks: Stop[][] = [];
-  for (let i = 0; i < ordered.length; i += cfg.target) chunks.push(ordered.slice(i, i + cfg.target));
-  const dayCount = Math.ceil(chunks.length / cfg.teams);
-  const dates = workingDates(cfg.start, dayCount, cfg.workdays, cfg.holidays);
+  const territories = buildTerritories(list, cfg.teams);
+  const maxDays = Math.max(...territories.map((t) => Math.ceil(t.length / cfg.target)), 1);
+  const dates = workingDates(cfg.start, maxDays, cfg.workdays, cfg.holidays);
   const out: Stop[] = [];
-  chunks.forEach((chunk, i) => {
-    const dayIdx = Math.floor(i / cfg.teams);
-    const day = dates[dayIdx] ?? "Unplanned";
-    const team = `Team ${(i % cfg.teams) + 1}`;
-    optimizeRoute(chunk).forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
+  territories.forEach((territory, ti) => {
+    const team = `Team ${ti + 1}`;
+    const chain = optimizeRoute(territory);
+    for (let i = 0, dayIdx = 0; i < chain.length; i += cfg.target, dayIdx++) {
+      const chunk = chain.slice(i, i + cfg.target);
+      const day = dates[dayIdx] ?? "Unplanned";
+      optimizeRoute(chunk).forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
+    }
   });
   return out;
 }
+
 
 
 export default function FieldRoutes() {
@@ -525,20 +574,58 @@ export default function FieldRoutes() {
 
   function downloadPlan() {
     if (!stops.length) { toast.error("Nothing to download yet."); return; }
-    const sorted = [...stops].sort(
-      (a, b) => a.day.localeCompare(b.day) || teamKey(a.team) - teamKey(b.team) || a.order - b.order,
-    );
-    const rows = sorted.map((s) => [
-      s.serial, s.serial, s.district, s.subdistrict, s.city, s.region, s.sector, s.plot,
-      s.lat, s.lng, s.priority, s.status, s.day, s.team, s.order,
-    ]);
-    const ws = XLSX.utils.aoa_to_sheet([[...TEMPLATE_HEADERS, "Visit Order"], ...rows]);
-    ws["!cols"] = [...TEMPLATE_HEADERS, "Visit Order"].map(() => ({ wch: 18 }));
+    // Export exactly what the manager sees: AI-sequenced order per team/day, off-route stops last,
+    // plus leg distance, fuel cost and on-road distance where road paths were fetched.
+    const byKey = new Map<string, Stop[]>();
+    stops.forEach((s) => {
+      const k = `${s.day}||${s.team}`;
+      byKey.set(k, [...(byKey.get(k) ?? []), s]);
+    });
+    const rows: (string | number)[][] = [];
+    const summary: (string | number)[][] = [["Day", "Team", "Visits", "Travel km", "Litres", "Fuel AED", "On-road km"]];
+    Array.from(byKey.keys())
+      .sort((a, b) => {
+        const [da, ta] = a.split("||"), [db, tb] = b.split("||");
+        return da.localeCompare(db) || teamKey(ta) - teamKey(tb);
+      })
+      .forEach((k) => {
+        const [d, t] = k.split("||");
+        const list = [...(byKey.get(k) ?? [])].sort((a, b) => a.order - b.order);
+        let seq = list, outliers: Stop[] = [];
+        if (optimize) {
+          const split = splitOutliers(list);
+          outliers = optimizeRoute(split.outliers);
+          seq = [...optimizeRoute(split.core), ...outliers];
+        }
+        const core = seq.filter((s) => !outliers.includes(s));
+        const km = pathLength(core);
+        const road = day === d ? roadLegs[t]?.km : undefined;
+        seq.forEach((s, i) => {
+          const prev = i > 0 ? seq[i - 1] : undefined;
+          rows.push([
+            s.serial, s.serial, s.district, s.subdistrict, s.city, s.region, s.sector, s.plot,
+            s.lat, s.lng, s.priority, s.status, d, t, i + 1,
+            outliers.includes(s) ? "Check data - visit last" : "In sequence",
+            prev ? Number(haversine(prev, s).toFixed(2)) : 0,
+          ]);
+        });
+        summary.push([
+          d, t, seq.length, Number(km.toFixed(1)), Number((km / 11).toFixed(1)),
+          Number(((km / 11) * 3.49).toFixed(0)), road ? Number(road.toFixed(1)) : "-",
+        ]);
+      });
+    const headers = [...TEMPLATE_HEADERS, "Visit Order", "Route Check", "Leg km from previous"];
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws["!cols"] = headers.map(() => ({ wch: 18 }));
+    const ws2 = XLSX.utils.aoa_to_sheet(summary);
+    ws2["!cols"] = summary[0].map(() => ({ wch: 16 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Optimised Plan");
+    XLSX.utils.book_append_sheet(wb, ws2, "Day Summary");
     XLSX.writeFile(wb, `field-visit-plan-${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success("Plan downloaded");
+    toast.success(optimize ? "Optimised plan downloaded" : "Plan downloaded (turn on AI sequencing for the optimised order)");
   }
+
 
 
 

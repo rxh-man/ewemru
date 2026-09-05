@@ -123,33 +123,67 @@ function splitOutliers(list: Stop[]): { core: Stop[]; outliers: Stop[] } {
 
 
 
-/** Nearest-neighbour ordering + 2-opt refinement so consecutive stops are the closest ones. */
-function optimizeRoute(list: Stop[]): Stop[] {
+/** Nearest-neighbour ordering + 2-opt + Or-opt refinement: no doubling back on the same stretch. */
+function optimizeRoute(list: Stop[], anchor?: Stop): Stop[] {
   if (list.length < 3) return list;
-  const remaining = list.slice(1);
-  const order = [list[0]];
-  while (remaining.length) {
+  const pool = list.slice();
+  // Start from the stop closest to where the crew already is (previous day's last stop),
+  // so each day carries on in the same direction instead of driving back.
+  let startIdx = 0;
+  if (anchor) {
+    let bestD = Infinity;
+    pool.forEach((s, i) => { const d = haversine(anchor, s); if (d < bestD) { bestD = d; startIdx = i; } });
+  }
+  const order = [pool.splice(startIdx, 1)[0]];
+  while (pool.length) {
     const cur = order[order.length - 1];
     let best = 0;
     let bestD = Infinity;
-    for (let i = 0; i < remaining.length; i++) {
-      const d = haversine(cur, remaining[i]);
+    for (let i = 0; i < pool.length; i++) {
+      const d = haversine(cur, pool[i]);
       if (d < bestD) { bestD = d; best = i; }
     }
-    order.push(remaining.splice(best, 1)[0]);
+    order.push(pool.splice(best, 1)[0]);
   }
-  // 2-opt (bounded passes to stay fast on large days)
   const n = order.length;
-  const maxPasses = n > 300 ? 1 : 6;
+  const cost = (a?: Stop, b?: Stop) => (a && b ? haversine(a, b) : 0);
+  const maxPasses = n > 300 ? 2 : 8;
   for (let pass = 0; pass < maxPasses; pass++) {
     let improved = false;
+    // 2-opt: removes crossings that make the driver return towards an earlier point
     for (let i = 0; i < n - 2; i++) {
       for (let k = i + 2; k < n; k++) {
         const a = order[i], b = order[i + 1], c = order[k], d = order[k + 1];
-        const delta = haversine(a, c) + (d ? haversine(b, d) : 0) - haversine(a, b) - (d ? haversine(c, d) : 0);
+        const delta = cost(a, c) + cost(b, d) - cost(a, b) - cost(c, d);
         if (delta < -1e-9) {
           let x = i + 1, y = k;
           while (x < y) { const t = order[x]; order[x] = order[y]; order[y] = t; x++; y--; }
+          improved = true;
+        }
+      }
+    }
+    // Or-opt: relocate short runs of 1-3 stops to where they truly belong on the chain
+    for (let len = 1; len <= 3; len++) {
+      for (let i = 0; i + len <= n; i++) {
+        const prev = order[i - 1], seg = order.slice(i, i + len), next = order[i + len];
+        const removed = cost(prev, seg[0]) + cost(seg[len - 1], next) - cost(prev, next);
+        if (removed <= 1e-9) continue;
+        let bestGain = 0, bestPos = -1, bestRev = false;
+        for (let j = 0; j <= n - len; j++) {
+          if (j >= i - 1 && j <= i + len) continue;
+          const rest = order.slice(0, i).concat(order.slice(i + len));
+          const p = rest[j - 1], q = rest[j];
+          if (!p && !q) continue;
+          const fwd = cost(p, seg[0]) + cost(seg[len - 1], q) - cost(p, q);
+          const rev = cost(p, seg[len - 1]) + cost(seg[0], q) - cost(p, q);
+          const add = Math.min(fwd, rev);
+          if (removed - add > bestGain + 1e-9) { bestGain = removed - add; bestPos = j; bestRev = rev < fwd; }
+        }
+        if (bestPos >= 0) {
+          const rest = order.slice(0, i).concat(order.slice(i + len));
+          const piece = bestRev ? seg.slice().reverse() : seg;
+          rest.splice(bestPos, 0, ...piece);
+          for (let z = 0; z < n; z++) order[z] = rest[z];
           improved = true;
         }
       }
@@ -158,6 +192,7 @@ function optimizeRoute(list: Stop[]): Stop[] {
   }
   return order;
 }
+
 
 function parseWorkbook(buf: ArrayBuffer): Stop[] {
   const wb = XLSX.read(buf, { type: "array", cellDates: true });

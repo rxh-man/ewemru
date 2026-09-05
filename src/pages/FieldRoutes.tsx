@@ -330,12 +330,16 @@ function buildPlan(list: Stop[], cfg: PlanConfig): Stop[] {
   const out: Stop[] = [];
   cores.forEach((core, ti) => {
     const team = `Team ${ti + 1}`;
+    let anchor: Stop | undefined;
     for (let i = 0, dayIdx = 0; i < core.length; i += cfg.target, dayIdx++) {
       const chunk = core.slice(i, i + cfg.target);
       const day = dates[dayIdx] ?? "Unplanned";
-      optimizeRoute(chunk).forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
+      const seq = optimizeRoute(chunk, anchor);
+      seq.forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
+      anchor = seq[seq.length - 1];
     }
   });
+
   // Outliers: grouped by proximity across the available teams, on the final day(s) of the plan.
   if (strays.length) {
     const groups = buildTerritories(optimizeRoute(strays), Math.min(cfg.teams, strays.length));

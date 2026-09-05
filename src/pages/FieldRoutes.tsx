@@ -372,7 +372,7 @@ function buildPlan(list: Stop[], cfg: PlanConfig): Stop[] {
     for (let i = 0, dayIdx = 0; i < core.length; i += cfg.target, dayIdx++) {
       const chunk = core.slice(i, i + cfg.target);
       const day = dates[dayIdx] ?? "Unplanned";
-      const seq = optimizeRoute(chunk, anchor);
+      const seq = localityChain(chunk, anchor);
       seq.forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
       anchor = seq[seq.length - 1];
     }
@@ -648,6 +648,8 @@ export default function FieldRoutes() {
     if (teamCount < 1 || targetPerDay < 1) { toast.error("Teams and target per day must be at least 1."); return; }
     if (!workdays.length) { toast.error("Select at least one working day."); return; }
     setLoading(true);
+    // Road paths on first: the plan is presented and exported on real road routing.
+    setRoadMode(true);
     try {
       const next = buildPlan(stops, {
         teams: teamCount,
@@ -659,7 +661,6 @@ export default function FieldRoutes() {
       setStops(next);
       setPlanned(true);
       setOptimize(true);
-      setRoadMode(true);
 
       setTeam("all");
       setDay(next[0]?.day ?? "");

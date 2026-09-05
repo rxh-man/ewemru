@@ -363,8 +363,8 @@ function buildPlan(list: Stop[], cfg: PlanConfig): Stop[] {
   });
 
   const coreDays = Math.max(...cores.map((t) => Math.ceil(t.length / cfg.target)), 1);
-  const strayDays = strays.length ? Math.ceil(strays.length / (cfg.target * cfg.teams)) : 0;
-  const dates = workingDates(cfg.start, coreDays + strayDays, cfg.workdays, cfg.holidays);
+  // One extra working day at the very end holds every off-route (outlier) stop.
+  const dates = workingDates(cfg.start, coreDays + (strays.length ? 1 : 0), cfg.workdays, cfg.holidays);
   const out: Stop[] = [];
   cores.forEach((core, ti) => {
     const team = `Team ${ti + 1}`;
@@ -378,18 +378,17 @@ function buildPlan(list: Stop[], cfg: PlanConfig): Stop[] {
     }
   });
 
-  // Outliers: grouped by proximity across the available teams, on the final day(s) of the plan.
+  // Outliers: split across the teams by proximity and all scheduled on the single final day,
+  // so every normal working day stays tight and efficient.
   if (strays.length) {
+    const lastDay = dates[dates.length - 1] ?? "Unplanned";
     const groups = buildTerritories(optimizeRoute(strays), Math.min(cfg.teams, strays.length));
     groups.forEach((g, gi) => {
       const team = `Team ${gi + 1}`;
-      const chain = optimizeRoute(g);
-      for (let i = 0, dayIdx = coreDays; i < chain.length; i += cfg.target, dayIdx++) {
-        const day = dates[dayIdx] ?? dates[dates.length - 1] ?? "Unplanned";
-        chain.slice(i, i + cfg.target).forEach((s, j) => out.push({ ...s, day, team, order: j + 1 }));
-      }
+      optimizeRoute(g).forEach((s, j) => out.push({ ...s, day: lastDay, team, order: j + 1 }));
     });
   }
+
   return out;
 }
 

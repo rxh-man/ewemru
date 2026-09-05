@@ -620,6 +620,9 @@ export default function FieldRoutes() {
       });
       setStops(next);
       setPlanned(true);
+      setOptimize(true);
+      setRoadMode(true);
+
       setTeam("all");
       setDay(next[0]?.day ?? "");
       const dayTotal = new Set(next.map((s) => s.day)).size;

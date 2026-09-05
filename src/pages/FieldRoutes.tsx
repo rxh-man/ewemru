@@ -306,12 +306,50 @@ function buildTerritories(list: Stop[], k: number): Stop[][] {
   return groups.filter((g) => g.length);
 }
 
+/** Locality key: finish one locality/box fully before crossing to the next one. */
+function localityKey(s: Stop) {
+  return (s.subdistrict || s.district || s.sector || s.city || "AREA").toUpperCase();
+}
+
+/**
+ * Locality-first chain: stops are grouped into their locality (box), each locality is fully
+ * sequenced on its own, and the localities are then visited in nearest-first order. The crew
+ * clears one area, then crosses over to the next - never back and forth over the highway.
+ */
+function localityChain(list: Stop[], anchor?: Stop): Stop[] {
+  const boxes = new Map<string, Stop[]>();
+  list.forEach((s) => {
+    const k = localityKey(s);
+    const g = boxes.get(k);
+    if (g) g.push(s); else boxes.set(k, [s]);
+  });
+  const groups = [...boxes.values()].map((g) => {
+    const lat = g.reduce((t, s) => t + s.lat, 0) / g.length;
+    const lng = g.reduce((t, s) => t + s.lng, 0) / g.length;
+    return { stops: g, centre: { ...g[0], lat, lng } as Stop };
+  });
+  const out: Stop[] = [];
+  let cursor = anchor;
+  while (groups.length) {
+    let best = 0;
+    if (cursor) {
+      let bestD = Infinity;
+      groups.forEach((g, i) => { const d = haversine(cursor as Stop, g.centre); if (d < bestD) { bestD = d; best = i; } });
+    }
+    const [g] = groups.splice(best, 1);
+    const seq = optimizeRoute(g.stops, cursor);
+    out.push(...seq);
+    cursor = seq[seq.length - 1];
+  }
+  return out;
+}
+
 /**
  * Territory-first auto-planner: each team owns one tight geographic territory (no two teams
- * working the same proximity), sequences it into one shortest chain and works through it
- * day by day at the daily target. Far/illogical coordinates (outliers) are pulled out of the
- * daily plans and parked together on the very last day, so no crew burns a day travelling
- * far for 1-2 stray stops.
+ * working the same proximity), clears it locality by locality, and works through it day by day
+ * at the daily target. Far/illogical coordinates (outliers) are pulled out of the daily plans
+ * and parked together on the very last day, so no crew burns a day travelling far for 1-2
+ * stray stops.
  */
 function buildPlan(list: Stop[], cfg: PlanConfig): Stop[] {
   const territories = buildTerritories(list, cfg.teams);
@@ -319,11 +357,11 @@ function buildPlan(list: Stop[], cfg: PlanConfig): Stop[] {
   const cores: Stop[][] = [];
   const strays: Stop[] = [];
   territories.forEach((t) => {
-    const chain = optimizeRoute(t);
-    const { core, outliers } = splitOutliers(chain);
-    cores.push(core);
+    const { core, outliers } = splitOutliers(t);
+    cores.push(localityChain(core));
     strays.push(...outliers);
   });
+
   const coreDays = Math.max(...cores.map((t) => Math.ceil(t.length / cfg.target)), 1);
   const strayDays = strays.length ? Math.ceil(strays.length / (cfg.target * cfg.teams)) : 0;
   const dates = workingDates(cfg.start, coreDays + strayDays, cfg.workdays, cfg.holidays);

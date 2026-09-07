@@ -36,6 +36,9 @@ export default function App() {
         <Route path={R.rma} element={<RmaForms />} />
         <Route path="/rma" element={<RmaForms />} />
         <Route path="/rmaforms" element={<RmaForms />} />
+        <Route path={R.tc} element={<TcChecklist />} />
+        <Route path="/tc" element={<TcChecklist />} />
+        <Route path="/tc-checklist" element={<TcChecklist />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

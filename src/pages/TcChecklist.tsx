@@ -4,6 +4,8 @@ import { buildTcPdf } from "@/lib/tcPdf";
 import { downloadPdf } from "@/lib/rmaPdf";
 import { Toaster, toast } from "sonner";
 import eandLogo from "@/assets/eand.png";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ArrowRight, Check, ClipboardCheck, Download, FileCheck2, RotateCcw, ShieldCheck } from "lucide-react";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -56,58 +58,75 @@ export default function TcChecklist() {
 
   if (!started) {
     return (
-      <div className="min-h-screen bg-background relative overflow-hidden">
+      <div className="min-h-screen bg-secondary">
         <Toaster position="top-center" richColors />
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div
-            className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] animate-[spin_60s_linear_infinite] opacity-[0.03]"
-            style={{ background: "conic-gradient(from 0deg, transparent 0deg, var(--primary) 60deg, transparent 120deg)" }}
-          />
-        </div>
-        <header className="relative bg-[#111] text-white">
-          <div className="max-w-3xl mx-auto px-4 py-5 flex items-center gap-3">
-            <img src={eandLogo} alt="e&" className="h-7 w-auto" />
-            <div>
-              <h1 className="text-base font-semibold leading-tight">T &amp; C Checklist Generator</h1>
-              <p className="text-[11px] text-white/60">Field team support · no login required</p>
+        <header className="border-b border-border bg-foreground text-background">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+            <div className="flex items-center gap-4">
+              <img src={eandLogo} alt="e&" className="h-8 w-auto" />
+              <div className="h-7 w-px bg-background/20" />
+              <div className="font-heading text-sm font-semibold">Quality Assurance</div>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-medium text-background/70">
+              <span className="h-2 w-2 bg-primary" />
+              Field tool ready
             </div>
           </div>
         </header>
 
-        <main className="relative max-w-3xl mx-auto px-4 py-10">
-          <div className="text-center mb-8">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-medium text-primary mb-4">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
-              </span>
-              Automated commissioning records
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
-              Testing &amp; Commissioning Checklist
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-              Answer the guided questions and the filled checklist downloads as a clean single-page PDF, named by GW S/No.
-            </p>
+        <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-16">
+          <section className="mb-10 border-l-4 border-primary pl-5 sm:flex sm:items-end sm:justify-between sm:pl-7">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">T&amp;C Quality Portal</p>
+              <h1 className="max-w-3xl text-3xl font-bold leading-tight text-foreground sm:text-5xl">Testing &amp; Commissioning</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Complete a consistent site-quality inspection and issue a verified, single-page commissioning record.
+              </p>
+            </div>
+            <div className="mt-5 flex items-center gap-3 border-t border-border pt-4 sm:mt-0 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+              <ShieldCheck className="h-7 w-7 text-primary" aria-hidden="true" />
+              <div>
+                <div className="text-sm font-semibold text-foreground">Controlled quality record</div>
+                <div className="text-xs text-muted-foreground">10 verification points</div>
+              </div>
+            </div>
           </div>
 
-          <button
-            onClick={start}
-            className="group block w-full text-left rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-xl"
-          >
-            <div className="text-xs font-semibold uppercase tracking-wide text-primary">e&amp; Etisalat</div>
-            <div className="mt-3 text-sm font-semibold text-card-foreground">TESTING &amp; COMMISSIONING CHECKLIST</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              Site details, 10 quality items with comments, name and date
+          <section className="grid gap-4 lg:grid-cols-[1.45fr_0.75fr_0.75fr]">
+            <div className="flex min-h-72 flex-col justify-between rounded-lg bg-primary p-7 text-primary-foreground shadow-lg sm:p-9">
+              <div>
+                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-md bg-primary-foreground/15">
+                  <ClipboardCheck className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <h2 className="text-2xl font-bold">Start a new inspection</h2>
+                <p className="mt-2 max-w-md text-sm leading-6 text-primary-foreground/80">
+                  Record site details, verify every quality item, and generate the completed document.
+                </p>
+              </div>
+              <Button onClick={start} className="mt-8 w-full justify-between bg-primary-foreground text-primary hover:bg-primary-foreground/90 sm:w-52">
+                Begin checklist <ArrowRight aria-hidden="true" />
+              </Button>
             </div>
-            <div className="mt-4 flex items-center gap-1.5 text-xs font-medium text-primary">
-              Start form <span className="transition-transform group-hover:translate-x-0.5">→</span>
-            </div>
-          </button>
 
-          <p className="mt-8 text-center text-[11px] text-muted-foreground">
-            No data is stored on our servers. The PDF is built locally in your browser.
-          </p>
+            <div className="rounded-lg border border-border bg-card p-6">
+              <FileCheck2 className="h-7 w-7 text-primary" aria-hidden="true" />
+              <h2 className="mt-8 text-lg font-bold text-card-foreground">Quality scope</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">Site identity, installation checks, comments, verifier name and date.</p>
+              <div className="mt-6 border-t border-border pt-4 text-xs font-semibold uppercase tracking-wider text-primary">10 required decisions</div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-6">
+              <Download className="h-7 w-7 text-primary" aria-hidden="true" />
+              <h2 className="mt-8 text-lg font-bold text-card-foreground">Ready for handover</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">A clean PDF is downloaded automatically and named using the GW serial number.</p>
+              <div className="mt-6 border-t border-border pt-4 text-xs font-semibold uppercase tracking-wider text-primary">Single-page PDF</div>
+            </div>
+          </section>
+
+          <div className="mt-8 flex items-start gap-3 border-t border-border pt-5 text-xs leading-5 text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            No inspection data is stored. Your completed PDF is generated locally in this browser.
+          </div>
         </main>
       </div>
     );
@@ -117,37 +136,36 @@ export default function TcChecklist() {
   const last = step === steps.length - 1;
 
   return (
-    <div className="min-h-screen bg-[#fafafa] pb-28">
+    <div className="min-h-screen bg-secondary pb-28">
       <Toaster position="top-center" richColors />
-      <header className="bg-[#111] text-white sticky top-0 z-20">
+      <header className="sticky top-0 z-20 bg-foreground text-background shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <img src={eandLogo} alt="e&" className="h-6 w-auto" />
             <div className="min-w-0">
               <div className="text-sm font-semibold truncate">T &amp; C Checklist</div>
-              <div className="text-[10px] text-white/60 truncate">{steps[step]}</div>
+              <div className="text-[10px] text-background/60 truncate">Quality assurance · {steps[step]}</div>
             </div>
           </div>
-          <button onClick={() => setStarted(false)} className="text-[11px] text-white/70 hover:text-white shrink-0">
-            Start over
-          </button>
+          <Button onClick={() => setStarted(false)} variant="ghost" size="sm" className="shrink-0 text-background/70 hover:bg-background/10 hover:text-background"><RotateCcw />Start over</Button>
         </div>
-        <div className="h-0.5 bg-white/15">
-          <div className="h-full bg-[#dc2626] transition-all" style={{ width: `${((step + 1) / steps.length) * 100}%` }} />
+        <div className="h-1 bg-background/15">
+          <div className="h-full bg-primary transition-all" style={{ width: `${((step + 1) / steps.length) * 100}%` }} />
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-5 space-y-3">
-        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          Step {step + 1} of {steps.length}
+      <main className="max-w-3xl mx-auto px-4 py-7 space-y-3">
+        <div className="mb-5 border-l-4 border-primary pl-4">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-primary">Step {step + 1} of {steps.length}</div>
+          <h1 className="mt-1 text-2xl font-bold text-foreground">{steps[step]}</h1>
         </div>
 
         {step === 0 &&
           TC_HEADER.map((f) => (
-            <label key={f.key} className="block rounded-lg border border-border bg-white p-3">
-              <span className="block text-xs font-semibold text-[#111] mb-1.5">
+            <label key={f.key} className="block rounded-md border border-border bg-card p-4">
+              <span className="block text-xs font-semibold text-card-foreground mb-1.5">
                 {f.label}
-                {f.required && <span className="text-[#dc2626]"> *</span>}
+                {f.required && <span className="text-primary"> *</span>}
               </span>
               <input
                 type={f.type === "date" ? "date" : "text"}
@@ -155,30 +173,32 @@ export default function TcChecklist() {
                 placeholder={f.placeholder}
                 maxLength={120}
                 onChange={(e) => set(f.key, e.target.value)}
-                className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-[#dc2626]"
+                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </label>
           ))}
 
         {step === 1 &&
           TC_ITEMS.map((it, i) => (
-            <div key={it.key} className="rounded-lg border border-border bg-white p-3">
-              <div className="text-xs font-semibold text-[#111] mb-2">
+            <div key={it.key} className="rounded-md border border-border bg-card p-4">
+              <div className="text-sm font-semibold text-card-foreground mb-3">
                 {i + 1}. {it.label}
               </div>
               <div className="flex flex-wrap gap-2">
                 {TC_ANSWERS.map((a) => (
-                  <button
+                  <Button
                     key={a}
+                    variant="outline"
                     onClick={() => set(it.key, values[it.key] === a ? "" : a)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                    className={`h-9 min-w-16 text-xs shadow-none ${
                       values[it.key] === a
-                        ? "border-[#dc2626] bg-[#dc2626] text-white"
-                        : "border-border bg-white text-[#111] hover:border-[#dc2626]"
+                        ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                        : "border-border bg-background text-foreground hover:border-primary hover:bg-primary/5"
                     }`}
                   >
+                    {values[it.key] === a && <Check aria-hidden="true" />}
                     {a}
-                  </button>
+                  </Button>
                 ))}
               </div>
               <input
@@ -186,31 +206,31 @@ export default function TcChecklist() {
                 onChange={(e) => set(`c_${it.key}`, e.target.value)}
                 placeholder="Comments (optional)"
                 maxLength={140}
-                className="mt-2 w-full rounded-md border border-border px-3 py-2 text-xs outline-none focus:border-[#dc2626]"
+                className="mt-3 w-full rounded-md border border-input bg-background px-3 py-2.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
           ))}
 
         {step === 2 && (
           <>
-            <label className="block rounded-lg border border-border bg-white p-3">
-              <span className="block text-xs font-semibold text-[#111] mb-1.5">
-                Name<span className="text-[#dc2626]"> *</span>
+            <label className="block rounded-md border border-border bg-card p-4">
+              <span className="block text-xs font-semibold text-card-foreground mb-1.5">
+                Name<span className="text-primary"> *</span>
               </span>
               <input
                 value={values.name || ""}
                 onChange={(e) => set("name", e.target.value)}
                 maxLength={80}
-                className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-[#dc2626]"
+                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </label>
-            <label className="block rounded-lg border border-border bg-white p-3">
-              <span className="block text-xs font-semibold text-[#111] mb-1.5">Date</span>
+            <label className="block rounded-md border border-border bg-card p-4">
+              <span className="block text-xs font-semibold text-card-foreground mb-1.5">Date</span>
               <input
                 type="date"
                 value={values.signDate || ""}
                 onChange={(e) => set("signDate", e.target.value)}
-                className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-[#dc2626]"
+                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </label>
             <p className="text-[11px] text-muted-foreground px-1">
@@ -220,33 +240,34 @@ export default function TcChecklist() {
         )}
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-white/95 backdrop-blur">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur">
         <div className="max-w-3xl mx-auto px-4 py-3 flex gap-2">
-          <button
+          <Button
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0}
-            className="flex-1 rounded-lg border border-border py-3 text-sm font-medium text-[#111] disabled:opacity-40"
+            variant="outline"
+            className="h-12 flex-1"
           >
-            Back
-          </button>
+            <ArrowLeft /> Back
+          </Button>
           {last ? (
-            <button
+            <Button
               onClick={generate}
               disabled={busy}
-              className="flex-[2] rounded-lg bg-[#dc2626] py-3 text-sm font-semibold text-white disabled:opacity-60"
+              className="h-12 flex-[2] font-semibold"
             >
-              {busy ? "Generating…" : "Submit & download PDF"}
-            </button>
+              {busy ? "Generating…" : <><Download /> Submit &amp; download PDF</>}
+            </Button>
           ) : (
-            <button
+            <Button
               onClick={() => {
                 setStep((s) => s + 1);
                 window.scrollTo({ top: 0 });
               }}
-              className="flex-[2] rounded-lg bg-[#111] py-3 text-sm font-semibold text-white"
+              className="h-12 flex-[2] bg-foreground text-background hover:bg-foreground/90"
             >
-              Next
-            </button>
+              Next <ArrowRight />
+            </Button>
           )}
         </div>
       </div>

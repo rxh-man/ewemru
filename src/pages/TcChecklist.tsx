@@ -71,7 +71,7 @@ export default function TcChecklist() {
               <span className="h-2 w-2 bg-primary" />
               Field tool ready
             </div>
-          </section>
+          </div>
         </header>
 
         <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-16">
@@ -90,7 +90,7 @@ export default function TcChecklist() {
                 <div className="text-xs text-muted-foreground">10 verification points</div>
               </div>
             </div>
-          </div>
+          </section>
 
           <section className="grid gap-4 lg:grid-cols-[1.45fr_0.75fr_0.75fr]">
             <div className="flex min-h-72 flex-col justify-between rounded-lg bg-primary p-7 text-primary-foreground shadow-lg sm:p-9">

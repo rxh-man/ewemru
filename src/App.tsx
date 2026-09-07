@@ -10,6 +10,7 @@ import Innovation from "./pages/Innovation";
 import UserAdmin from "./pages/UserAdmin";
 import FieldRoutes from "./pages/FieldRoutes";
 import RmaForms from "./pages/RmaForms";
+import TcChecklist from "./pages/TcChecklist";
 import FuelPortal from "./pages/FuelPortal";
 import NotFound from "./pages/NotFound";
 import { R } from "./lib/routes";
@@ -35,6 +36,9 @@ export default function App() {
         <Route path={R.rma} element={<RmaForms />} />
         <Route path="/rma" element={<RmaForms />} />
         <Route path="/rmaforms" element={<RmaForms />} />
+        <Route path={R.tc} element={<TcChecklist />} />
+        <Route path="/tc" element={<TcChecklist />} />
+        <Route path="/tc-checklist" element={<TcChecklist />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

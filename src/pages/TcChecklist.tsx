@@ -71,7 +71,7 @@ export default function TcChecklist() {
               <span className="h-2 w-2 bg-primary" />
               Field tool ready
             </div>
-          </div>
+          </section>
         </header>
 
         <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-16">

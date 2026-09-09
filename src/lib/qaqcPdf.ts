@@ -1,5 +1,5 @@
 import { PDFDocument, PDFFont, StandardFonts, rgb } from "pdf-lib";
-import { QA_ITEMS, QA_SIGNERS, type QaValues } from "./qaqcChecklist";
+import { QA_ITEMS, QA_MATERIALS, QA_SIGNERS, type QaValues } from "./qaqcChecklist";
 import logoUrl from "@/assets/eand.png";
 
 const A4: [number, number] = [595.28, 841.89];

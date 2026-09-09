@@ -1,5 +1,5 @@
 import { PDFDocument, PDFFont, StandardFonts, rgb } from "pdf-lib";
-import { QA_ITEMS, QA_SIGNERS, type QaValues } from "./qaqcChecklist";
+import { QA_ITEMS, QA_MATERIALS, QA_SIGNERS, type QaValues } from "./qaqcChecklist";
 import logoUrl from "@/assets/eand.png";
 
 const A4: [number, number] = [595.28, 841.89];
@@ -171,6 +171,86 @@ export async function buildQaPdf(values: QaValues) {
 
   page.drawText(
     `e& Etisalat - QA/QC Quality Inspection Checklist - generated ${new Date().toLocaleDateString("en-GB")}`,
+    { x: M, y: 22, size: 6.4, font, color: GREY },
+  );
+
+  // ---------- page 2: material list ----------
+  const p2 = pdf.addPage(A4);
+  let my = A4[1] - M;
+  if (logo) {
+    const h = 16;
+    const w = (logo.width / logo.height) * h;
+    p2.drawImage(logo, { x: M + W - w, y: my - h, width: w, height: h });
+  }
+  p2.drawText("Material List", { x: M, y: my - 12, size: 14, font: bold, color: BLACK });
+  my -= 24;
+  p2.drawText(
+    `${values.site || ""}${values.buildingId ? "  |  Building ID: " + values.buildingId : ""}${values.date ? "  |  " + fmtDate(values.date) : ""}`,
+    { x: M, y: my - 2, size: 8, font, color: GREY },
+  );
+  my -= 12;
+  p2.drawLine({ start: { x: M, y: my }, end: { x: M + W, y: my }, thickness: 1.4, color: BLACK });
+  my -= 16;
+
+  const mNo = 54;
+  const mUnit = 56;
+  const mQty = 46;
+  const mDesc = W - mNo - mUnit - mQty;
+  const mW = [mNo, mDesc, mUnit, mQty];
+  const mX: number[] = [];
+  let macc = M;
+  mW.forEach((w) => { mX.push(macc); macc += w; });
+  const mHeads = ["ITEM NO.", "EQUIPMENT / MATERIAL", "UNIT", "QTY"];
+
+  p2.drawRectangle({ x: M, y: my - headH, width: W, height: headH, color: HEAD_BG, borderColor: LINE, borderWidth: 0.7 });
+  mHeads.forEach((h, i) => {
+    const tw = bold.widthOfTextAtSize(h, 7);
+    const cx = i === 1 ? mX[i] + 4 : mX[i] + (mW[i] - tw) / 2;
+    p2.drawText(h, { x: cx, y: my - headH + 6, size: 7, font: bold, color: BLACK });
+  });
+  let mTop = my - headH;
+  let total = 0;
+
+  QA_MATERIALS.forEach((m) => {
+    const lines = wrap(m.label, m.section ? bold : font, 7, mDesc - 8, 4);
+    const h = Math.max(16, 6 + lines.length * 9);
+    if (m.section) {
+      p2.drawRectangle({ x: M, y: mTop - h, width: W, height: h, color: HEAD_BG, borderColor: LINE, borderWidth: 0.6 });
+      p2.drawText(m.no, { x: mX[0] + 4, y: mTop - 11, size: 7, font: bold, color: BLACK });
+      lines.forEach((ln, i) => p2.drawText(ln, { x: mX[1] + 4, y: mTop - 11 - i * 9, size: 7, font: bold, color: BLACK }));
+    } else {
+      for (let i = 0; i < mW.length; i++) {
+        p2.drawRectangle({ x: mX[i], y: mTop - h, width: mW[i], height: h, borderColor: LINE, borderWidth: 0.6 });
+      }
+      p2.drawText(m.no, { x: mX[0] + 4, y: mTop - h / 2 - 3, size: 7, font, color: BLACK });
+      lines.forEach((ln, i) => p2.drawText(ln, { x: mX[1] + 4, y: mTop - 11 - i * 9, size: 7, font, color: BLACK }));
+      const uw = font.widthOfTextAtSize(m.unit, 7);
+      p2.drawText(m.unit, { x: mX[2] + (mUnit - uw) / 2, y: mTop - h / 2 - 3, size: 7, font, color: BLACK });
+      const qv = (values[`q_${m.key}`] || "").trim();
+      if (qv) {
+        const n = Number(qv);
+        if (!isNaN(n)) total += n;
+        const qw = bold.widthOfTextAtSize(qv, 8);
+        p2.drawText(qv, { x: mX[3] + (mQty - qw) / 2, y: mTop - h / 2 - 3, size: 8, font: bold, color: BLACK });
+      }
+    }
+    mTop -= h;
+  });
+
+  const th = 18;
+  p2.drawRectangle({ x: M, y: mTop - th, width: W, height: th, color: HEAD_BG, borderColor: LINE, borderWidth: 0.7 });
+  p2.drawText("TOTAL QUANTITY", { x: M + 6, y: mTop - th + 6, size: 7.5, font: bold, color: BLACK });
+  const tv = String(total);
+  p2.drawText(tv, { x: mX[3] + (mQty - bold.widthOfTextAtSize(tv, 8)) / 2, y: mTop - th + 6, size: 8, font: bold, color: BLACK });
+  mTop -= th + 20;
+
+  p2.drawText("PREPARED BY", { x: M, y: mTop, size: 8, font: bold, color: GREY });
+  mTop -= 14;
+  p2.drawText(`Name: ${values.s1_name || ""}`, { x: M, y: mTop, size: 8.5, font, color: BLACK });
+  p2.drawText(`Date: ${fmtDate(values.s1_date || values.date || "")}`, { x: M + W / 2, y: mTop, size: 8.5, font, color: BLACK });
+
+  p2.drawText(
+    `e& Etisalat - Material List - generated ${new Date().toLocaleDateString("en-GB")}`,
     { x: M, y: 22, size: 6.4, font, color: GREY },
   );
 

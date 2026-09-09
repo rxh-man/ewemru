@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TC_HEADER, TC_ITEMS, TC_ANSWERS, type TcValues } from "@/lib/tcChecklist";
-import { QA_HEADER, QA_ITEMS, QA_ANSWERS, QA_SIGNERS, type QaValues } from "@/lib/qaqcChecklist";
+import { QA_HEADER, QA_ITEMS, QA_ANSWERS, QA_SIGNERS, QA_MATERIALS, type QaValues } from "@/lib/qaqcChecklist";
 import { buildTcPdf } from "@/lib/tcPdf";
 import { buildQaPdf } from "@/lib/qaqcPdf";
 import { downloadPdf } from "@/lib/rmaPdf";

@@ -168,7 +168,10 @@ export default function TcChecklist() {
   const header = isTc ? TC_HEADER : QA_HEADER;
   const items = isTc ? TC_ITEMS : QA_ITEMS;
   const answers = isTc ? TC_ANSWERS : QA_ANSWERS;
-  const steps = isTc ? ["Site details", "Quality checklist", "Commissioned by"] : ["Site details", "Installation checklist", "Reviewed & verified by"];
+  const steps = isTc
+    ? ["Site details", "Quality checklist", "Commissioned by"]
+    : ["Site details", "Installation checklist", "Material list", "Reviewed & verified by"];
+  const stepName = steps[step];
   const last = step === steps.length - 1;
   const title = isTc ? "T & C Checklist" : "QA/QC Checklist";
   const fileLabel = isTc ? (values.building || "Building Name") : (values.site || "Site Name");

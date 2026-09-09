@@ -12,5 +12,5 @@ export const R = {
   routes: "/planner",
   fuel: "/fuel",
   rma: "/rma-4k9x3z",
-  tc: "/tc-7h2m5q",
+  tc: "/inspect",
 } as const;

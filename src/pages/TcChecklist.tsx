@@ -318,7 +318,7 @@ export default function TcChecklist() {
           </>
         )}
 
-        {step === 2 && !isTc && (
+        {stepName === "Reviewed & verified by" && (
           <>
             <label className="block rounded-md border border-border bg-card p-4">
               <span className="block text-xs font-semibold text-card-foreground mb-1.5">General comments</span>
@@ -354,7 +354,7 @@ export default function TcChecklist() {
           </>
         )}
 
-        {step === 2 && (
+        {last && (
           <p className="text-[11px] text-muted-foreground px-1">
             The PDF will be saved as {fileLabel}.pdf
           </p>

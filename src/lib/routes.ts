@@ -13,4 +13,5 @@ export const R = {
   fuel: "/fuel",
   rma: "/rma-4k9x3z",
   tc: "/inspect",
+  geofix: "/geofix",
 } as const;

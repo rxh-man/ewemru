@@ -89,6 +89,189 @@ export type Database = {
         }
         Relationships: []
       }
+      geofix_field_users: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          display_name: string | null
+          id: string
+          password: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          id?: string
+          password: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          id?: string
+          password?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      geofix_meters: {
+        Row: {
+          acc_no: string | null
+          action_required: string | null
+          area: string | null
+          building_id: string | null
+          building_name: string | null
+          created_at: string
+          id: string
+          install_status: string | null
+          latitude: number | null
+          longitude: number | null
+          manufacturer: string | null
+          meter_type: string | null
+          mru: string | null
+          msn: string | null
+          premise: string | null
+          premise_desc: string | null
+          raw_location: string | null
+          serial: string
+          updated_at: string
+          utility: string
+        }
+        Insert: {
+          acc_no?: string | null
+          action_required?: string | null
+          area?: string | null
+          building_id?: string | null
+          building_name?: string | null
+          created_at?: string
+          id?: string
+          install_status?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          manufacturer?: string | null
+          meter_type?: string | null
+          mru?: string | null
+          msn?: string | null
+          premise?: string | null
+          premise_desc?: string | null
+          raw_location?: string | null
+          serial: string
+          updated_at?: string
+          utility: string
+        }
+        Update: {
+          acc_no?: string | null
+          action_required?: string | null
+          area?: string | null
+          building_id?: string | null
+          building_name?: string | null
+          created_at?: string
+          id?: string
+          install_status?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          manufacturer?: string | null
+          meter_type?: string | null
+          mru?: string | null
+          msn?: string | null
+          premise?: string | null
+          premise_desc?: string | null
+          raw_location?: string | null
+          serial?: string
+          updated_at?: string
+          utility?: string
+        }
+        Relationships: []
+      }
+      geofix_requests: {
+        Row: {
+          area: string | null
+          building_name: string | null
+          created_at: string
+          found_meter_new_latitude: number | null
+          found_meter_new_longitude: number | null
+          found_placement: string | null
+          found_serial: string | null
+          id: string
+          meter_id: string | null
+          new_latitude: number | null
+          new_longitude: number | null
+          old_latitude: number | null
+          old_longitude: number | null
+          remarks: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scenario: string
+          serial: string
+          status: string
+          submitted_by: string
+          submitted_by_name: string | null
+          updated_at: string
+          utility: string | null
+          week_label: string | null
+        }
+        Insert: {
+          area?: string | null
+          building_name?: string | null
+          created_at?: string
+          found_meter_new_latitude?: number | null
+          found_meter_new_longitude?: number | null
+          found_placement?: string | null
+          found_serial?: string | null
+          id?: string
+          meter_id?: string | null
+          new_latitude?: number | null
+          new_longitude?: number | null
+          old_latitude?: number | null
+          old_longitude?: number | null
+          remarks?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scenario: string
+          serial: string
+          status?: string
+          submitted_by: string
+          submitted_by_name?: string | null
+          updated_at?: string
+          utility?: string | null
+          week_label?: string | null
+        }
+        Update: {
+          area?: string | null
+          building_name?: string | null
+          created_at?: string
+          found_meter_new_latitude?: number | null
+          found_meter_new_longitude?: number | null
+          found_placement?: string | null
+          found_serial?: string | null
+          id?: string
+          meter_id?: string | null
+          new_latitude?: number | null
+          new_longitude?: number | null
+          old_latitude?: number | null
+          old_longitude?: number | null
+          remarks?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scenario?: string
+          serial?: string
+          status?: string
+          submitted_by?: string
+          submitted_by_name?: string | null
+          updated_at?: string
+          utility?: string | null
+          week_label?: string | null
+        }
+        Relationships: []
+      }
       verifications: {
         Row: {
           completed_date: string | null

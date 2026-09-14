@@ -167,7 +167,7 @@ export default function TcChecklist() {
   }
 
   const isTc = kind === "tc";
-  const header = isTc ? TC_HEADER : QA_HEADER;
+  const header = isTc ? TC_HEADER : qaHeader(project);
   const items = isTc ? TC_ITEMS : QA_ITEMS;
   const answers = isTc ? TC_ANSWERS : QA_ANSWERS;
   const steps = isTc

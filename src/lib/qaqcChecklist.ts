@@ -1,6 +1,7 @@
 export interface QaItem { key: string; label: string }
 
 export const QA_ITEMS: QaItem[] = [
+  { key: "g0", label: "Same Gateway (GW S/No) as per report confirmed found at site" },
   { key: "g1", label: "GRP Box Installed Properly" },
   { key: "g2", label: "Containment Installed Properly" },
   { key: "g3", label: "Cable is Pulled" },

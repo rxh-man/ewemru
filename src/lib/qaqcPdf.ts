@@ -239,12 +239,7 @@ export async function buildQaPdf(values: QaValues, project: QaProject = "ewe") {
     mTop -= h;
   });
 
-  const th = 18;
-  p2.drawRectangle({ x: M, y: mTop - th, width: W, height: th, color: HEAD_BG, borderColor: LINE, borderWidth: 0.7 });
-  p2.drawText("TOTAL QUANTITY", { x: M + 6, y: mTop - th + 6, size: 7.5, font: bold, color: BLACK });
-  const tv = String(total);
-  p2.drawText(tv, { x: mX[3] + (mQty - bold.widthOfTextAtSize(tv, 8)) / 2, y: mTop - th + 6, size: 8, font: bold, color: BLACK });
-  mTop -= th + 20;
+  mTop -= 24;
 
   p2.drawText("PREPARED BY", { x: M, y: mTop, size: 8, font: bold, color: GREY });
   mTop -= 14;

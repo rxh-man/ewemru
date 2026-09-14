@@ -45,7 +45,8 @@ function fmtDate(v: string) {
   return isNaN(d.getTime()) ? v : d.toLocaleDateString("en-GB");
 }
 
-export async function buildQaPdf(values: QaValues) {
+export async function buildQaPdf(values: QaValues, project: QaProject = "ewe") {
+  const projectName = QA_PROJECTS[project].name;
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);

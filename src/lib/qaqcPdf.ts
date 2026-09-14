@@ -211,7 +211,7 @@ export async function buildQaPdf(values: QaValues, project: QaProject = "ewe") {
     p2.drawText(h, { x: cx, y: my - headH + 6, size: 7, font: bold, color: BLACK });
   });
   let mTop = my - headH;
-  let total = 0;
+
 
   QA_MATERIALS.forEach((m) => {
     const lines = wrap(m.label, m.section ? bold : font, 7, mDesc - 8, 4);

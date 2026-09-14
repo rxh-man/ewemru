@@ -157,7 +157,7 @@ export async function buildQaPdf(values: QaValues, project: QaProject = "ewe") {
   gy -= 8;
 
   const half = (W - gap) / 2;
-  const bh = 42;
+  const bh = project === "taqa" ? 54 : 42;
   qaSigners(project).forEach((s, i) => {
     const col = i % 2;
     const row = Math.floor(i / 2);
@@ -168,7 +168,13 @@ export async function buildQaPdf(values: QaValues, project: QaProject = "ewe") {
     page.drawText(tl[0] || s.label, { x: x + 5, y: boxY + bh - 11, size: 7, font: bold, color: GREY });
     const nm = wrap(values[`${s.key}_name`] || "", font, 8.5, half - 10, 1);
     page.drawText(`Name: ${nm[0] || ""}`, { x: x + 5, y: boxY + bh - 25, size: 8.5, font, color: BLACK });
-    page.drawText(`Date: ${fmtDate(values[`${s.key}_date`] || "")}`, { x: x + 5, y: boxY + 8, size: 8.5, font, color: BLACK });
+    if (project === "taqa") {
+      const eid = wrap(values[`${s.key}_employeeId`] || "", font, 8.5, half - 10, 1);
+      page.drawText(`Employee ID: ${eid[0] || ""}`, { x: x + 5, y: boxY + bh - 38, size: 8.5, font, color: BLACK });
+      page.drawText(`Date: ${fmtDate(values[`${s.key}_date`] || "")}`, { x: x + 5, y: boxY + 8, size: 8.5, font, color: BLACK });
+    } else {
+      page.drawText(`Date: ${fmtDate(values[`${s.key}_date`] || "")}`, { x: x + 5, y: boxY + 8, size: 8.5, font, color: BLACK });
+    }
   });
 
   page.drawText(

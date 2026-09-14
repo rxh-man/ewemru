@@ -230,8 +230,6 @@ export async function buildQaPdf(values: QaValues, project: QaProject = "ewe") {
       p2.drawText(m.unit, { x: mX[2] + (mUnit - uw) / 2, y: mTop - h / 2 - 3, size: 7, font, color: BLACK });
       const qv = (values[`q_${m.key}`] || "").trim();
       if (qv) {
-        const n = Number(qv);
-        if (!isNaN(n)) total += n;
         const qw = bold.widthOfTextAtSize(qv, 8);
         p2.drawText(qv, { x: mX[3] + (mQty - qw) / 2, y: mTop - h / 2 - 3, size: 8, font: bold, color: BLACK });
       }

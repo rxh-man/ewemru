@@ -30,7 +30,7 @@ export const QA_PROJECTS: Record<QaProject, { name: string }> = {
 };
 
 export function qaHeader(project: QaProject): QaField[] {
-  return [
+  const fields: QaField[] = [
     { key: "reference", label: "Reference #", type: "text", placeholder: "e.g. QA-2026-014" },
     { key: "site", label: "Building Name", type: "text", required: true },
     {
@@ -43,9 +43,18 @@ export function qaHeader(project: QaProject): QaField[] {
     { key: "gw", label: "GW S/No", type: "text", required: true, placeholder: "e.g. GW123456" },
     { key: "ip", label: "IP Address", type: "text", placeholder: "e.g. 10.20.30.40" },
     { key: "iccid", label: "SIM ICCID", type: "text", placeholder: "e.g. 8997100000012345678" },
-    { key: "employeeId", label: "Employee ID", type: "text", required: true, placeholder: "e.g. 100482" },
     { key: "date", label: "Date", type: "date", required: true },
   ];
+  if (project !== "taqa") {
+    fields.splice(fields.findIndex((f) => f.key === "date"), 0, {
+      key: "employeeId",
+      label: "Employee ID",
+      type: "text",
+      required: true,
+      placeholder: "e.g. 100482",
+    });
+  }
+  return fields;
 }
 
 export const QA_HEADER: QaField[] = qaHeader("ewe");

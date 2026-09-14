@@ -187,7 +187,7 @@ export async function buildQaPdf(values: QaValues, project: QaProject = "ewe") {
   p2.drawText("Material List", { x: M, y: my - 12, size: 14, font: bold, color: BLACK });
   my -= 24;
   p2.drawText(
-    `${values.site || ""}${values.buildingId ? "  |  Building ID: " + values.buildingId : ""}${values.date ? "  |  " + fmtDate(values.date) : ""}`,
+    `Project: ${projectName}  |  ${values.site || ""}${values.buildingId ? "  |  " + (project === "taqa" ? "Building ID / UNAID: " : "Building ID: ") + values.buildingId : ""}${values.date ? "  |  " + fmtDate(values.date) : ""}`,
     { x: M, y: my - 2, size: 8, font, color: GREY },
   );
   my -= 12;

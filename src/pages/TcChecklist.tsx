@@ -53,6 +53,7 @@ export default function TcChecklist() {
     });
     if (kind === "tc" && !(values.name || "").trim()) missing.push("Name");
     if (kind === "qa" && !(values.s1_name || "").trim()) missing.push("e& QA/QC name");
+    if (kind === "qa" && project === "taqa" && !(values.s1_employeeId || "").trim()) missing.push("e& QA/QC employee ID");
     const unanswered = items.filter((i) => !values[i.key]).length;
     if (missing.length) {
       toast.error(`Please fill: ${missing.join(", ")}`);

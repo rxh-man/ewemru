@@ -52,12 +52,17 @@ export function qaHeader(project: QaProject): QaField[] {
 
 export const QA_HEADER: QaField[] = qaHeader("ewe");
 
-export const QA_SIGNERS: { key: string; label: string }[] = [
-  { key: "s1", label: "e& QA/QC" },
-  { key: "s2", label: "e& PM" },
-  { key: "s3", label: "Etihad Water and Electricity QA/QC" },
-  { key: "s4", label: "Etihad Water and Electricity PM" },
-];
+export function qaSigners(project: QaProject): { key: string; label: string }[] {
+  const client = project === "taqa" ? "TAQA" : "Etihad Water and Electricity";
+  return [
+    { key: "s1", label: "e& QA/QC" },
+    { key: "s2", label: "e& PM" },
+    { key: "s3", label: `${client} QA/QC` },
+    { key: "s4", label: `${client} PM` },
+  ];
+}
+
+export const QA_SIGNERS = qaSigners("ewe");
 
 export type QaValues = Record<string, string>;
 

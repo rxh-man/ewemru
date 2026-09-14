@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TC_HEADER, TC_ITEMS, TC_ANSWERS, type TcValues } from "@/lib/tcChecklist";
-import { qaHeader, QA_ITEMS, QA_ANSWERS, QA_SIGNERS, QA_MATERIALS, QA_PROJECTS, type QaProject, type QaValues } from "@/lib/qaqcChecklist";
+import { qaHeader, qaSigners, QA_ITEMS, QA_ANSWERS, QA_MATERIALS, QA_PROJECTS, type QaProject, type QaValues } from "@/lib/qaqcChecklist";
 import { buildTcPdf } from "@/lib/tcPdf";
 import { buildQaPdf } from "@/lib/qaqcPdf";
 import { downloadPdf } from "@/lib/rmaPdf";
@@ -36,7 +36,7 @@ export default function TcChecklist() {
     if (k === "tc") setValues({ tcDate: today(), signDate: today() });
     else {
       const init: QaValues = { date: today() };
-      QA_SIGNERS.forEach((s) => { init[`${s.key}_date`] = today(); });
+      qaSigners(p).forEach((s) => { init[`${s.key}_date`] = today(); });
       setValues(init);
     }
     setStep(0);
@@ -335,7 +335,7 @@ export default function TcChecklist() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </label>
-            {QA_SIGNERS.map((s, i) => (
+            {qaSigners(project).map((s, i) => (
               <div key={s.key} className="rounded-md border border-border bg-card p-4">
                 <div className="text-xs font-semibold text-card-foreground mb-3">
                   {s.label}

@@ -46,7 +46,7 @@ export default function TcChecklist() {
 
   async function generate() {
     const missing: string[] = [];
-    const header = kind === "tc" ? TC_HEADER : QA_HEADER;
+    const header = kind === "tc" ? TC_HEADER : qaHeader(project);
     const items = kind === "tc" ? TC_ITEMS : QA_ITEMS;
     header.forEach((f) => {
       if (f.required && !(values[f.key] || "").trim()) missing.push(f.label);

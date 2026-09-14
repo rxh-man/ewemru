@@ -1,5 +1,5 @@
 import { PDFDocument, PDFFont, StandardFonts, rgb } from "pdf-lib";
-import { QA_ITEMS, QA_MATERIALS, QA_SIGNERS, type QaValues } from "./qaqcChecklist";
+import { QA_ITEMS, QA_MATERIALS, QA_PROJECTS, qaSigners, qaHeader, type QaProject, type QaValues } from "./qaqcChecklist";
 import logoUrl from "@/assets/eand.png";
 
 const A4: [number, number] = [595.28, 841.89];
@@ -45,7 +45,8 @@ function fmtDate(v: string) {
   return isNaN(d.getTime()) ? v : d.toLocaleDateString("en-GB");
 }
 
-export async function buildQaPdf(values: QaValues) {
+export async function buildQaPdf(values: QaValues, project: QaProject = "ewe") {
+  const projectName = QA_PROJECTS[project].name;
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -63,9 +64,9 @@ export async function buildQaPdf(values: QaValues) {
     const w = (logo.width / logo.height) * h;
     page.drawImage(logo, { x: M + W - w, y: y - h, width: w, height: h });
   }
-  page.drawText("Quality Inspection Checklist", { x: M, y: y - 12, size: 14, font: bold, color: BLACK });
+  page.drawText("QA/QC Quality Inspection Checklist", { x: M, y: y - 12, size: 14, font: bold, color: BLACK });
   y -= 24;
-  page.drawText("Supply and Installation of Communication Device for Smart Electricity Meters", {
+  page.drawText(`Project: ${projectName}  |  Supply and Installation of Communication Device for Smart Electricity Meters`, {
     x: M, y: y - 2, size: 8, font, color: GREY,
   });
   y -= 12;
@@ -73,26 +74,27 @@ export async function buildQaPdf(values: QaValues) {
   y -= 16;
 
   const gap = 8;
-  const cw = (W - gap) / 2;
-  const pairs: [string, string][] = [
-    ["REFERENCE #", values.reference || ""],
-    ["SITE NAME", values.site || ""],
-    ["BUILDING ID #", values.buildingId || ""],
-    ["DATE", fmtDate(values.date || "")],
-  ];
-  for (let r = 0; r < 2; r++) {
-    const h = 30;
-    for (let c = 0; c < 2; c++) {
-      const [label, value] = pairs[r * 2 + c];
+  const cols = 3;
+  const cw = (W - gap * (cols - 1)) / cols;
+  const pairs: [string, string][] = qaHeader(project).map((f) => [
+    f.label.toUpperCase(),
+    f.type === "date" ? fmtDate(values[f.key] || "") : values[f.key] || "",
+  ]);
+  for (let r = 0; r < Math.ceil(pairs.length / cols); r++) {
+    const h = 28;
+    for (let c = 0; c < cols; c++) {
+      const cell = pairs[r * cols + c];
+      if (!cell) continue;
+      const [label, value] = cell;
       const x = M + c * (cw + gap);
       page.drawRectangle({ x, y: y - h, width: cw, height: h, borderColor: LINE, borderWidth: 0.7 });
-      page.drawText(label, { x: x + 5, y: y - 10, size: 7, font: bold, color: GREY });
-      const ln = wrap(value, font, 9, cw - 10, 1);
-      if (ln[0]) page.drawText(ln[0], { x: x + 5, y: y - 22, size: 9, font, color: BLACK });
+      page.drawText(wrap(label, bold, 6.5, cw - 8, 1)[0] || label, { x: x + 5, y: y - 10, size: 6.5, font: bold, color: GREY });
+      const ln = wrap(value, font, 8.5, cw - 10, 1);
+      if (ln[0]) page.drawText(ln[0], { x: x + 5, y: y - 21, size: 8.5, font, color: BLACK });
     }
     y -= h + gap;
   }
-  y -= 4;
+  y -= 2;
 
   page.drawText("GATEWAY INSTALLATION CHECKLIST", { x: M, y: y - 8, size: 8.5, font: bold, color: BLACK });
   y -= 16;
@@ -156,7 +158,7 @@ export async function buildQaPdf(values: QaValues) {
 
   const half = (W - gap) / 2;
   const bh = 42;
-  QA_SIGNERS.forEach((s, i) => {
+  qaSigners(project).forEach((s, i) => {
     const col = i % 2;
     const row = Math.floor(i / 2);
     const x = M + col * (half + gap);
@@ -185,7 +187,7 @@ export async function buildQaPdf(values: QaValues) {
   p2.drawText("Material List", { x: M, y: my - 12, size: 14, font: bold, color: BLACK });
   my -= 24;
   p2.drawText(
-    `${values.site || ""}${values.buildingId ? "  |  Building ID: " + values.buildingId : ""}${values.date ? "  |  " + fmtDate(values.date) : ""}`,
+    `Project: ${projectName}  |  ${values.site || ""}${values.buildingId ? "  |  " + (project === "taqa" ? "Building ID / UNAID: " : "Building ID: ") + values.buildingId : ""}${values.date ? "  |  " + fmtDate(values.date) : ""}`,
     { x: M, y: my - 2, size: 8, font, color: GREY },
   );
   my -= 12;
@@ -209,7 +211,7 @@ export async function buildQaPdf(values: QaValues) {
     p2.drawText(h, { x: cx, y: my - headH + 6, size: 7, font: bold, color: BLACK });
   });
   let mTop = my - headH;
-  let total = 0;
+
 
   QA_MATERIALS.forEach((m) => {
     const lines = wrap(m.label, m.section ? bold : font, 7, mDesc - 8, 4);
@@ -228,8 +230,6 @@ export async function buildQaPdf(values: QaValues) {
       p2.drawText(m.unit, { x: mX[2] + (mUnit - uw) / 2, y: mTop - h / 2 - 3, size: 7, font, color: BLACK });
       const qv = (values[`q_${m.key}`] || "").trim();
       if (qv) {
-        const n = Number(qv);
-        if (!isNaN(n)) total += n;
         const qw = bold.widthOfTextAtSize(qv, 8);
         p2.drawText(qv, { x: mX[3] + (mQty - qw) / 2, y: mTop - h / 2 - 3, size: 8, font: bold, color: BLACK });
       }
@@ -237,12 +237,7 @@ export async function buildQaPdf(values: QaValues) {
     mTop -= h;
   });
 
-  const th = 18;
-  p2.drawRectangle({ x: M, y: mTop - th, width: W, height: th, color: HEAD_BG, borderColor: LINE, borderWidth: 0.7 });
-  p2.drawText("TOTAL QUANTITY", { x: M + 6, y: mTop - th + 6, size: 7.5, font: bold, color: BLACK });
-  const tv = String(total);
-  p2.drawText(tv, { x: mX[3] + (mQty - bold.widthOfTextAtSize(tv, 8)) / 2, y: mTop - th + 6, size: 8, font: bold, color: BLACK });
-  mTop -= th + 20;
+  mTop -= 24;
 
   p2.drawText("PREPARED BY", { x: M, y: mTop, size: 8, font: bold, color: GREY });
   mTop -= 14;

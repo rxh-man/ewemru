@@ -1,6 +1,7 @@
 export interface QaItem { key: string; label: string }
 
 export const QA_ITEMS: QaItem[] = [
+  { key: "g0", label: "Same Gateway (GW S/No) as per report confirmed found at site" },
   { key: "g1", label: "GRP Box Installed Properly" },
   { key: "g2", label: "Containment Installed Properly" },
   { key: "g3", label: "Cable is Pulled" },
@@ -17,19 +18,51 @@ export const QA_ANSWERS = ["YES", "NO", "N/A"] as const;
 
 export interface QaField { key: string; label: string; type: "text" | "date"; required?: boolean; placeholder?: string }
 
-export const QA_HEADER: QaField[] = [
-  { key: "reference", label: "Reference #", type: "text", placeholder: "e.g. QA-2026-014" },
-  { key: "site", label: "Site Name", type: "text", required: true },
-  { key: "buildingId", label: "Building ID #", type: "text", required: true, placeholder: "e.g. B-10245" },
-  { key: "date", label: "Date", type: "date", required: true },
-];
+export type QaProject = "ewe" | "taqa";
 
-export const QA_SIGNERS: { key: string; label: string }[] = [
-  { key: "s1", label: "e& QA/QC" },
-  { key: "s2", label: "e& PM" },
-  { key: "s3", label: "Etihad Water and Electricity QA/QC" },
-  { key: "s4", label: "Etihad Water and Electricity PM" },
-];
+export const QA_PROJECTS: Record<QaProject, { name: string; blurb: string }> = {
+  ewe: {
+    name: "Etihad WE",
+    blurb: "Gateway installation inspection for the Etihad WE smart metering programme.",
+  },
+  taqa: {
+    name: "TAQA",
+    blurb: "Same inspection adapted for TAQA, with Building ID / UNAID captured on the record.",
+  },
+};
+
+export function qaHeader(project: QaProject): QaField[] {
+  return [
+    { key: "reference", label: "Reference #", type: "text", placeholder: "e.g. QA-2026-014" },
+    { key: "site", label: "Building Name", type: "text", required: true },
+    {
+      key: "buildingId",
+      label: project === "taqa" ? "Building ID / UNAID" : "Building ID #",
+      type: "text",
+      required: true,
+      placeholder: project === "taqa" ? "e.g. UNAID-104578" : "e.g. B-10245",
+    },
+    { key: "gw", label: "GW S/No", type: "text", required: true, placeholder: "e.g. GW123456" },
+    { key: "ip", label: "IP Address", type: "text", placeholder: "e.g. 10.20.30.40" },
+    { key: "iccid", label: "SIM ICCID", type: "text", placeholder: "e.g. 8997100000012345678" },
+    { key: "employeeId", label: "Employee ID", type: "text", required: true, placeholder: "e.g. 100482" },
+    { key: "date", label: "Date", type: "date", required: true },
+  ];
+}
+
+export const QA_HEADER: QaField[] = qaHeader("ewe");
+
+export function qaSigners(project: QaProject): { key: string; label: string }[] {
+  const client = project === "taqa" ? "TAQA" : "Etihad Water and Electricity";
+  return [
+    { key: "s1", label: "e& QA/QC" },
+    { key: "s2", label: "e& PM" },
+    { key: "s3", label: `${client} QA/QC` },
+    { key: "s4", label: `${client} PM` },
+  ];
+}
+
+export const QA_SIGNERS = qaSigners("ewe");
 
 export type QaValues = Record<string, string>;
 

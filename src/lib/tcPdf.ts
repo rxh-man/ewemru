@@ -80,11 +80,15 @@ export async function buildTcPdf(values: TcValues) {
     ["T & C Date", fmtDate(values.tcDate || "")],
     ["GW S/No", values.gw || ""],
     ["IP Address", values.ip || ""],
+    ["SIM ICCID", values.iccid || ""],
+    ["Employee ID", values.employeeId || ""],
   ];
-  for (let r = 0; r < 2; r++) {
+  for (let r = 0; r < Math.ceil(pairs.length / 2); r++) {
     const h = 30;
     for (let c = 0; c < 2; c++) {
-      const [label, value] = pairs[r * 2 + c];
+      const cell = pairs[r * 2 + c];
+      if (!cell) continue;
+      const [label, value] = cell;
       const x = M + c * (cw + gap);
       page.drawRectangle({ x, y: y - h, width: cw, height: h, borderColor: LINE, borderWidth: 0.7 });
       page.drawText(label, { x: x + 5, y: y - 10, size: 7, font: bold, color: GREY });

@@ -22,6 +22,8 @@ export const TC_HEADER: TcHeaderField[] = [
   { key: "tcDate", label: "T & C Date", type: "date", required: true },
   { key: "gw", label: "GW S/No", type: "text", required: true, placeholder: "e.g. GW123456" },
   { key: "ip", label: "IP Address", type: "text", placeholder: "e.g. 10.20.30.40" },
+  { key: "iccid", label: "SIM ICCID", type: "text", placeholder: "e.g. 8997100000012345678" },
+  { key: "employeeId", label: "Employee ID", type: "text", required: true, placeholder: "e.g. 100482" },
 ];
 
 export type TcValues = Record<string, string>;

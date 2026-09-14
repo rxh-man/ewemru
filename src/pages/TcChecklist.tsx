@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TC_HEADER, TC_ITEMS, TC_ANSWERS, type TcValues } from "@/lib/tcChecklist";
-import { QA_HEADER, QA_ITEMS, QA_ANSWERS, QA_SIGNERS, QA_MATERIALS, type QaValues } from "@/lib/qaqcChecklist";
+import { qaHeader, qaSigners, QA_ITEMS, QA_ANSWERS, QA_MATERIALS, QA_PROJECTS, type QaProject, type QaValues } from "@/lib/qaqcChecklist";
 import { buildTcPdf } from "@/lib/tcPdf";
 import { buildQaPdf } from "@/lib/qaqcPdf";
 import { downloadPdf } from "@/lib/rmaPdf";
@@ -22,6 +22,7 @@ function safeName(v: string, fallback: string) {
 
 export default function TcChecklist() {
   const [kind, setKind] = useState<Kind | null>(null);
+  const [project, setProject] = useState<QaProject>("ewe");
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [values, setValues] = useState<TcValues & QaValues>({});
@@ -30,11 +31,12 @@ export default function TcChecklist() {
     setValues((p) => ({ ...p, [k]: v }));
   }
 
-  function start(k: Kind) {
+  function start(k: Kind, p: QaProject = "ewe") {
+    setProject(p);
     if (k === "tc") setValues({ tcDate: today(), signDate: today() });
     else {
       const init: QaValues = { date: today() };
-      QA_SIGNERS.forEach((s) => { init[`${s.key}_date`] = today(); });
+      qaSigners(p).forEach((s) => { init[`${s.key}_date`] = today(); });
       setValues(init);
     }
     setStep(0);
@@ -44,7 +46,7 @@ export default function TcChecklist() {
 
   async function generate() {
     const missing: string[] = [];
-    const header = kind === "tc" ? TC_HEADER : QA_HEADER;
+    const header = kind === "tc" ? TC_HEADER : qaHeader(project);
     const items = kind === "tc" ? TC_ITEMS : QA_ITEMS;
     header.forEach((f) => {
       if (f.required && !(values[f.key] || "").trim()) missing.push(f.label);
@@ -66,8 +68,8 @@ export default function TcChecklist() {
         const bytes = await buildTcPdf(values);
         downloadPdf(bytes, `${safeName(values.building, "TC_Checklist")}.pdf`);
       } else {
-        const bytes = await buildQaPdf(values);
-        downloadPdf(bytes, `${safeName(values.site, "QAQC_Checklist")}.pdf`);
+        const bytes = await buildQaPdf(values, project);
+        downloadPdf(bytes, `QA-QC-_checklist_${safeName(values.site, "Building")}_${safeName(values.date || today(), today())}.pdf`);
       }
       toast.success("Checklist generated and downloaded");
     } catch (e: any) {
@@ -108,12 +110,12 @@ export default function TcChecklist() {
               <ShieldCheck className="h-7 w-7 text-primary" aria-hidden="true" />
               <div>
                 <div className="text-sm font-semibold text-foreground">Controlled quality records</div>
-                <div className="text-xs text-muted-foreground">2 inspection types</div>
+                <div className="text-xs text-muted-foreground">3 inspection types</div>
               </div>
             </div>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-2">
+          <section className="grid gap-4 lg:grid-cols-3">
             <div className="flex min-h-72 flex-col justify-between rounded-lg bg-primary p-7 text-primary-foreground shadow-lg sm:p-9">
               <div>
                 <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-md bg-primary-foreground/15">
@@ -124,25 +126,26 @@ export default function TcChecklist() {
                   Gateway commissioning verification: firmware, profile, signal, ping and reporting checks.
                 </p>
               </div>
-              <Button onClick={() => start("tc")} className="mt-8 w-full justify-between bg-primary-foreground text-primary hover:bg-primary-foreground/90 sm:w-56">
+              <Button onClick={() => start("tc")} className="mt-8 w-full justify-between bg-primary-foreground text-primary hover:bg-primary-foreground/90">
                 Begin T&amp;C checklist <ArrowRight aria-hidden="true" />
               </Button>
             </div>
 
-            <div className="flex min-h-72 flex-col justify-between rounded-lg border border-border bg-card p-7 shadow-sm sm:p-9">
-              <div>
-                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
-                  <FileCheck2 className="h-6 w-6 text-primary" aria-hidden="true" />
+            {(["ewe", "taqa"] as QaProject[]).map((p) => (
+              <div key={p} className="flex min-h-72 flex-col justify-between rounded-lg border border-border bg-card p-7 shadow-sm sm:p-9">
+                <div>
+                  <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
+                    <FileCheck2 className="h-6 w-6 text-primary" aria-hidden="true" />
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-primary">Project {QA_PROJECTS[p].name}</p>
+                  <h2 className="mt-1 text-2xl font-bold text-card-foreground">QA/QC Checklist</h2>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{QA_PROJECTS[p].blurb}</p>
                 </div>
-                <h2 className="text-2xl font-bold text-card-foreground">QA/QC Checklist</h2>
-                <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                  Gateway installation inspection: enclosure, containment, cabling, labels, SIM, activation and DLMS connectivity.
-                </p>
+                <Button onClick={() => start("qa", p)} className="mt-8 w-full justify-between bg-foreground text-background hover:bg-foreground/90">
+                  Begin {QA_PROJECTS[p].name} QA/QC <ArrowRight aria-hidden="true" />
+                </Button>
               </div>
-              <Button onClick={() => start("qa")} className="mt-8 w-full justify-between bg-foreground text-background hover:bg-foreground/90 sm:w-56">
-                Begin QA/QC checklist <ArrowRight aria-hidden="true" />
-              </Button>
-            </div>
+            ))}
           </section>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -165,7 +168,7 @@ export default function TcChecklist() {
   }
 
   const isTc = kind === "tc";
-  const header = isTc ? TC_HEADER : QA_HEADER;
+  const header = isTc ? TC_HEADER : qaHeader(project);
   const items = isTc ? TC_ITEMS : QA_ITEMS;
   const answers = isTc ? TC_ANSWERS : QA_ANSWERS;
   const steps = isTc
@@ -173,8 +176,10 @@ export default function TcChecklist() {
     : ["Site details", "Installation checklist", "Material list", "Reviewed & verified by"];
   const stepName = steps[step];
   const last = step === steps.length - 1;
-  const title = isTc ? "T & C Checklist" : "QA/QC Checklist";
-  const fileLabel = isTc ? (values.building || "Building Name") : (values.site || "Site Name");
+  const title = isTc ? "T & C Checklist" : `QA/QC Checklist · ${QA_PROJECTS[project].name}`;
+  const fileLabel = isTc
+    ? `${values.building || "Building Name"}.pdf`
+    : `QA-QC-_checklist_${values.site || "Building Name"}_${values.date || today()}.pdf`;
 
   return (
     <div className="min-h-screen bg-secondary pb-28">
@@ -330,7 +335,7 @@ export default function TcChecklist() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </label>
-            {QA_SIGNERS.map((s, i) => (
+            {qaSigners(project).map((s, i) => (
               <div key={s.key} className="rounded-md border border-border bg-card p-4">
                 <div className="text-xs font-semibold text-card-foreground mb-3">
                   {s.label}
@@ -356,7 +361,7 @@ export default function TcChecklist() {
 
         {last && (
           <p className="text-[11px] text-muted-foreground px-1">
-            The PDF will be saved as {fileLabel}.pdf
+            The PDF will be saved as {fileLabel}
           </p>
         )}
       </main>

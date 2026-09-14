@@ -175,8 +175,10 @@ export default function TcChecklist() {
     : ["Site details", "Installation checklist", "Material list", "Reviewed & verified by"];
   const stepName = steps[step];
   const last = step === steps.length - 1;
-  const title = isTc ? "T & C Checklist" : "QA/QC Checklist";
-  const fileLabel = isTc ? (values.building || "Building Name") : (values.site || "Site Name");
+  const title = isTc ? "T & C Checklist" : `QA/QC Checklist · ${QA_PROJECTS[project].name}`;
+  const fileLabel = isTc
+    ? `${values.building || "Building Name"}.pdf`
+    : `QA-QC-_checklist_${values.site || "Building Name"}_${values.date || today()}.pdf`;
 
   return (
     <div className="min-h-screen bg-secondary pb-28">

@@ -20,14 +20,12 @@ export interface QaField { key: string; label: string; type: "text" | "date"; re
 
 export type QaProject = "ewe" | "taqa";
 
-export const QA_PROJECTS: Record<QaProject, { name: string; blurb: string }> = {
+export const QA_PROJECTS: Record<QaProject, { name: string }> = {
   ewe: {
     name: "Etihad WE",
-    blurb: "Gateway installation inspection for the Etihad WE smart metering programme.",
   },
   taqa: {
     name: "TAQA",
-    blurb: "Same inspection adapted for TAQA, with Building ID / UNAID captured on the record.",
   },
 };
 

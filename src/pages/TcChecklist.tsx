@@ -6,8 +6,10 @@ import { buildQaPdf } from "@/lib/qaqcPdf";
 import { downloadPdf } from "@/lib/rmaPdf";
 import { Toaster, toast } from "sonner";
 import eandLogo from "@/assets/eand.png";
+import etihadWeLogo from "@/assets/etihad-we.png.asset.json";
+import taqaLogo from "@/assets/taqa.png.asset.json";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Check, ClipboardCheck, Download, FileCheck2, RotateCcw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ClipboardCheck, Download, RotateCcw, ShieldCheck } from "lucide-react";
 
 type Kind = "tc" | "qa";
 
@@ -134,12 +136,15 @@ export default function TcChecklist() {
             {(["ewe", "taqa"] as QaProject[]).map((p) => (
               <div key={p} className="flex min-h-72 flex-col justify-between rounded-lg border border-border bg-card p-7 shadow-sm sm:p-9">
                 <div>
-                  <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
-                    <FileCheck2 className="h-6 w-6 text-primary" aria-hidden="true" />
+                  <div className="mb-8 flex h-12 w-12 items-center justify-center overflow-hidden rounded-md border border-border bg-background p-1.5">
+                    <img
+                      src={p === "ewe" ? etihadWeLogo.url : taqaLogo.url}
+                      alt={`${QA_PROJECTS[p].name} logo`}
+                      className="h-full w-full object-contain"
+                    />
                   </div>
                   <p className="text-xs font-semibold uppercase tracking-widest text-primary">Project {QA_PROJECTS[p].name}</p>
                   <h2 className="mt-1 text-2xl font-bold text-card-foreground">QA/QC Checklist</h2>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{QA_PROJECTS[p].blurb}</p>
                 </div>
                 <Button onClick={() => start("qa", p)} className="mt-8 w-full justify-between bg-foreground text-background hover:bg-foreground/90">
                   Begin {QA_PROJECTS[p].name} QA/QC <ArrowRight aria-hidden="true" />
@@ -159,7 +164,7 @@ export default function TcChecklist() {
               <ShieldCheck className="h-7 w-7 text-primary" aria-hidden="true" />
               <h2 className="mt-6 text-lg font-bold text-card-foreground">Nothing is stored</h2>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">Every document is produced locally in this browser; no inspection data leaves the device.</p>
-              <div className="mt-6 border-t border-border pt-4 text-xs font-semibold uppercase tracking-wider text-primary">Private by design</div>
+              <div className="mt-6 border-t border-border pt-4 text-xs font-semibold uppercase tracking-wider text-primary">Data Security</div>
             </div>
           </div>
         </main>

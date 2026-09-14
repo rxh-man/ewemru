@@ -22,6 +22,7 @@ function safeName(v: string, fallback: string) {
 
 export default function TcChecklist() {
   const [kind, setKind] = useState<Kind | null>(null);
+  const [project, setProject] = useState<QaProject>("ewe");
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [values, setValues] = useState<TcValues & QaValues>({});
@@ -30,7 +31,8 @@ export default function TcChecklist() {
     setValues((p) => ({ ...p, [k]: v }));
   }
 
-  function start(k: Kind) {
+  function start(k: Kind, p: QaProject = "ewe") {
+    setProject(p);
     if (k === "tc") setValues({ tcDate: today(), signDate: today() });
     else {
       const init: QaValues = { date: today() };

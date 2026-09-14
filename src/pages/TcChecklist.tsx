@@ -360,7 +360,7 @@ export default function TcChecklist() {
 
         {last && (
           <p className="text-[11px] text-muted-foreground px-1">
-            The PDF will be saved as {fileLabel}.pdf
+            The PDF will be saved as {fileLabel}
           </p>
         )}
       </main>

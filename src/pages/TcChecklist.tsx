@@ -6,8 +6,6 @@ import { buildQaPdf } from "@/lib/qaqcPdf";
 import { downloadPdf } from "@/lib/rmaPdf";
 import { Toaster, toast } from "sonner";
 import eandLogo from "@/assets/eand.png";
-import etihadWeLogo from "@/assets/etihad-we.png.asset.json";
-import taqaLogo from "@/assets/taqa.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, Download, RotateCcw, ShieldCheck } from "lucide-react";
 
@@ -138,7 +136,7 @@ export default function TcChecklist() {
                 <div>
                   <div className="mb-8 flex h-12 w-12 items-center justify-center overflow-hidden rounded-md border border-border bg-background p-1.5">
                     <img
-                      src={p === "ewe" ? etihadWeLogo.url : taqaLogo.url}
+                      src={p === "ewe" ? "./inspect/etihad-we.png" : "./inspect/taqa.png"}
                       alt={`${QA_PROJECTS[p].name} logo`}
                       className="h-full w-full object-contain"
                     />

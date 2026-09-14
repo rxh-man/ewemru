@@ -110,12 +110,12 @@ export default function TcChecklist() {
               <ShieldCheck className="h-7 w-7 text-primary" aria-hidden="true" />
               <div>
                 <div className="text-sm font-semibold text-foreground">Controlled quality records</div>
-                <div className="text-xs text-muted-foreground">2 inspection types</div>
+                <div className="text-xs text-muted-foreground">3 inspection types</div>
               </div>
             </div>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-2">
+          <section className="grid gap-4 lg:grid-cols-3">
             <div className="flex min-h-72 flex-col justify-between rounded-lg bg-primary p-7 text-primary-foreground shadow-lg sm:p-9">
               <div>
                 <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-md bg-primary-foreground/15">
@@ -126,25 +126,26 @@ export default function TcChecklist() {
                   Gateway commissioning verification: firmware, profile, signal, ping and reporting checks.
                 </p>
               </div>
-              <Button onClick={() => start("tc")} className="mt-8 w-full justify-between bg-primary-foreground text-primary hover:bg-primary-foreground/90 sm:w-56">
+              <Button onClick={() => start("tc")} className="mt-8 w-full justify-between bg-primary-foreground text-primary hover:bg-primary-foreground/90">
                 Begin T&amp;C checklist <ArrowRight aria-hidden="true" />
               </Button>
             </div>
 
-            <div className="flex min-h-72 flex-col justify-between rounded-lg border border-border bg-card p-7 shadow-sm sm:p-9">
-              <div>
-                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
-                  <FileCheck2 className="h-6 w-6 text-primary" aria-hidden="true" />
+            {(["ewe", "taqa"] as QaProject[]).map((p) => (
+              <div key={p} className="flex min-h-72 flex-col justify-between rounded-lg border border-border bg-card p-7 shadow-sm sm:p-9">
+                <div>
+                  <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
+                    <FileCheck2 className="h-6 w-6 text-primary" aria-hidden="true" />
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-primary">Project {QA_PROJECTS[p].name}</p>
+                  <h2 className="mt-1 text-2xl font-bold text-card-foreground">QA/QC Checklist</h2>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{QA_PROJECTS[p].blurb}</p>
                 </div>
-                <h2 className="text-2xl font-bold text-card-foreground">QA/QC Checklist</h2>
-                <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                  Gateway installation inspection: enclosure, containment, cabling, labels, SIM, activation and DLMS connectivity.
-                </p>
+                <Button onClick={() => start("qa", p)} className="mt-8 w-full justify-between bg-foreground text-background hover:bg-foreground/90">
+                  Begin {QA_PROJECTS[p].name} QA/QC <ArrowRight aria-hidden="true" />
+                </Button>
               </div>
-              <Button onClick={() => start("qa")} className="mt-8 w-full justify-between bg-foreground text-background hover:bg-foreground/90 sm:w-56">
-                Begin QA/QC checklist <ArrowRight aria-hidden="true" />
-              </Button>
-            </div>
+            ))}
           </section>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">

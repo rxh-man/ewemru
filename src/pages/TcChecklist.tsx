@@ -53,6 +53,7 @@ export default function TcChecklist() {
     });
     if (kind === "tc" && !(values.name || "").trim()) missing.push("Name");
     if (kind === "qa" && !(values.s1_name || "").trim()) missing.push("e& QA/QC name");
+    if (kind === "qa" && project === "taqa" && !(values.s1_employeeId || "").trim()) missing.push("e& QA/QC employee ID");
     const unanswered = items.filter((i) => !values[i.key]).length;
     if (missing.length) {
       toast.error(`Please fill: ${missing.join(", ")}`);
@@ -351,6 +352,15 @@ export default function TcChecklist() {
                   maxLength={80}
                   className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
+                {project === "taqa" && (
+                  <input
+                    value={values[`${s.key}_employeeId`] || ""}
+                    onChange={(e) => set(`${s.key}_employeeId`, e.target.value)}
+                    placeholder={`Employee ID${i === 0 ? " *" : ""}`}
+                    maxLength={40}
+                    className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                )}
                 <input
                   type="date"
                   value={values[`${s.key}_date`] || ""}

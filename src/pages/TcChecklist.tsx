@@ -66,7 +66,7 @@ export default function TcChecklist() {
     try {
       if (kind === "tc") {
         const bytes = await buildTcPdf(values);
-        downloadPdf(bytes, `${safeName(values.building, "TC_Checklist")}.pdf`);
+        downloadPdf(bytes, `TC_${safeName(values.building, "Building")}_${safeName(values.tcDate || today(), today())}.pdf`);
       } else {
         const bytes = await buildQaPdf(values, project);
         downloadPdf(bytes, `QA-QC-_checklist_${safeName(values.site, "Building")}_${safeName(values.date || today(), today())}.pdf`);
@@ -181,7 +181,7 @@ export default function TcChecklist() {
   const last = step === steps.length - 1;
   const title = isTc ? "T & C Checklist" : `QA/QC Checklist · ${QA_PROJECTS[project].name}`;
   const fileLabel = isTc
-    ? `${values.building || "Building Name"}.pdf`
+    ? `TC_${values.building || "Building Name"}_${values.tcDate || today()}.pdf`
     : `QA-QC-_checklist_${values.site || "Building Name"}_${values.date || today()}.pdf`;
 
   return (

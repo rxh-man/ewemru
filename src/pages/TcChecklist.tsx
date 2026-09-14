@@ -68,8 +68,8 @@ export default function TcChecklist() {
         const bytes = await buildTcPdf(values);
         downloadPdf(bytes, `${safeName(values.building, "TC_Checklist")}.pdf`);
       } else {
-        const bytes = await buildQaPdf(values);
-        downloadPdf(bytes, `${safeName(values.site, "QAQC_Checklist")}.pdf`);
+        const bytes = await buildQaPdf(values, project);
+        downloadPdf(bytes, `QA-QC-_checklist_${safeName(values.site, "Building")}_${safeName(values.date || today(), today())}.pdf`);
       }
       toast.success("Checklist generated and downloaded");
     } catch (e: any) {

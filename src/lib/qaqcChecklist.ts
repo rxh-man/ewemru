@@ -14,6 +14,13 @@ export const QA_ITEMS: QaItem[] = [
   { key: "g10", label: "On Site Verification for meter connectivity (Gurux for 1-M DLMS)" },
 ];
 
+export function qaItems(project: QaProject): QaItem[] {
+  // Etihad WE does not capture GW S/No, IP or SIM ICCID details, so the
+  // corresponding "same GW" confirmation point is omitted.
+  if (project === "ewe") return QA_ITEMS.filter((i) => i.key !== "g0");
+  return QA_ITEMS;
+}
+
 export const QA_ANSWERS = ["YES", "NO", "N/A"] as const;
 
 export interface QaField { key: string; label: string; type: "text" | "date"; required?: boolean; placeholder?: string }
@@ -40,11 +47,16 @@ export function qaHeader(project: QaProject): QaField[] {
       required: true,
       placeholder: project === "taqa" ? "e.g. UNAID-104578" : "e.g. B-10245",
     },
-    { key: "gw", label: "GW S/No", type: "text", required: true, placeholder: "e.g. GW123456" },
-    { key: "ip", label: "IP Address", type: "text", placeholder: "e.g. 10.20.30.40" },
-    { key: "iccid", label: "SIM ICCID", type: "text", placeholder: "e.g. 8997100000012345678" },
-    { key: "date", label: "Date", type: "date", required: true },
   ];
+  // TAQA captures gateway/network details; Etihad WE keeps only building info.
+  if (project === "taqa") {
+    fields.push(
+      { key: "gw", label: "GW S/No", type: "text", required: true, placeholder: "e.g. GW123456" },
+      { key: "ip", label: "IP Address", type: "text", placeholder: "e.g. 10.20.30.40" },
+      { key: "iccid", label: "SIM ICCID", type: "text", placeholder: "e.g. 8997100000012345678" },
+    );
+  }
+  fields.push({ key: "date", label: "Date", type: "date", required: true });
   if (project !== "taqa") {
     fields.splice(fields.findIndex((f) => f.key === "date"), 0, {
       key: "employeeId",

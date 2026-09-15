@@ -47,14 +47,14 @@ export default function TcChecklist() {
   async function generate() {
     const missing: string[] = [];
     const header = kind === "tc" ? TC_HEADER : qaHeader(project);
-    const items = kind === "tc" ? TC_ITEMS : QA_ITEMS;
+    const items = kind === "tc" ? TC_ITEMS : qaItems(project);
     header.forEach((f) => {
       if (f.required && !(values[f.key] || "").trim()) missing.push(f.label);
     });
     if (kind === "tc" && !(values.name || "").trim()) missing.push("Name");
     if (kind === "qa" && !(values.s1_name || "").trim()) missing.push("e& QA/QC name");
     if (kind === "qa" && project === "taqa" && !(values.s1_employeeId || "").trim()) missing.push("e& QA/QC employee ID");
-    const unanswered = items.filter((i) => !values[i.key]).length;
+    const unanswered = items.filter((i: { key: string }) => !values[i.key]).length;
     if (missing.length) {
       toast.error(`Please fill: ${missing.join(", ")}`);
       return;

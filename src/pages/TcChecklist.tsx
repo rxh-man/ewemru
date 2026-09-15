@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TC_HEADER, TC_ITEMS, TC_ANSWERS, type TcValues } from "@/lib/tcChecklist";
-import { qaHeader, qaSigners, QA_ITEMS, QA_ANSWERS, QA_MATERIALS, QA_PROJECTS, type QaProject, type QaValues } from "@/lib/qaqcChecklist";
+import { qaHeader, qaSigners, qaItems, QA_ANSWERS, QA_MATERIALS, QA_PROJECTS, type QaProject, type QaValues } from "@/lib/qaqcChecklist";
 import { buildTcPdf } from "@/lib/tcPdf";
 import { buildQaPdf } from "@/lib/qaqcPdf";
 import { downloadPdf } from "@/lib/rmaPdf";
@@ -173,7 +173,7 @@ export default function TcChecklist() {
 
   const isTc = kind === "tc";
   const header = isTc ? TC_HEADER : qaHeader(project);
-  const items = isTc ? TC_ITEMS : QA_ITEMS;
+  const items = isTc ? TC_ITEMS : qaItems(project);
   const answers = isTc ? TC_ANSWERS : QA_ANSWERS;
   const steps = isTc
     ? ["Site details", "Quality checklist", "Commissioned by"]

@@ -1,5 +1,5 @@
 import { PDFDocument, PDFFont, StandardFonts, rgb } from "pdf-lib";
-import { QA_ITEMS, QA_MATERIALS, QA_PROJECTS, qaSigners, qaHeader, type QaProject, type QaValues } from "./qaqcChecklist";
+import { qaItems, QA_MATERIALS, QA_PROJECTS, qaSigners, qaHeader, type QaProject, type QaValues } from "./qaqcChecklist";
 import logoUrl from "@/assets/eand.png";
 
 const A4: [number, number] = [595.28, 841.89];
@@ -119,7 +119,7 @@ export async function buildQaPdf(values: QaValues, project: QaProject = "ewe") {
   });
   let top = y - headH;
 
-  QA_ITEMS.forEach((it, idx) => {
+  qaItems(project).forEach((it, idx) => {
     const lblLines = wrap(it.label, font, 8, colItem - 8, 3);
     const cmtLines = wrap(values[`c_${it.key}`] || "", font, 7, colComments - 8, 3);
     const rectLines = wrap(values[`r_${it.key}`] || "", font, 7, colRect - 8, 3);

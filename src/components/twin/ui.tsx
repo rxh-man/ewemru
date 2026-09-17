@@ -125,7 +125,7 @@ export function Bar({ pct, tone = "brand" }: { pct: number; tone?: "brand" | "go
   );
 }
 
-export function Th({ children, right }: { children: ReactNode; right?: boolean }) {
+export function Th({ children, right }: { children?: ReactNode; right?: boolean }) {
   return <th className={`px-2.5 py-2 text-[10px] uppercase tracking-[0.12em] text-white/40 font-medium ${right ? "text-right" : "text-left"}`}>{children}</th>;
 }
 export function Td({ children, right, className = "" }: { children: ReactNode; right?: boolean; className?: string }) {

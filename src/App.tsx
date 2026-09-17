@@ -13,6 +13,7 @@ import RmaForms from "./pages/RmaForms";
 import TcChecklist from "./pages/TcChecklist";
 import FuelPortal from "./pages/FuelPortal";
 import GeoFix from "./pages/GeoFix";
+import Simulation from "./pages/Simulation";
 import NotFound from "./pages/NotFound";
 import { R } from "./lib/routes";
 
@@ -39,6 +40,8 @@ export default function App() {
         <Route path="/rmaforms" element={<RmaForms />} />
         <Route path={R.geofix} element={<GeoFix />} />
         <Route path="/GeoFix" element={<GeoFix />} />
+        <Route path={R.simulation} element={<Simulation />} />
+        <Route path="/simulation" element={<Simulation />} />
         <Route path={R.tc} element={<TcChecklist />} />
         <Route path="/Inspect" element={<TcChecklist />} />
         <Route path="/tc-7h2m5q" element={<TcChecklist />} />

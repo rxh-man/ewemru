@@ -507,7 +507,7 @@ export function maxPartnerRate(t: Twin, targetMargin = t.targets.marginPct): num
   for (let i = 0; i < 40; i++) {
     const mid = (lo + hi) / 2;
     const c = clone(t); c.partner.mode = "per_unit"; c.partner.perUnit = mid;
-    if (compute(c).marginPct >= targetMargin) lo = mid; else hi = mid;
+    if (compute(c, false).marginPct >= targetMargin) lo = mid; else hi = mid;
   }
   return lo;
 }
@@ -517,7 +517,7 @@ export function minClientPrice(t: Twin, targetMargin = t.targets.marginPct): num
   for (let i = 0; i < 40; i++) {
     const mid = (lo + hi) / 2;
     const c = clone(t); c.pricing.perUnit = mid;
-    if (compute(c).marginPct >= targetMargin) hi = mid; else lo = mid;
+    if (compute(c, false).marginPct >= targetMargin) hi = mid; else lo = mid;
   }
   return hi;
 }

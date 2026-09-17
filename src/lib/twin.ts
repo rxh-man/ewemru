@@ -264,7 +264,7 @@ export interface TwinResult {
 
 const ceil = (n: number) => (n > 0 ? Math.ceil(n) : 0);
 
-export function compute(t: Twin): TwinResult {
+export function compute(t: Twin, deep = true): TwinResult {
   const p = t.project;
   const qty = Math.max(0, p.quantity);
   const share = t.partner.share;
@@ -428,7 +428,7 @@ export function compute(t: Twin): TwinResult {
 
   const why: string[] = [];
   const fails = feasibility.filter((x) => !x.pass);
-  const sens = sensitivity(t);
+  const sens = deep ? sensitivity(t) : [];
   if (marginPct < t.targets.marginPct) why.push(`Forecast margin ${marginPct.toFixed(1)}% is below the ${t.targets.marginPct}% target`);
   if (fails.length) why.push(`${fails.length} feasibility check${fails.length > 1 ? "s" : ""} not met: ${fails.map((x) => x.name).join(", ")}`);
   if (sens[0] && Math.abs(sens[0].marginSwing) > 4) why.push(`High sensitivity — a 10% move in ${sens[0].name} swings margin by ${Math.abs(sens[0].marginSwing).toFixed(1)} pts`);
@@ -484,11 +484,11 @@ export const LEVERS: Lever[] = [
 ];
 
 export function sensitivity(t: Twin, delta = 0.1): SensRow[] {
-  const base = compute(t);
+  const base = compute(t, false);
   const rows = LEVERS.map((l) => {
     const up = clone(t); l.apply(up, 1 + delta);
     const dn = clone(t); l.apply(dn, 1 - delta);
-    const ru = compute(up), rd = compute(dn);
+    const ru = compute(up, false), rd = compute(dn, false);
     return {
       name: l.name,
       costSwing: (ru.totalCost - rd.totalCost) / 2,

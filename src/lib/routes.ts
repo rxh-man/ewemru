@@ -14,4 +14,5 @@ export const R = {
   rma: "/rma-4k9x3z",
   tc: "/inspect",
   geofix: "/geofix",
+  simulation: "/Simulation",
 } as const;

@@ -40,6 +40,10 @@ const BASE_USERS: Record<string, UserRecord> = {
     password: "123786", role: "routes",
     profile: { name: "Ali", title: "Field Team Route Planning", photo: "" },
   },
+  omar: {
+    password: "9372", role: "routes",
+    profile: { name: "Omar", title: "Field Team Route Planning", photo: "" },
+  },
   anoop: {
     password: "0011", role: "routes",
     profile: { name: "Anoop", title: "Fuel Governance", photo: "" },

@@ -147,7 +147,7 @@ function optimizeRoute(list: Stop[], anchor?: Stop): Stop[] {
   }
   const n = order.length;
   const cost = (a?: Stop, b?: Stop) => (a && b ? haversine(a, b) : 0);
-  const maxPasses = n > 300 ? 2 : 8;
+  const maxPasses = n > 1500 ? 0 : n > 300 ? 1 : 8;
   for (let pass = 0; pass < maxPasses; pass++) {
     let improved = false;
     // 2-opt: removes crossings that make the driver return towards an earlier point
@@ -163,15 +163,15 @@ function optimizeRoute(list: Stop[], anchor?: Stop): Stop[] {
       }
     }
     // Or-opt: relocate short runs of 1-3 stops to where they truly belong on the chain
-    for (let len = 1; len <= 3; len++) {
+    for (let len = 1; len <= 3 && n <= 250; len++) {
       for (let i = 0; i + len <= n; i++) {
         const prev = order[i - 1], seg = order.slice(i, i + len), next = order[i + len];
         const removed = cost(prev, seg[0]) + cost(seg[len - 1], next) - cost(prev, next);
         if (removed <= 1e-9) continue;
         let bestGain = 0, bestPos = -1, bestRev = false;
+        const rest = order.slice(0, i).concat(order.slice(i + len));
         for (let j = 0; j <= n - len; j++) {
           if (j >= i - 1 && j <= i + len) continue;
-          const rest = order.slice(0, i).concat(order.slice(i + len));
           const p = rest[j - 1], q = rest[j];
           if (!p && !q) continue;
           const fwd = cost(p, seg[0]) + cost(seg[len - 1], q) - cost(p, q);
